@@ -1,0 +1,24 @@
+# Compiled binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Tahr runtime logs and caches
+.tahr/
+!.tahr/launch.json
+
+# IDE & Editor caches
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Test artifacts & temporary files
+*.test
+*.out
+tmp/
