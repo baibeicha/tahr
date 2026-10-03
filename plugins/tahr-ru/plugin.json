@@ -1,0 +1,15 @@
+{
+  "id": "tahr-ru",
+  "name": "Russian Language Pack",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Complete Russian localization for Tahr IDE interface, dialogs, commands, and settings",
+  "category": "i18n",
+  "localizations": [
+    {
+      "locale": "ru",
+      "name": "Русский",
+      "file": "locales/ru.json"
+    }
+  ]
+}
