@@ -1,0 +1,29 @@
+{
+  "id": "git-worktree",
+  "name": "Git Worktree Manager",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Seamless management of parallel Git worktrees: add, switch, prune, and delete isolated branch checkouts without re-cloning",
+  "commands": [
+    {
+      "id": "git-worktree.manage",
+      "title": "Git: Manage Worktrees",
+      "default_keybinding": "Ctrl+Alt+W"
+    },
+    {
+      "id": "git-worktree.create",
+      "title": "Git: Create New Worktree"
+    }
+  ],
+  "capabilities": [
+    "process:exec",
+    "fs:read"
+  ],
+  "settings": {
+    "default_parent_dir": {
+      "type": "string",
+      "default": "../worktrees",
+      "description": "Default relative directory path where new worktrees are created"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "id": "jupyter-notebook",
+  "name": "Jupyter Notebook Interactive Runner",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Interactive .ipynb notebook editor and execution engine supporting code cells, markdown cells, rich MIME outputs, and kernel management",
+  "languages": [
+    {
+      "id": "jupyter",
+      "extensions": [
+        ".ipynb"
+      ]
+    }
+  ],
+  "tool_windows": [
+    {
+      "id": "jupyter-notebook-panel",
+      "title": "Notebooks",
+      "icon": "[NB]",
+      "position": "right"
+    }
+  ],
+  "commands": [
+    {
+      "id": "jupyter-notebook.runCell",
+      "title": "Notebook: Run Selected Cell and Advance",
+      "default_keybinding": "Shift+Enter"
+    },
+    {
+      "id": "jupyter-notebook.runAll",
+      "title": "Notebook: Run All Cells",
+      "default_keybinding": "Ctrl+Shift+Enter"
+    },
+    {
+      "id": "jupyter-notebook.restartKernel",
+      "title": "Notebook: Restart Kernel and Clear Outputs"
+    },
+    {
+      "id": "jupyter-notebook.insertCodeCell",
+      "title": "Notebook: Insert Code Cell Below"
+    },
+    {
+      "id": "jupyter-notebook.insertMarkdownCell",
+      "title": "Notebook: Insert Markdown Cell Below"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "fs:write",
+    "process:exec",
+    "network:client"
+  ],
+  "settings": {
+    "kernel_mode": {
+      "type": "string",
+      "default": "auto",
+      "description": "Execution backend: auto, local-ipykernel, or remote-jupyter-server"
+    },
+    "jupyter_server_url": {
+      "type": "string",
+      "default": "http://localhost:8888",
+      "description": "Base URL of remote Jupyter Server"
+    },
+    "auto_save_interval_sec": {
+      "type": "int",
+      "default": 60,
+      "description": "Auto-save interval in seconds for modified notebooks"
+    },
+    "max_output_display_rows": {
+      "type": "int",
+      "default": 100,
+      "description": "Maximum rows rendered per cell output table"
+    }
+  }
+}

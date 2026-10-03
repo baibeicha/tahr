@@ -1,0 +1,101 @@
+{
+  "id": "theme-pack",
+  "name": "Community Themes Pack",
+  "version": "1.0.0",
+  "author": "Tahr Community",
+  "description": "Premium developer color themes: One Dark Pro, Rosé Pine, Kanagawa, Cyberpunk, and Solarized Dark",
+  "themes": [
+    {
+      "id": "one-dark-pro",
+      "name": "One Dark Pro",
+      "colors": {
+        "bg": "#282c34",
+        "fg": "#abb2bf",
+        "sel_bg": "#3e4451",
+        "cursor": "#528bff",
+        "gutter_bg": "#21252b",
+        "line_number": "#5c6370",
+        "keyword": "#c678dd",
+        "function": "#61afef",
+        "string": "#98c379",
+        "type": "#e5c07b",
+        "comment": "#5c6370",
+        "constant": "#d19a66",
+        "error": "#e06c75",
+        "warn": "#e5c07b",
+        "border": "#3e4451",
+        "popup_bg": "#21252b",
+        "popup_sel_bg": "#3e4451"
+      }
+    },
+    {
+      "id": "rose-pine",
+      "name": "Rosé Pine",
+      "colors": {
+        "bg": "#191724",
+        "fg": "#e0def4",
+        "sel_bg": "#26233a",
+        "cursor": "#524f67",
+        "gutter_bg": "#1f1d2e",
+        "line_number": "#6e6a86",
+        "keyword": "#31748f",
+        "function": "#ebbcba",
+        "string": "#f6c177",
+        "type": "#9ccfd8",
+        "comment": "#6e6a86",
+        "constant": "#c4a7e7",
+        "error": "#eb6f92",
+        "warn": "#f6c177",
+        "border": "#26233a",
+        "popup_bg": "#1f1d2e",
+        "popup_sel_bg": "#403d52"
+      }
+    },
+    {
+      "id": "kanagawa",
+      "name": "Kanagawa Wave",
+      "colors": {
+        "bg": "#1f1f28",
+        "fg": "#dcd7ba",
+        "sel_bg": "#2d4f67",
+        "cursor": "#c8c093",
+        "gutter_bg": "#16161d",
+        "line_number": "#54546d",
+        "keyword": "#957fb8",
+        "function": "#7e9cd8",
+        "string": "#98bb6c",
+        "type": "#7aa89f",
+        "comment": "#727169",
+        "constant": "#ffa066",
+        "error": "#c34043",
+        "warn": "#dca561",
+        "border": "#363646",
+        "popup_bg": "#16161d",
+        "popup_sel_bg": "#223249"
+      }
+    },
+    {
+      "id": "cyberpunk",
+      "name": "Cyberpunk Neon",
+      "colors": {
+        "bg": "#120826",
+        "fg": "#ff7edb",
+        "sel_bg": "#372765",
+        "cursor": "#36f9f6",
+        "gutter_bg": "#0d0221",
+        "line_number": "#725ac1",
+        "keyword": "#ff007f",
+        "function": "#00f0ff",
+        "string": "#ffe600",
+        "type": "#72f1b8",
+        "comment": "#685e8a",
+        "constant": "#fe4450",
+        "error": "#fe4450",
+        "warn": "#fede5d",
+        "border": "#725ac1",
+        "popup_bg": "#0d0221",
+        "popup_sel_bg": "#372765"
+      }
+    }
+  ]
+}

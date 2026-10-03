@@ -1,0 +1,76 @@
+{
+  "id": "config-pack",
+  "name": "Config Formats: JSON, YAML & TOML",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Syntax highlighting, schema validation (SchemaStore), and document structure for JSON, YAML, and TOML configurations",
+  "capabilities": [
+    "fs:read"
+  ],
+  "languages": [
+    {
+      "id": "json",
+      "extensions": [
+        ".json",
+        ".jsonc"
+      ],
+      "filenames": [
+        "settings.json",
+        "keymaps.json",
+        "tsconfig.json",
+        "package.json"
+      ],
+      "comment_token": "//"
+    },
+    {
+      "id": "yaml",
+      "extensions": [
+        ".yaml",
+        ".yml"
+      ],
+      "filenames": [
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        ".gitlab-ci.yml"
+      ],
+      "comment_token": "#"
+    },
+    {
+      "id": "toml",
+      "extensions": [
+        ".toml"
+      ],
+      "filenames": [
+        "Cargo.toml",
+        "pyproject.toml"
+      ],
+      "comment_token": "#"
+    }
+  ],
+  "settings": {
+    "schema_validation": {
+      "type": "bool",
+      "default": true,
+      "description": "Enable SchemaStore validation for known manifests (package.json, docker-compose, etc.)"
+    },
+    "offline_cache": {
+      "type": "bool",
+      "default": true,
+      "description": "Use local schema cache for instant offline validation"
+    }
+  },
+  "project_templates": [
+    {
+      "id": "docker-compose-tpl",
+      "name": "Docker Compose Manifest",
+      "description": "Ready-to-use docker-compose.yml template with healthchecks and network definitions",
+      "category": "DevOps",
+      "files": [
+        {
+          "path": "docker-compose.yml",
+          "content": "version: '3.8'\nservices:\n  app:\n    build: .\n    ports:\n      - \"8080:8080\"\n    environment:\n      - ENV=development\n    restart: unless-stopped\n"
+        }
+      ]
+    }
+  ]
+}

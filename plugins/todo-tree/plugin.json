@@ -1,0 +1,37 @@
+{
+  "id": "todo-tree",
+  "name": "Workspace TODO Tree",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Scans workspace files for TODO, FIXME, BUG, HACK, and NOTE comments, displaying them in a hierarchical sidebar tree with instant jump",
+  "tool_windows": [
+    {
+      "id": "todo-tree-panel",
+      "title": "TODOs",
+      "icon": "[Todo]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "todo-tree.refresh",
+      "title": "TODO: Refresh Workspace Comments",
+      "default_keybinding": "Alt+T"
+    }
+  ],
+  "capabilities": [
+    "fs:read"
+  ],
+  "settings": {
+    "tags": {
+      "type": "string",
+      "default": "TODO,FIXME,BUG,HACK,NOTE,PERF",
+      "description": "Comma-separated list of comment tags to index"
+    },
+    "group_by": {
+      "type": "string",
+      "default": "file",
+      "description": "Tree grouping strategy: file or tag"
+    }
+  }
+}

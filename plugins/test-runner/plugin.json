@@ -1,0 +1,28 @@
+{
+  "id": "test-runner",
+  "name": "Universal Test Runner",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Multi-language test discoverer and runner supporting Go (go test), Rust (cargo test), Python (pytest), TS/JS (vitest/jest), and C/C++ (ctest)",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "settings": {
+    "auto_run_on_save": {
+      "type": "bool",
+      "default": false,
+      "description": "Automatically run affected unit tests when saving a file"
+    },
+    "codelens_buttons": {
+      "type": "bool",
+      "default": true,
+      "description": "Display interactive Run / Debug buttons above test functions"
+    },
+    "show_output_drawer": {
+      "type": "bool",
+      "default": true,
+      "description": "Pop up the test runner drawer automatically during execution"
+    }
+  }
+}

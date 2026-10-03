@@ -1,0 +1,56 @@
+{
+  "id": "k8s-inspector",
+  "name": "Kubernetes Cluster Inspector",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Kubernetes resource browser with live log streaming, container exec shell, and YAML manifest editing",
+  "tool_windows": [
+    {
+      "id": "k8s-inspector-panel",
+      "title": "Kubernetes",
+      "icon": "[K8s]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "k8s-inspector.switchContext",
+      "title": "Kubernetes: Switch Cluster Context...",
+      "default_keybinding": "Ctrl+Alt+N"
+    },
+    {
+      "id": "k8s-inspector.listPods",
+      "title": "Kubernetes: List Pods in Active Namespace"
+    },
+    {
+      "id": "k8s-inspector.tailLogs",
+      "title": "Kubernetes: Stream Pod Logs"
+    },
+    {
+      "id": "k8s-inspector.execTerminal",
+      "title": "Kubernetes: Open Exec Terminal in Pod"
+    }
+  ],
+  "capabilities": [
+    "network:client",
+    "process:exec",
+    "fs:read"
+  ],
+  "settings": {
+    "kubeconfig_path": {
+      "type": "string",
+      "default": "~/.kube/config",
+      "description": "Path to Kubernetes configuration file"
+    },
+    "default_namespace": {
+      "type": "string",
+      "default": "default",
+      "description": "Default Kubernetes namespace"
+    },
+    "log_tail_lines": {
+      "type": "int",
+      "default": 200,
+      "description": "Number of initial log lines to fetch when tailing"
+    }
+  }
+}

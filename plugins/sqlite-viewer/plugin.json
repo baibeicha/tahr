@@ -1,0 +1,52 @@
+{
+  "id": "sqlite-viewer",
+  "name": "SQLite Database Viewer",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Zero-CGO SQLite database inspector with table schemas, paginated DataGrid viewer, column sorting, and custom SQL query execution",
+  "languages": [
+    {
+      "id": "sqlite",
+      "extensions": [
+        ".db",
+        ".sqlite",
+        ".sqlite3"
+      ]
+    }
+  ],
+  "tool_windows": [
+    {
+      "id": "sqlite-viewer-panel",
+      "title": "SQLite",
+      "icon": "[DB]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "sqlite-viewer.openActive",
+      "title": "SQLite: Open Database in DataGrid"
+    },
+    {
+      "id": "sqlite-viewer.runQuery",
+      "title": "SQLite: Run Custom SQL Query",
+      "default_keybinding": "Ctrl+Enter"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "settings": {
+    "page_size": {
+      "type": "int",
+      "default": 100,
+      "description": "Number of rows per page in the DataGrid view"
+    },
+    "execution_mode": {
+      "type": "string",
+      "default": "auto",
+      "description": "Engine mode: auto (pure Go parser first, sqlite3 CLI fallback)"
+    }
+  }
+}

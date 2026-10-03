@@ -1,0 +1,42 @@
+{
+  "id": "git-graph",
+  "name": "Visual Git Graph",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Interactive visual commit and branch graph showing merge histories, branch topologies, tags, authors, and commit diffs",
+  "tool_windows": [
+    {
+      "id": "git-graph-view",
+      "title": "Git Graph",
+      "icon": "[Git]",
+      "position": "bottom"
+    }
+  ],
+  "commands": [
+    {
+      "id": "git-graph.open",
+      "title": "Git: Open Commit Graph",
+      "default_keybinding": "Ctrl+Shift+G"
+    },
+    {
+      "id": "git-graph.refresh",
+      "title": "Git: Refresh Commit Graph"
+    }
+  ],
+  "capabilities": [
+    "process:exec",
+    "fs:read"
+  ],
+  "settings": {
+    "max_commits": {
+      "type": "int",
+      "default": 300,
+      "description": "Maximum number of commits to display in the graph history"
+    },
+    "show_all_branches": {
+      "type": "bool",
+      "default": true,
+      "description": "Display commits from all local and remote branches"
+    }
+  }
+}

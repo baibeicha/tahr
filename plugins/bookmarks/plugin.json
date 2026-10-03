@@ -1,0 +1,23 @@
+{
+  "id": "bookmarks",
+  "name": "Code Bookmarks & Navigation",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Interactive line bookmarks with gutter markers, quick-jump fuzzy modal (Ctrl+Shift+B), cycling shortcuts (F2/Shift+F2), and sidebar list",
+  "capabilities": [
+    "fs:read",
+    "fs:write"
+  ],
+  "settings": {
+    "persist_session": {
+      "type": "bool",
+      "default": true,
+      "description": "Persist bookmarks between IDE sessions in .tahr/bookmarks.json"
+    },
+    "show_gutter_icon": {
+      "type": "bool",
+      "default": true,
+      "description": "Display bookmark glyph in editor gutter"
+    }
+  }
+}

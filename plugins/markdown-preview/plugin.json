@@ -1,0 +1,51 @@
+{
+  "id": "markdown-preview",
+  "name": "Markdown Live Preview",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Live split markdown preview with table formatting, task lists, blockquotes, and syntax-highlighted code blocks",
+  "capabilities": [
+    "fs:read"
+  ],
+  "languages": [
+    {
+      "id": "markdown",
+      "extensions": [
+        ".md",
+        ".markdown",
+        ".mdown",
+        ".mkd"
+      ]
+    }
+  ],
+  "settings": {
+    "sync_scroll": {
+      "type": "bool",
+      "default": true,
+      "description": "Synchronize editor viewport scroll position with the preview pane"
+    },
+    "show_task_checkboxes": {
+      "type": "bool",
+      "default": true,
+      "description": "Render interactive [ ] and [x] task list items"
+    }
+  },
+  "project_templates": [
+    {
+      "id": "doc-site",
+      "name": "Documentation Project",
+      "description": "Structured Markdown documentation layout with index, guides, and API reference",
+      "category": "Documentation",
+      "files": [
+        {
+          "path": "README.md",
+          "content": "# Project Documentation\n\nWelcome to the documentation.\n\n## Table of Contents\n- [Architecture](docs/architecture.md)\n- [API Reference](docs/api.md)\n"
+        },
+        {
+          "path": "docs/architecture.md",
+          "content": "# Architecture Overview\n\nHigh-level system design and component breakdown.\n"
+        }
+      ]
+    }
+  ]
+}

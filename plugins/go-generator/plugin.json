@@ -1,0 +1,52 @@
+{
+  "id": "go-generator",
+  "name": "Go Code & Tag Generator",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Productivity code generator for Go developers: struct tags (json, db, yaml, validate), constructor generation (New...), and interface method stubs (impl)",
+  "languages": [
+    {
+      "id": "go",
+      "extensions": [
+        ".go"
+      ],
+      "comment_token": "//"
+    }
+  ],
+  "commands": [
+    {
+      "id": "go-generator.addTags",
+      "title": "Go: Add Struct Tags (json, db, yaml)",
+      "default_keybinding": "Alt+Enter"
+    },
+    {
+      "id": "go-generator.removeTags",
+      "title": "Go: Remove Struct Tags"
+    },
+    {
+      "id": "go-generator.newConstructor",
+      "title": "Go: Generate Constructor New..."
+    },
+    {
+      "id": "go-generator.implInterface",
+      "title": "Go: Implement Interface Methods"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "buffer:read",
+    "buffer:write"
+  ],
+  "settings": {
+    "tag_case": {
+      "type": "string",
+      "default": "snake_case",
+      "description": "Tag naming convention: snake_case, camelCase, or keep"
+    },
+    "default_tags": {
+      "type": "string",
+      "default": "json,db",
+      "description": "Comma-separated list of default tags to generate"
+    }
+  }
+}

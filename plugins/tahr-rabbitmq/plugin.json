@@ -1,0 +1,53 @@
+{
+  "id": "tahr-rabbitmq",
+  "name": "RabbitMQ Message Queue Inspector",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "RabbitMQ broker inspector via Management HTTP API and AMQP with queue statistics, exchange bindings, and message publishing",
+  "tool_windows": [
+    {
+      "id": "rabbitmq-inspector-panel",
+      "title": "RabbitMQ",
+      "icon": "[Rabbit]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "tahr-rabbitmq.connect",
+      "title": "RabbitMQ: Connect to Broker..."
+    },
+    {
+      "id": "tahr-rabbitmq.viewQueues",
+      "title": "RabbitMQ: List Queues and Message Counts"
+    },
+    {
+      "id": "tahr-rabbitmq.publishMessage",
+      "title": "RabbitMQ: Publish Message to Exchange"
+    },
+    {
+      "id": "tahr-rabbitmq.purgeQueue",
+      "title": "RabbitMQ: Purge Queue Messages"
+    }
+  ],
+  "capabilities": [
+    "network:client"
+  ],
+  "settings": {
+    "api_endpoint": {
+      "type": "string",
+      "default": "http://localhost:15672",
+      "description": "RabbitMQ Management HTTP API URL"
+    },
+    "refresh_interval_sec": {
+      "type": "int",
+      "default": 5,
+      "description": "Polling interval in seconds for queue metrics"
+    },
+    "default_vhost": {
+      "type": "string",
+      "default": "/",
+      "description": "Default RabbitMQ virtual host"
+    }
+  }
+}

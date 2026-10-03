@@ -1,0 +1,35 @@
+{
+  "id": "devtools",
+  "name": "Developer Utility Suite",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Offline swiss-army knife for backend developers: JWT decoder, Unix timestamp converter, UUID v4 generator, Base64/URL encoding, and SHA256/MD5 hashing",
+  "status_bar_items": [
+    {
+      "id": "devtools-status",
+      "text": "[Dev]",
+      "command": "devtools.open"
+    }
+  ],
+  "commands": [
+    {
+      "id": "devtools.open",
+      "title": "DevTools: Open Utilities Palette",
+      "default_keybinding": "Ctrl+Shift+U"
+    },
+    {
+      "id": "devtools.jwtDecode",
+      "title": "DevTools: Decode JWT Token",
+      "default_keybinding": "Ctrl+Alt+J"
+    },
+    {
+      "id": "devtools.uuidGen",
+      "title": "DevTools: Generate UUID v4",
+      "default_keybinding": "Ctrl+Alt+U"
+    }
+  ],
+  "capabilities": [
+    "clipboard:read",
+    "clipboard:write"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "diff-tool",
+  "name": "Side-by-Side Diff Viewer",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Visual two-pane side-by-side or stacked diff viewer for comparing arbitrary files, buffers, or clipboard content with character-level difference highlighting",
+  "commands": [
+    {
+      "id": "diff-tool.compareFiles",
+      "title": "Diff: Compare Active File with Another File",
+      "default_keybinding": "Ctrl+Shift+D"
+    },
+    {
+      "id": "diff-tool.compareClipboard",
+      "title": "Diff: Compare Active Buffer with Clipboard",
+      "default_keybinding": "Ctrl+Alt+D"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "clipboard:read"
+  ],
+  "settings": {
+    "ignore_whitespace": {
+      "type": "bool",
+      "default": false,
+      "description": "Ignore trailing whitespace and newline variations in diff comparison"
+    },
+    "default_split": {
+      "type": "string",
+      "default": "horizontal",
+      "description": "Split orientation: horizontal (side-by-side) or vertical"
+    }
+  }
+}

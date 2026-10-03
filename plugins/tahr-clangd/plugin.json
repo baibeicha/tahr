@@ -1,0 +1,133 @@
+{
+  "id": "tahr-clangd",
+  "name": "C / C++ Language Support",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "C and C++ language support with clangd LSP, CMake/Makefile integration, and lldb-dap debugging",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "languages": [
+    {
+      "id": "c_cpp",
+      "extensions": [
+        ".c",
+        ".h",
+        ".cpp",
+        ".cc",
+        ".cxx",
+        ".hpp",
+        ".hxx"
+      ],
+      "filenames": [
+        "CMakeLists.txt",
+        "Makefile",
+        "compile_commands.json"
+      ],
+      "comment_token": "//",
+      "build_cmd": "cmake",
+      "build_args": [
+        "--build",
+        "build"
+      ],
+      "run_cmd": "./build/app"
+    }
+  ],
+  "lsp": {
+    "server_name": "clangd",
+    "command": "clangd",
+    "args": [
+      "--background-index",
+      "--clang-tidy",
+      "--completion-style=detailed"
+    ],
+    "root_markers": [
+      "compile_commands.json",
+      "CMakeLists.txt",
+      "Makefile",
+      ".git"
+    ],
+    "install_cmd": "winget install LLVM.LLVM || brew install llvm"
+  },
+  "dap": {
+    "adapter_name": "lldb-dap",
+    "command": "lldb-dap",
+    "args": []
+  },
+  "launchTemplates": [
+    {
+      "name": "CMake: Build & Run",
+      "type": "c_cpp",
+      "request": "launch",
+      "target": "cmake",
+      "args": [
+        "--build",
+        "build",
+        "--target",
+        "all"
+      ]
+    },
+    {
+      "name": "Make: Build All",
+      "type": "c_cpp",
+      "request": "launch",
+      "target": "make",
+      "args": [
+        "all"
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "c-app",
+      "name": "C (Standard Application)",
+      "description": "C application starter with main.c, Makefile, and .gitignore",
+      "category": "C/C++",
+      "default_module": "{{.ProjectName}}",
+      "files": [
+        {
+          "path": "main.c",
+          "content": "#include <stdio.h>\n\nint main(int argc, char *argv[]) {\n    printf(\"Hello from {{.ProjectName}}!\\n\");\n    return 0;\n}\n"
+        },
+        {
+          "path": "Makefile",
+          "content": "CC ?= gcc\nCFLAGS ?= -Wall -Wextra -O2\n\nTARGET = {{.ProjectName}}\nSRCS = main.c\n\nall: $(TARGET)\n\n$(TARGET): $(SRCS)\n\t$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)\n\nclean:\n\trm -f $(TARGET)\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "*.o\n*.exe\nbuild/\n{{.ProjectName}}\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA C project.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "clangd",
+      "clang",
+      "clang++",
+      "gcc",
+      "g++",
+      "cmake",
+      "make",
+      "ninja",
+      "lldb-dap"
+    ],
+    "windows_paths": [
+      "C:\\Program Files\\LLVM\\bin",
+      "C:\\msys64\\mingw64\\bin",
+      "C:\\msys64\\ucrt64\\bin",
+      "C:\\MinGW\\bin"
+    ],
+    "unix_paths": [
+      "/usr/bin/clangd",
+      "/usr/local/bin/clangd",
+      "/opt/homebrew/opt/llvm/bin/clangd",
+      "/usr/bin/gcc"
+    ]
+  }
+}

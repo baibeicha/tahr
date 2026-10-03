@@ -1,0 +1,53 @@
+{
+  "id": "tahr-nats",
+  "name": "NATS & JetStream Inspector",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "NATS Core pub/sub monitor and JetStream storage inspector with stream statistics, consumer states, and subject subscriber live view",
+  "tool_windows": [
+    {
+      "id": "nats-inspector-panel",
+      "title": "NATS",
+      "icon": "[NATS]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "tahr-nats.connect",
+      "title": "NATS: Connect to Server (nats://...)"
+    },
+    {
+      "id": "tahr-nats.inspectJetStream",
+      "title": "NATS: Inspect JetStream Streams and Consumers"
+    },
+    {
+      "id": "tahr-nats.publishMessage",
+      "title": "NATS: Publish Message to Subject"
+    },
+    {
+      "id": "tahr-nats.subscribeSubject",
+      "title": "NATS: Subscribe to Subject Live Stream"
+    }
+  ],
+  "capabilities": [
+    "network:client"
+  ],
+  "settings": {
+    "server_url": {
+      "type": "string",
+      "default": "nats://localhost:4222",
+      "description": "NATS server URL"
+    },
+    "timeout_ms": {
+      "type": "int",
+      "default": 3000,
+      "description": "Request timeout in milliseconds"
+    },
+    "max_stream_history": {
+      "type": "int",
+      "default": 500,
+      "description": "Maximum live messages retained in subscriber buffer"
+    }
+  }
+}

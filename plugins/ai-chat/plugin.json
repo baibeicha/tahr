@@ -1,0 +1,65 @@
+{
+  "id": "ai-chat",
+  "name": "AI Chat Assistant",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Interactive AI coding assistant sidebar with context tags (@file, @selection, @diagnostics, @terminal), SSE streaming, and direct code actions",
+  "tool_windows": [
+    {
+      "id": "ai-chat-panel",
+      "title": "AI Assistant",
+      "icon": "[AI]",
+      "position": "right"
+    }
+  ],
+  "commands": [
+    {
+      "id": "ai-chat.toggle",
+      "title": "AI: Toggle Chat Sidebar",
+      "default_keybinding": "Ctrl+L"
+    },
+    {
+      "id": "ai-chat.explain",
+      "title": "AI: Explain Selected Code",
+      "default_keybinding": "Ctrl+Alt+E"
+    },
+    {
+      "id": "ai-chat.fix",
+      "title": "AI: Propose Fix for Diagnostics",
+      "default_keybinding": "Ctrl+Alt+F"
+    }
+  ],
+  "capabilities": [
+    "net:http",
+    "fs:read",
+    "buffer:read",
+    "buffer:write"
+  ],
+  "settings": {
+    "provider": {
+      "type": "string",
+      "default": "llama-server",
+      "description": "AI backend: llama-server, ollama, or custom OpenAI-compatible endpoint"
+    },
+    "endpoint": {
+      "type": "string",
+      "default": "http://127.0.0.1:8080/v1/chat/completions",
+      "description": "API completion endpoint URL"
+    },
+    "model": {
+      "type": "string",
+      "default": "qwen2.5-coder:7b",
+      "description": "LLM model identifier"
+    },
+    "temperature": {
+      "type": "float",
+      "default": 0.2,
+      "description": "Sampling temperature (0.0 to 1.0)"
+    },
+    "api_key": {
+      "type": "string",
+      "default": "",
+      "description": "Bearer authorization key for cloud or private LLM endpoints"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "rest-client",
+  "name": "Interactive REST Client",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Execute HTTP and REST requests directly from .http and .rest files with RFC 7230 syntax, environment variables, and live split view response rendering",
+  "languages": [
+    {
+      "id": "http",
+      "extensions": [
+        ".http",
+        ".rest"
+      ],
+      "comment_token": "#"
+    }
+  ],
+  "commands": [
+    {
+      "id": "rest-client.send",
+      "title": "REST: Send Request Under Cursor",
+      "default_keybinding": "Ctrl+Enter"
+    },
+    {
+      "id": "rest-client.history",
+      "title": "REST: View Request History",
+      "default_keybinding": "Ctrl+Alt+H"
+    }
+  ],
+  "capabilities": [
+    "net:http",
+    "fs:read",
+    "buffer:read"
+  ],
+  "settings": {
+    "timeout_ms": {
+      "type": "int",
+      "default": 10000,
+      "description": "Default HTTP request timeout in milliseconds"
+    },
+    "follow_redirects": {
+      "type": "bool",
+      "default": true,
+      "description": "Automatically follow HTTP redirects"
+    },
+    "environment_file": {
+      "type": "string",
+      "default": "http-client.env.json",
+      "description": "Path to JSON environment file containing variable dictionaries"
+    }
+  }
+}

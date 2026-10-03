@@ -1,0 +1,161 @@
+{
+  "id": "tahr-go",
+  "name": "Go Language Support",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Language Server (gopls), Delve debugger, launch templates and SDK autodetection",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "languages": [
+    {
+      "id": "go",
+      "extensions": [
+        ".go"
+      ],
+      "filenames": [
+        "go.mod",
+        "go.sum",
+        "go.work"
+      ],
+      "comment_token": "//",
+      "build_cmd": "go",
+      "build_args": [
+        "build",
+        "./..."
+      ],
+      "run_cmd": "go",
+      "run_args": [
+        "run",
+        "."
+      ],
+      "install_cmd": "go install golang.org/x/tools/gopls@latest"
+    }
+  ],
+  "lsp": {
+    "server_name": "gopls",
+    "command": "gopls",
+    "args": [],
+    "root_markers": [
+      "go.mod",
+      "go.work",
+      ".git"
+    ],
+    "install_cmd": "go install golang.org/x/tools/gopls@latest"
+  },
+  "dap": {
+    "adapter_name": "delve",
+    "command": "dlv",
+    "args": [
+      "dap"
+    ],
+    "install_cmd": "go install github.com/go-delve/delve/cmd/dlv@latest"
+  },
+  "launchTemplates": [
+    {
+      "name": "Go: Run Package",
+      "type": "go",
+      "request": "launch",
+      "target": ".",
+      "env": {
+        "CGO_ENABLED": "0"
+      },
+      "preLaunchTask": "go vet ./..."
+    },
+    {
+      "name": "Go: Debug Test",
+      "type": "go",
+      "request": "debug",
+      "target": ".",
+      "args": [
+        "-test.v"
+      ]
+    },
+    {
+      "name": "Go: Build",
+      "type": "go",
+      "request": "launch",
+      "target": "build",
+      "args": [
+        "-v",
+        "./..."
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "go",
+      "name": "Go (Standard Module)",
+      "description": "Standard Go module with main package, go.mod, and .gitignore",
+      "category": "Go",
+      "default_module": "example.com/{{.ProjectName}}",
+      "files": [
+        {
+          "path": "go.mod",
+          "content": "module {{.ModulePath}}\n\ngo 1.22\n"
+        },
+        {
+          "path": "main.go",
+          "content": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello from {{.ProjectName}}!\")\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "bin/\n*.exe\n*.test\nvendor/\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA Go project.\n"
+        }
+      ]
+    },
+    {
+      "id": "go-cli",
+      "name": "Go (CLI Application)",
+      "description": "Command-line application layout with cmd/ and internal/ packages",
+      "category": "Go",
+      "default_module": "example.com/{{.ProjectName}}",
+      "files": [
+        {
+          "path": "go.mod",
+          "content": "module {{.ModulePath}}\n\ngo 1.22\n"
+        },
+        {
+          "path": "cmd/{{.ProjectName}}/main.go",
+          "content": "package main\n\nimport (\n\t\"flag\"\n\t\"fmt\"\n)\n\nfunc main() {\n\tname := flag.String(\"name\", \"world\", \"name to greet\")\n\tflag.Parse()\n\tfmt.Printf(\"Hello, %s! Welcome to {{.ProjectName}}.\\n\", *name)\n}\n"
+        },
+        {
+          "path": "internal/app/app.go",
+          "content": "package app\n\n// Run executes application logic.\nfunc Run() error {\n\treturn nil\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "bin/\n*.exe\n*.test\nvendor/\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}} CLI\n\nCommand-line tool built with Go.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "go",
+      "gopls",
+      "dlv"
+    ],
+    "windows_paths": [
+      "D:\\go\\sdk\\*",
+      "C:\\Program Files\\Go\\bin",
+      "C:\\Go\\bin",
+      "%USERPROFILE%\\go\\bin"
+    ],
+    "unix_paths": [
+      "/usr/local/go/bin",
+      "/usr/bin",
+      "/opt/homebrew/bin",
+      "~/go/bin"
+    ]
+  }
+}

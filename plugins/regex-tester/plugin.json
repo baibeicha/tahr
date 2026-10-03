@@ -1,0 +1,26 @@
+{
+  "id": "regex-tester",
+  "name": "Interactive Regex Sandbox",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Real-time regular expression evaluation and testing sandbox using Go RE2 regex syntax with capture groups and live highlight spans",
+  "commands": [
+    {
+      "id": "regex-tester.open",
+      "title": "Regex: Open Interactive Sandbox",
+      "default_keybinding": "Ctrl+Shift+R"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "clipboard:read",
+    "clipboard:write"
+  ],
+  "settings": {
+    "live_debounce_ms": {
+      "type": "int",
+      "default": 100,
+      "description": "Debounce delay for live regex evaluation in milliseconds"
+    }
+  }
+}

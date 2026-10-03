@@ -1,0 +1,133 @@
+{
+  "id": "tahr-python",
+  "name": "Python Language Support",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Python language support with Pyright LSP, debugpy DAP debugger, pytest integration, virtualenv autodetection",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "languages": [
+    {
+      "id": "python",
+      "extensions": [
+        ".py",
+        ".pyw",
+        ".pyi"
+      ],
+      "filenames": [
+        "requirements.txt",
+        "pyproject.toml",
+        "Pipfile",
+        "setup.py"
+      ],
+      "comment_token": "#",
+      "build_cmd": "python",
+      "build_args": [
+        "-m",
+        "py_compile"
+      ],
+      "run_cmd": "python",
+      "run_args": [
+        "main.py"
+      ],
+      "install_cmd": "pip install pyright debugpy pytest ruff"
+    }
+  ],
+  "lsp": {
+    "server_name": "pyright",
+    "command": "pyright-langserver",
+    "args": [
+      "--stdio"
+    ],
+    "root_markers": [
+      "pyproject.toml",
+      "requirements.txt",
+      "setup.py",
+      ".git"
+    ],
+    "install_cmd": "npm install -g pyright || pip install pyright"
+  },
+  "dap": {
+    "adapter_name": "debugpy",
+    "command": "python",
+    "args": [
+      "-m",
+      "debugpy.adapter"
+    ],
+    "install_cmd": "pip install debugpy"
+  },
+  "launchTemplates": [
+    {
+      "name": "Python: Run Script",
+      "type": "python",
+      "request": "launch",
+      "target": "main.py"
+    },
+    {
+      "name": "Python: Run Pytest",
+      "type": "python",
+      "request": "launch",
+      "target": "pytest",
+      "args": [
+        "-v"
+      ]
+    },
+    {
+      "name": "Python: Debug Current File",
+      "type": "python",
+      "request": "debug",
+      "target": "${file}"
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "python-app",
+      "name": "Python (Standard Application)",
+      "description": "Clean Python project layout with main.py, requirements.txt, and .gitignore",
+      "category": "Python",
+      "default_module": "{{.ProjectName}}",
+      "files": [
+        {
+          "path": "main.py",
+          "content": "def main():\n    print(\"Hello from {{.ProjectName}}!\")\n\nif __name__ == \"__main__\":\n    main()\n"
+        },
+        {
+          "path": "requirements.txt",
+          "content": "# Project dependencies\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "__pycache__/\n*.py[cod]\n*$py.class\n.venv/\nenv/\nbuild/\ndist/\n*.egg-info/\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA Python application.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "python",
+      "python3",
+      "py",
+      "pyright-langserver",
+      "pyright",
+      "pytest"
+    ],
+    "windows_paths": [
+      "C:\\Python*",
+      "C:\\Program Files\\Python*\\python.exe",
+      "%LOCALAPPDATA%\\Programs\\Python\\Python*\\python.exe",
+      "%USERPROFILE%\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe"
+    ],
+    "unix_paths": [
+      "/usr/bin/python3",
+      "/usr/local/bin/python3",
+      "/opt/homebrew/bin/python3",
+      "~/.pyenv/shims/python"
+    ]
+  }
+}

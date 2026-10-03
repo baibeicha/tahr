@@ -1,0 +1,43 @@
+{
+  "id": "ai-completion",
+  "name": "AI Inline Code Completion",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "AI-powered inline code suggestions (ghost text) with built-in llama-server integration and support for custom local or cloud OpenAI-compatible providers",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "settings": {
+    "provider": {
+      "type": "string",
+      "default": "llama-server",
+      "description": "AI provider: 'llama-server' (default local), 'ollama', 'openai', or 'custom'"
+    },
+    "endpoint": {
+      "type": "string",
+      "default": "http://127.0.0.1:8080/v1/completions",
+      "description": "API completion URL for local llama-server or remote LLM"
+    },
+    "model": {
+      "type": "string",
+      "default": "qwen2.5-coder",
+      "description": "Model identifier used for code completion requests"
+    },
+    "api_key": {
+      "type": "string",
+      "default": "",
+      "description": "API key for authenticated cloud providers (OpenAI, DeepSeek, etc.)"
+    },
+    "debounce_ms": {
+      "type": "int",
+      "default": 250,
+      "description": "Typing pause delay in milliseconds before requesting completion"
+    },
+    "max_tokens": {
+      "type": "int",
+      "default": 64,
+      "description": "Maximum generated token count per suggestion"
+    }
+  }
+}

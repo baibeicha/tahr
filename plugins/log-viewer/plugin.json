@@ -1,0 +1,71 @@
+{
+  "id": "log-viewer",
+  "name": "High-Throughput Log Viewer",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "High-performance log inspector with chunked memory-mapped reader, regex pattern filters, severity highlighting, and real-time tailing",
+  "languages": [
+    {
+      "id": "log",
+      "extensions": [
+        ".log",
+        ".out",
+        ".audit",
+        ".journal"
+      ]
+    }
+  ],
+  "tool_windows": [
+    {
+      "id": "log-viewer-panel",
+      "title": "Log Viewer",
+      "icon": "[Log]",
+      "position": "bottom"
+    }
+  ],
+  "commands": [
+    {
+      "id": "log-viewer.open",
+      "title": "Log Viewer: Open File in High-Speed Viewer",
+      "default_keybinding": "Ctrl+Alt+L"
+    },
+    {
+      "id": "log-viewer.toggleTail",
+      "title": "Log Viewer: Toggle Real-time Tailing"
+    },
+    {
+      "id": "log-viewer.filterLevel",
+      "title": "Log Viewer: Filter by Severity Level"
+    },
+    {
+      "id": "log-viewer.clearFilters",
+      "title": "Log Viewer: Clear Active Filters"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "settings": {
+    "chunk_size_mb": {
+      "type": "int",
+      "default": 16,
+      "description": "Size of streaming chunks in MB for multi-gigabyte log files"
+    },
+    "tail_polling_ms": {
+      "type": "int",
+      "default": 250,
+      "description": "Polling interval in milliseconds for real-time file updates"
+    },
+    "wrap_lines": {
+      "type": "bool",
+      "default": false,
+      "description": "Wrap long log lines in the viewer"
+    },
+    "highlight_timestamps": {
+      "type": "bool",
+      "default": true,
+      "description": "Highlight ISO-8601, RFC3339, and standard timestamps"
+    }
+  }
+}

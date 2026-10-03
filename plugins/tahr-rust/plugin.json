@@ -1,0 +1,153 @@
+{
+  "id": "tahr-rust",
+  "name": "Rust Language Support",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Rust language support with rust-analyzer LSP, Cargo integration, project templates and lldb-dap debugging",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "languages": [
+    {
+      "id": "rust",
+      "extensions": [
+        ".rs"
+      ],
+      "filenames": [
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "comment_token": "//",
+      "build_cmd": "cargo",
+      "build_args": [
+        "build"
+      ],
+      "run_cmd": "cargo",
+      "run_args": [
+        "run"
+      ],
+      "install_cmd": "rustup component add rust-analyzer"
+    }
+  ],
+  "lsp": {
+    "server_name": "rust-analyzer",
+    "command": "rust-analyzer",
+    "args": [],
+    "root_markers": [
+      "Cargo.toml",
+      ".git"
+    ],
+    "install_cmd": "rustup component add rust-analyzer"
+  },
+  "dap": {
+    "adapter_name": "codelldb",
+    "command": "lldb-dap",
+    "args": [],
+    "install_cmd": "rustup component add lldb-preview"
+  },
+  "launchTemplates": [
+    {
+      "name": "Rust: Run Binary",
+      "type": "rust",
+      "request": "launch",
+      "target": "cargo",
+      "args": [
+        "run"
+      ]
+    },
+    {
+      "name": "Rust: Test All",
+      "type": "rust",
+      "request": "launch",
+      "target": "cargo",
+      "args": [
+        "test",
+        "--",
+        "--nocapture"
+      ]
+    },
+    {
+      "name": "Rust: Build Release",
+      "type": "rust",
+      "request": "launch",
+      "target": "cargo",
+      "args": [
+        "build",
+        "--release"
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "rust-bin",
+      "name": "Rust (Binary Application)",
+      "description": "Cargo binary crate with main.rs, Cargo.toml, and .gitignore",
+      "category": "Rust",
+      "default_module": "{{.ProjectName}}",
+      "files": [
+        {
+          "path": "Cargo.toml",
+          "content": "[package]\nname = \"{{.ProjectName}}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n"
+        },
+        {
+          "path": "src/main.rs",
+          "content": "fn main() {\n    println!(\"Hello from {{.ProjectName}}!\");\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "/target\nCargo.lock\n**/*.rs.bk\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA Rust binary project.\n"
+        }
+      ]
+    },
+    {
+      "id": "rust-lib",
+      "name": "Rust (Library Crate)",
+      "description": "Cargo library crate with lib.rs and unit test scaffolding",
+      "category": "Rust",
+      "default_module": "{{.ProjectName}}",
+      "files": [
+        {
+          "path": "Cargo.toml",
+          "content": "[package]\nname = \"{{.ProjectName}}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n"
+        },
+        {
+          "path": "src/lib.rs",
+          "content": "pub fn add(left: usize, right: usize) -> usize {\n    left + right\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn it_works() {\n        assert_eq!(add(2, 2), 4);\n    }\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "/target\nCargo.lock\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA Rust library crate.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "cargo",
+      "rustc",
+      "rust-analyzer",
+      "rustup",
+      "lldb-dap"
+    ],
+    "windows_paths": [
+      "%USERPROFILE%\\.cargo\\bin",
+      "C:\\Users\\*\\.cargo\\bin",
+      "C:\\Program Files\\Rust\\bin"
+    ],
+    "unix_paths": [
+      "~/.cargo/bin",
+      "/usr/local/bin",
+      "/usr/bin",
+      "/opt/homebrew/bin"
+    ]
+  }
+}

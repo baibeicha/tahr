@@ -1,0 +1,46 @@
+{
+  "id": "grpc-proto",
+  "name": "gRPC & Protobuf Tooling",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Protocol Buffers syntax highlighting, buf format/generate automation, and interactive gRPC RPC invocation via Server Reflection",
+  "languages": [
+    {
+      "id": "proto",
+      "extensions": [
+        ".proto"
+      ],
+      "comment_token": "//",
+      "format_cmd": "buf format -w"
+    }
+  ],
+  "commands": [
+    {
+      "id": "grpc-proto.invoke",
+      "title": "gRPC: Invoke Service Endpoint",
+      "default_keybinding": "Alt+Enter"
+    },
+    {
+      "id": "grpc-proto.generate",
+      "title": "gRPC: Run buf generate",
+      "default_keybinding": "Ctrl+Alt+G"
+    }
+  ],
+  "capabilities": [
+    "net:grpc",
+    "fs:read",
+    "process:exec"
+  ],
+  "settings": {
+    "reflection_timeout_ms": {
+      "type": "int",
+      "default": 5000,
+      "description": "Timeout for gRPC Server Reflection queries in milliseconds"
+    },
+    "default_endpoint": {
+      "type": "string",
+      "default": "localhost:50051",
+      "description": "Default gRPC target endpoint"
+    }
+  }
+}

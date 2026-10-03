@@ -1,0 +1,22 @@
+{
+  "id": "test-coverage",
+  "name": "Test Coverage Visualizer",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Visualizes test coverage from reports (coverage.out, lcov.info) with gutter line coloring and status bar metrics",
+  "capabilities": [
+    "fs:read"
+  ],
+  "settings": {
+    "highlight_gutter": {
+      "type": "bool",
+      "default": true,
+      "description": "Color gutter markers green for covered lines and red for uncovered lines"
+    },
+    "show_status_percentage": {
+      "type": "bool",
+      "default": true,
+      "description": "Display total project test coverage percentage in the status bar footer"
+    }
+  }
+}

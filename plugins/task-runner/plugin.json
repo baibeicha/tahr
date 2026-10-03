@@ -1,0 +1,43 @@
+{
+  "id": "task-runner",
+  "name": "Universal Task Runner",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Autodetects and executes build tasks from Makefile, Taskfile.yml, package.json, Justfile, and deno.json directly in Tahr's PTY terminal",
+  "tool_windows": [
+    {
+      "id": "task-runner-panel",
+      "title": "Tasks",
+      "icon": "[Task]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "task-runner.open",
+      "title": "Tasks: Open Task Runner",
+      "default_keybinding": "Ctrl+Shift+T"
+    },
+    {
+      "id": "task-runner.runLast",
+      "title": "Tasks: Re-run Last Task",
+      "default_keybinding": "Ctrl+Alt+T"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "settings": {
+    "auto_detect": {
+      "type": "bool",
+      "default": true,
+      "description": "Automatically scan workspace root for task definition files"
+    },
+    "focus_terminal_on_run": {
+      "type": "bool",
+      "default": true,
+      "description": "Reveal and focus integrated terminal drawer when executing a task"
+    }
+  }
+}

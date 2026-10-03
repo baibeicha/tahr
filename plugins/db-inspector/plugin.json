@@ -1,0 +1,73 @@
+{
+  "id": "db-inspector",
+  "name": "Database Inspector (PostgreSQL & MySQL)",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Unified database client for PostgreSQL and MySQL with interactive schema explorer, DataGrid query viewer, and connection manager",
+  "languages": [
+    {
+      "id": "sql",
+      "extensions": [
+        ".sql",
+        ".ddl",
+        ".dml"
+      ]
+    }
+  ],
+  "tool_windows": [
+    {
+      "id": "db-inspector-panel",
+      "title": "Databases",
+      "icon": "[SQL]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "db-inspector.connect",
+      "title": "Database: Connect to Database...",
+      "default_keybinding": "Ctrl+Alt+D"
+    },
+    {
+      "id": "db-inspector.disconnect",
+      "title": "Database: Disconnect Active Session"
+    },
+    {
+      "id": "db-inspector.runQuery",
+      "title": "Database: Execute SQL Query at Cursor",
+      "default_keybinding": "Ctrl+Enter"
+    },
+    {
+      "id": "db-inspector.openTable",
+      "title": "Database: Open Table in DataGrid"
+    }
+  ],
+  "capabilities": [
+    "network:client",
+    "fs:read",
+    "fs:write",
+    "process:exec"
+  ],
+  "settings": {
+    "default_driver": {
+      "type": "string",
+      "default": "postgres",
+      "description": "Default database driver: postgres or mysql"
+    },
+    "query_timeout_seconds": {
+      "type": "int",
+      "default": 30,
+      "description": "Maximum execution time before query cancellation"
+    },
+    "page_size": {
+      "type": "int",
+      "default": 100,
+      "description": "Number of rows per page in query DataGrid"
+    },
+    "auto_detect_env": {
+      "type": "bool",
+      "default": true,
+      "description": "Auto-detect DATABASE_URL and connection variables from workspace .env files"
+    }
+  }
+}

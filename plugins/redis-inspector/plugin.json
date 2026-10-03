@@ -1,0 +1,55 @@
+{
+  "id": "redis-inspector",
+  "name": "Redis Key-Value Inspector",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Redis database explorer featuring SCAN-based non-blocking key trees, TTL tracking, data structure inspectors, and CLI terminal",
+  "tool_windows": [
+    {
+      "id": "redis-inspector-panel",
+      "title": "Redis",
+      "icon": "[Redis]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "redis-inspector.connect",
+      "title": "Redis: Connect to Instance...",
+      "default_keybinding": "Ctrl+Alt+R"
+    },
+    {
+      "id": "redis-inspector.scanKeys",
+      "title": "Redis: Scan Keys (SCAN pattern)"
+    },
+    {
+      "id": "redis-inspector.viewKey",
+      "title": "Redis: Inspect Key Value and TTL"
+    },
+    {
+      "id": "redis-inspector.openCli",
+      "title": "Redis: Open Interactive Redis CLI"
+    }
+  ],
+  "capabilities": [
+    "network:client",
+    "process:exec"
+  ],
+  "settings": {
+    "scan_batch_size": {
+      "type": "int",
+      "default": 1000,
+      "description": "Number of keys scanned per cursor iteration"
+    },
+    "key_delimiter": {
+      "type": "string",
+      "default": ":",
+      "description": "Namespace delimiter used to build folder hierarchies in key tree"
+    },
+    "ttl_warning_threshold_sec": {
+      "type": "int",
+      "default": 60,
+      "description": "Highlight keys with expiring TTL under this threshold"
+    }
+  }
+}

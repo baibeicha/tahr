@@ -1,0 +1,51 @@
+{
+  "id": "docker-compose",
+  "name": "Docker Compose Manager",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Inspect services, monitor health status, stream real-time logs to terminal splits, and attach interactive shell sessions via Docker Engine socket or CLI",
+  "tool_windows": [
+    {
+      "id": "docker-compose-panel",
+      "title": "Docker",
+      "icon": "[Docker]",
+      "position": "left"
+    }
+  ],
+  "commands": [
+    {
+      "id": "docker-compose.open",
+      "title": "Docker: Open Compose Manager",
+      "default_keybinding": "Alt+D"
+    },
+    {
+      "id": "docker-compose.up",
+      "title": "Docker: Compose Up (Start Services)"
+    },
+    {
+      "id": "docker-compose.down",
+      "title": "Docker: Compose Down (Stop Services)"
+    },
+    {
+      "id": "docker-compose.logs",
+      "title": "Docker: View Container Logs"
+    }
+  ],
+  "capabilities": [
+    "net:socket",
+    "process:exec",
+    "fs:read"
+  ],
+  "settings": {
+    "socket_path": {
+      "type": "string",
+      "default": "/var/run/docker.sock",
+      "description": "Unix domain socket path (or //./pipe/docker_engine on Windows)"
+    },
+    "auto_refresh_seconds": {
+      "type": "int",
+      "default": 3,
+      "description": "Polling interval for container status updates"
+    }
+  }
+}

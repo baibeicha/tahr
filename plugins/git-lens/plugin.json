@@ -1,0 +1,28 @@
+{
+  "id": "git-lens",
+  "name": "Git Lens: Inline Blame & Diff",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Git intelligence with Inline Blame on the active line, gutter diff indicators, and interactive side-by-side diff view",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "settings": {
+    "inline_blame": {
+      "type": "bool",
+      "default": true,
+      "description": "Show author and commit age at the end of the active cursor line"
+    },
+    "gutter_diff": {
+      "type": "bool",
+      "default": true,
+      "description": "Display colored modification markers in the editor gutter"
+    },
+    "blame_delay_ms": {
+      "type": "int",
+      "default": 250,
+      "description": "Debounce delay in milliseconds before fetching inline blame"
+    }
+  }
+}

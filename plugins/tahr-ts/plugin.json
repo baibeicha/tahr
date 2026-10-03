@@ -1,0 +1,147 @@
+{
+  "id": "tahr-ts",
+  "name": "TypeScript & JavaScript Support",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "TypeScript and JavaScript language support with typescript-language-server LSP, Node/Bun/Deno autodetection, and project templates",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "languages": [
+    {
+      "id": "typescript",
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs"
+      ],
+      "filenames": [
+        "package.json",
+        "tsconfig.json",
+        "jsconfig.json"
+      ],
+      "comment_token": "//",
+      "build_cmd": "npm",
+      "build_args": [
+        "run",
+        "build"
+      ],
+      "run_cmd": "node",
+      "run_args": [
+        "index.js"
+      ],
+      "install_cmd": "npm install -g typescript typescript-language-server"
+    }
+  ],
+  "lsp": {
+    "server_name": "typescript-language-server",
+    "command": "typescript-language-server",
+    "args": [
+      "--stdio"
+    ],
+    "root_markers": [
+      "package.json",
+      "tsconfig.json",
+      "jsconfig.json",
+      ".git"
+    ],
+    "install_cmd": "npm install -g typescript typescript-language-server"
+  },
+  "dap": {
+    "adapter_name": "node-inspect",
+    "command": "node",
+    "args": [
+      "--inspect-brk"
+    ]
+  },
+  "launchTemplates": [
+    {
+      "name": "Node: Run Index",
+      "type": "typescript",
+      "request": "launch",
+      "target": "node",
+      "args": [
+        "src/index.js"
+      ]
+    },
+    {
+      "name": "TS: Run with ts-node",
+      "type": "typescript",
+      "request": "launch",
+      "target": "npx",
+      "args": [
+        "ts-node",
+        "src/index.ts"
+      ]
+    },
+    {
+      "name": "Node: Run Tests",
+      "type": "typescript",
+      "request": "launch",
+      "target": "npm",
+      "args": [
+        "test"
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "ts-app",
+      "name": "TypeScript (Node Application)",
+      "description": "TypeScript starter project with package.json, tsconfig.json, and src/index.ts",
+      "category": "TypeScript",
+      "default_module": "{{.ProjectName}}",
+      "files": [
+        {
+          "path": "package.json",
+          "content": "{\n  \"name\": \"{{.ProjectName}}\",\n  \"version\": \"1.0.0\",\n  \"main\": \"dist/index.js\",\n  \"scripts\": {\n    \"build\": \"tsc\",\n    \"start\": \"node dist/index.js\",\n    \"test\": \"vitest run\"\n  },\n  \"devDependencies\": {\n    \"typescript\": \"^5.0.0\"\n  }\n}\n"
+        },
+        {
+          "path": "tsconfig.json",
+          "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"NodeNext\",\n    \"moduleResolution\": \"NodeNext\",\n    \"outDir\": \"./dist\",\n    \"rootDir\": \"./src\",\n    \"strict\": true,\n    \"esModuleInterop\": true,\n    \"skipLibCheck\": true,\n    \"forceConsistentCasingInFileNames\": true\n  },\n  \"include\": [\"src/**/*\"]\n}\n"
+        },
+        {
+          "path": "src/index.ts",
+          "content": "function greet(name: string): string {\n  return `Hello, ${name}! Welcome to {{.ProjectName}}.`;\n}\n\nconsole.log(greet(\"Developer\"));\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "node_modules/\ndist/\n.env\n*.log\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA TypeScript project.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "node",
+      "npm",
+      "npx",
+      "bun",
+      "pnpm",
+      "yarn",
+      "deno",
+      "typescript-language-server"
+    ],
+    "windows_paths": [
+      "C:\\Program Files\\nodejs",
+      "%APPDATA%\\npm",
+      "%LOCALAPPDATA%\\Programs\\nodejs",
+      "%USERPROFILE%\\.bun\\bin"
+    ],
+    "unix_paths": [
+      "/usr/bin/node",
+      "/usr/local/bin/node",
+      "/opt/homebrew/bin/node",
+      "~/.nvm/versions/node/*/bin",
+      "~/.bun/bin"
+    ]
+  }
+}
