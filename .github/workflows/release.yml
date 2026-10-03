@@ -1,0 +1,101 @@
+name: Release Tahr IDE
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release Cross-Platform Binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            arch: amd64
+            suffix: .exe
+            artifact_name: tahr-windows-amd64.zip
+          - os: windows
+            arch: arm64
+            suffix: .exe
+            artifact_name: tahr-windows-arm64.zip
+          - os: linux
+            arch: amd64
+            suffix: ''
+            artifact_name: tahr-linux-amd64.tar.gz
+          - os: linux
+            arch: arm64
+            suffix: ''
+            artifact_name: tahr-linux-arm64.tar.gz
+          - os: darwin
+            arch: amd64
+            suffix: ''
+            artifact_name: tahr-darwin-amd64.tar.gz
+          - os: darwin
+            arch: arm64
+            suffix: ''
+            artifact_name: tahr-darwin-arm64.tar.gz
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          check-latest: true
+
+      - name: Build Binary
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p dist
+          BINARY_NAME="tahr${{ matrix.suffix }}"
+          go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o "dist/${BINARY_NAME}" ./cmd/tahr
+
+      - name: Archive Binary
+        run: |
+          cd dist
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            zip -9 "../${{ matrix.artifact_name }}" "tahr${{ matrix.suffix }}"
+          else
+            tar -czvf "../${{ matrix.artifact_name }}" "tahr${{ matrix.suffix }}"
+          fi
+          cd ..
+
+      - name: Upload Artifact Asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
