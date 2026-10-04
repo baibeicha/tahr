@@ -7,6 +7,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -211,72 +212,72 @@ func (tp *ToolPromptModal) Render(buf *buffer.Buffer, w, h int, th *ui.Theme) {
 	}
 
 	// Title
-	title := fmt.Sprintf(" Missing Tool: %s ", tp.ToolName)
-	for i, r := range title {
+	title := fmt.Sprintf(" %s ", fmt.Sprintf(i18n.T("toolprompt.title"), tp.ToolName))
+	for i, r := range []rune(title) {
 		if startX+2+i < startX+modalW-2 {
 			buf.SetRune(startX+2+i, startY, r, errFg, themeBg, cell.AttrBold)
 		}
 	}
 
 	// Description
-	desc := fmt.Sprintf("Language support for '%s' requires %s (%s).", tp.FileExt, tp.ToolName, tp.PluginName)
-	for i, r := range desc {
+	desc := fmt.Sprintf(i18n.T("toolprompt.desc"), tp.FileExt, tp.ToolName, tp.PluginName)
+	for i, r := range []rune(desc) {
 		if startX+3+i < startX+modalW-3 {
 			buf.SetRune(startX+3+i, startY+2, r, themeFg, themeBg, cell.AttrNone)
 		}
 	}
 
 	// Options
-	opt1 := fmt.Sprintf("  D: Download & Install: %s", tp.InstallCmd)
+	opt1 := fmt.Sprintf("  %s", fmt.Sprintf(i18n.T("toolprompt.opt_download"), tp.InstallCmd))
 	if tp.InstallCmd == "" {
-		opt1 = "  D: Download & Install Automatically"
+		opt1 = fmt.Sprintf("  %s", i18n.T("toolprompt.opt_download_auto"))
 	}
-	for i, r := range opt1 {
+	for i, r := range []rune(opt1) {
 		if startX+2+i < startX+modalW-2 {
 			fg := accentFg
-			if r == 'D' || r == ':' {
+			if r == 'D' || r == 'В' || r == ':' {
 				fg = toColor(th.Keyword)
 			}
 			buf.SetRune(startX+2+i, startY+4, r, fg, themeBg, cell.AttrBold)
 		}
 	}
 
-	opt2 := "  P: Specify Path to Binary Manually"
-	for i, r := range opt2 {
+	opt2 := fmt.Sprintf("  %s", i18n.T("toolprompt.opt_path"))
+	for i, r := range []rune(opt2) {
 		if startX+2+i < startX+modalW-2 {
 			fg := themeFg
-			if r == 'P' || r == ':' {
+			if r == 'P' || r == 'З' || r == ':' {
 				fg = toColor(th.Keyword)
 			}
 			buf.SetRune(startX+2+i, startY+5, r, fg, themeBg, cell.AttrBold)
 		}
 	}
 
-	opt3 := "  Esc: Ignore / Continue without Language Server"
-	for i, r := range opt3 {
+	opt3 := fmt.Sprintf("  %s", i18n.T("toolprompt.opt_ignore"))
+	for i, r := range []rune(opt3) {
 		if startX+2+i < startX+modalW-2 {
 			buf.SetRune(startX+2+i, startY+6, r, commentFg, themeBg, cell.AttrNone)
 		}
 	}
 
 	if tp.InputMode {
-		promptLbl := "Enter Binary Path: "
-		for i, r := range promptLbl {
+		promptLbl := i18n.T("toolprompt.input_label")
+		for i, r := range []rune(promptLbl) {
 			buf.SetRune(startX+4+i, startY+8, r, accentFg, themeBg, cell.AttrBold)
 		}
-		inX := startX + 4 + len(promptLbl)
-		inW := modalW - 8 - len(promptLbl)
-		inVal := tp.InputPath + "_"
+		inX := startX + 4 + len([]rune(promptLbl))
+		inW := modalW - 8 - len([]rune(promptLbl))
+		inValRunes := []rune(tp.InputPath + "_")
 		for i := 0; i < inW; i++ {
 			r := ' '
-			if i < len(inVal) {
-				r = rune(inVal[i])
+			if i < len(inValRunes) {
+				r = inValRunes[i]
 			}
 			buf.SetRune(inX+i, startY+8, r, selFg, selBg, cell.AttrBold)
 		}
 
-		hint := " Enter: Confirm  │  Esc: Back "
-		for i, r := range hint {
+		hint := fmt.Sprintf(" %s ", i18n.T("toolprompt.hint"))
+		for i, r := range []rune(hint) {
 			buf.SetRune(startX+4+i, startY+10, r, commentFg, themeBg, cell.AttrNone)
 		}
 	}

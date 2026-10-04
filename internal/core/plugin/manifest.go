@@ -105,6 +105,7 @@ type Manifest struct {
 	Version          string                         `json:"version"`
 	Author           string                         `json:"author,omitempty"`
 	Description      string                         `json:"description,omitempty"`
+	Category         string                         `json:"category,omitempty"`
 	Capabilities     []string                       `json:"capabilities,omitempty"` // e.g. "fs:read", "process:exec"
 	Languages        []LanguageConfig               `json:"languages,omitempty"`
 	Themes           []ThemeConfig                  `json:"themes,omitempty"`

@@ -8,6 +8,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"tahr/internal/core/git"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -333,8 +334,8 @@ func (gm *GitModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui.T
 	}
 
 	// Tabs Header on startY+1
-	tab1Label := " 1: Interactive Hunk Staging "
-	tab2Label := " 2: Visual Branch Graph "
+	tab1Label := i18n.T("git.tab_staging")
+	tab2Label := i18n.T("git.tab_graph")
 	tab1Fg := toColor(theme.Comment)
 	tab1Bg := bg
 	tab1Attr := cell.AttrNone
@@ -375,8 +376,8 @@ func (gm *GitModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui.T
 	if gm.CurrentTab == 0 {
 		// Tab 0: Hunks Staging
 		if len(gm.Hunks) == 0 {
-			msg := "No unstaged diff hunks found for the active file."
-			for i, r := range msg {
+			msg := i18n.T("git.no_hunks")
+			for i, r := range []rune(msg) {
 				buf.SetRune(startX+4+i, contentTop+2, r, toColor(theme.Comment), bg, cell.AttrNone)
 			}
 		} else {
@@ -396,17 +397,18 @@ func (gm *GitModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui.T
 				if h.Staged {
 					stagedTag = "✓"
 				}
-				hunkTitle := fmt.Sprintf("%s%s Hunk #%d", prefix, stagedTag, i+1)
+				hunkTitle := fmt.Sprintf(i18n.T("git.hunk_num"), prefix, stagedTag, i+1)
 				hBg := bg
 				hFg := fg
 				if isSel {
 					hBg = selectBg
 					hFg = selectFg
 				}
+				hunkRunes := []rune(hunkTitle)
 				for col := 0; col < listW; col++ {
 					r := ' '
-					if col < len(hunkTitle) {
-						r = rune(hunkTitle[col])
+					if col < len(hunkRunes) {
+						r = hunkRunes[col]
 					}
 					buf.SetRune(startX+2+col, rowY, r, hFg, hBg, cell.AttrNone)
 				}
@@ -505,26 +507,27 @@ func (gm *GitModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui.T
 	// Commit Input bar if committing
 	if gm.IsCommitting {
 		inputY := startY + modalH - 3
-		prompt := " Commit Message: " + gm.CommitMessage + "█"
+		prompt := " " + i18n.T("git.commit_prompt") + gm.CommitMessage + "█"
+		promptRunes := []rune(prompt)
 		for c := 0; c < modalW-4; c++ {
 			r := ' '
-			if c < len(prompt) {
-				r = rune(prompt[c])
+			if c < len(promptRunes) {
+				r = promptRunes[c]
 			}
 			buf.SetRune(startX+2+c, inputY, r, toColor(theme.Foreground), toColor(theme.SelectionBg), cell.AttrBold)
 		}
 	}
 
 	// Footer instructions
-	footer := " y: Stage Hunk  n: Skip  u: Unstage  c: Commit  Tab: Switch Tab  Esc: Close "
+	footer := " " + i18n.T("git.footer_tab0") + " "
 	if gm.CurrentTab == 1 {
-		footer = " ↑/↓: Scroll History  PgUp/PgDn: Leap  Tab: Switch Tab  Esc: Close "
+		footer = " " + i18n.T("git.footer_tab1") + " "
 	}
 	if gm.StatusMsg != "" {
-		footer = fmt.Sprintf(" %s │ %s", gm.StatusMsg, footer)
+		footer = fmt.Sprintf(" %s │ %s", gm.StatusMsg, strings.TrimSpace(footer))
 	}
 
-	for i, r := range footer {
+	for i, r := range []rune(footer) {
 		fx := startX + 3 + i
 		if fx < startX+modalW-2 {
 			buf.SetRune(fx, startY+modalH-1, r, toColor(theme.Comment), bg, cell.AttrNone)

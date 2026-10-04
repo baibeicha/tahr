@@ -7,6 +7,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/launch"
 	"tahr/internal/core/plugin"
 	"tahr/internal/ui"
@@ -651,7 +652,7 @@ func (lm *LaunchConfigModal) Render(buf *buffer.Buffer, screenW, screenH int, th
 	}
 
 	// Title
-	title := " Launch & Debug Configurations (.tahr/launch.json) "
+	title := fmt.Sprintf(" %s ", i18n.T("launch.title"))
 	for i, r := range []rune(title) {
 		if startX+3+i < startX+modalW-2 {
 			buf.SetRune(startX+3+i, startY, r, keywordFg, boxBg, cell.AttrBold)
@@ -667,7 +668,7 @@ func (lm *LaunchConfigModal) Render(buf *buffer.Buffer, screenW, screenH int, th
 
 func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, modalW, modalH int, boxBg, boxFg, selBg, selFg, accentFg, commentFg cell.Color) {
 	// Top hint without brackets
-	hint := " ↑/↓: Navigate  │  Space: Set Active  │  a: Add  │  e: Edit  │  d: Delete  │  o: Open File  │  F5: Run "
+	hint := fmt.Sprintf(" %s ", i18n.T("launch.hint_list"))
 	for i, r := range []rune(hint) {
 		if startX+2+i < startX+modalW-2 {
 			buf.SetRune(startX+2+i, startY+1, r, commentFg, boxBg, cell.AttrNone)
@@ -692,7 +693,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 	}
 
 	// Left column header
-	leftHeader := " Profiles "
+	leftHeader := fmt.Sprintf(" %s ", i18n.T("launch.profiles"))
 	for i, r := range []rune(leftHeader) {
 		if startX+2+i < dividerX {
 			buf.SetRune(startX+2+i, contentTop, r, accentFg, boxBg, cell.AttrBold)
@@ -706,7 +707,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 	}
 
 	if cfgCount == 0 {
-		emptyMsg := "No launch profiles"
+		emptyMsg := i18n.T("launch.no_profiles")
 		for i, r := range []rune(emptyMsg) {
 			if startX+2+i < dividerX {
 				buf.SetRune(startX+2+i, contentTop+2, r, commentFg, boxBg, cell.AttrItalic)
@@ -752,7 +753,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 	// "+ New from template" button at bottom of left column
 	tplBtnY := contentTop + 1 + min(maxItems-1, max(1, cfgCount))
 	if tplBtnY < startY+modalH-2 {
-		tplLabel := "+ New from template"
+		tplLabel := i18n.T("launch.btn_new_template")
 		isTplSel := (lm.SelectedIdx == cfgCount)
 		btnBg := boxBg
 		btnFg := accentFg
@@ -761,10 +762,11 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 			btnBg = selBg
 			btnFg = selFg
 		}
+		tplRunes := []rune(tplLabel)
 		for x := 0; x < leftColW-2; x++ {
 			r := ' '
-			if x >= 1 && x-1 < len(tplLabel) {
-				r = rune(tplLabel[x-1])
+			if x >= 1 && x-1 < len(tplRunes) {
+				r = tplRunes[x-1]
 			}
 			buf.SetRune(startX+1+x, tplBtnY, r, btnFg, btnBg, btnAttr)
 		}
@@ -772,7 +774,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 
 	// Right column: Details for selected profile
 	rightStartX := dividerX + 2
-	rightHeader := " Configuration Details "
+	rightHeader := fmt.Sprintf(" %s ", i18n.T("launch.details"))
 	for i, r := range []rune(rightHeader) {
 		if rightStartX+i < startX+modalW-2 {
 			buf.SetRune(rightStartX+i, contentTop, r, accentFg, boxBg, cell.AttrBold)
@@ -781,22 +783,22 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 
 	if lm.Config != nil && lm.SelectedIdx >= 0 && lm.SelectedIdx < cfgCount {
 		p := lm.Config.Configurations[lm.SelectedIdx]
-		targetLbl := "Target:"
+		targetLbl := i18n.T("launch.lbl_target")
 		if strings.EqualFold(p.Type, "shell") {
-			targetLbl = "Command:"
+			targetLbl = i18n.T("launch.lbl_cmd")
 		}
 		details := []struct {
 			lbl string
 			val string
 		}{
-			{"Name:", p.Name},
-			{"Type:", p.Type},
-			{"Request:", p.Request},
+			{i18n.T("launch.lbl_name"), p.Name},
+			{i18n.T("launch.lbl_type"), p.Type},
+			{i18n.T("launch.lbl_request"), p.Request},
 			{targetLbl, p.Target},
-			{"Args:", strings.Join(p.Args, " ")},
-			{"Cwd:", p.Cwd},
-			{"Console:", p.Console},
-			{"PreLaunch:", p.PreLaunchTask},
+			{i18n.T("launch.lbl_args"), strings.Join(p.Args, " ")},
+			{i18n.T("launch.lbl_cwd"), p.Cwd},
+			{i18n.T("launch.lbl_console"), p.Console},
+			{i18n.T("launch.lbl_prelaunch"), p.PreLaunchTask},
 		}
 
 		for di, d := range details {
@@ -809,7 +811,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 					buf.SetRune(rightStartX+li, dRowY, r, commentFg, boxBg, cell.AttrBold)
 				}
 			}
-			valX := rightStartX + 12
+			valX := rightStartX + 14
 			for vi, r := range []rune(d.val) {
 				if valX+vi < startX+modalW-2 {
 					buf.SetRune(valX+vi, dRowY, r, boxFg, boxBg, cell.AttrNone)
@@ -819,7 +821,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 
 		// Action buttons at bottom of right column without brackets
 		actionRowY := startY + modalH - 3
-		actions := " Edit (e)   Delete (d)   Open launch.json (o)   Run (F5) "
+		actions := fmt.Sprintf(" %s ", i18n.T("launch.actions_profile"))
 		for ai, r := range []rune(actions) {
 			if rightStartX+ai < startX+modalW-2 {
 				buf.SetRune(rightStartX+ai, actionRowY, r, accentFg, boxBg, cell.AttrBold)
@@ -827,9 +829,9 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 		}
 	} else if lm.SelectedIdx == cfgCount {
 		helpLines := []string{
-			"Create a new launch profile.",
+			i18n.T("launch.help_create"),
 			"",
-			"Available templates from plugins:",
+			i18n.T("launch.help_templates"),
 		}
 		for ti, tmpl := range lm.Templates {
 			if ti >= 5 {
@@ -837,7 +839,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 			}
 			helpLines = append(helpLines, fmt.Sprintf("• %s (%s)", tmpl.Name, tmpl.Type))
 		}
-		helpLines = append(helpLines, "", "Press Enter or click to create new profile.")
+		helpLines = append(helpLines, "", i18n.T("launch.help_enter"))
 		for hi, hLine := range helpLines {
 			hRowY := contentTop + 1 + hi
 			if hRowY >= startY+modalH-3 {
@@ -863,7 +865,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 	statusY := startY + modalH - 2
 	statusText := lm.StatusMsg
 	if statusText == "" && lm.Config != nil {
-		statusText = fmt.Sprintf("Active: %s  │  Total Configurations: %d", lm.Config.ActiveProfile, len(lm.Config.Configurations))
+		statusText = fmt.Sprintf(i18n.T("launch.status_active"), lm.Config.ActiveProfile, len(lm.Config.Configurations))
 	}
 	for i, r := range []rune(statusText) {
 		if startX+2+i < startX+modalW-2 {
@@ -873,9 +875,9 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 }
 
 func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, modalW, modalH int, boxBg, boxFg, selBg, selFg, accentFg, commentFg cell.Color) {
-	subTitle := " EDIT CONFIGURATION PROFILE "
+	subTitle := fmt.Sprintf(" %s ", i18n.T("launch.edit_title"))
 	if lm.Mode == LaunchModeAdd {
-		subTitle = " ADD CONFIGURATION PROFILE "
+		subTitle = fmt.Sprintf(" %s ", i18n.T("launch.add_title"))
 	}
 	for i, r := range []rune(subTitle) {
 		if startX+3+i < startX+modalW-2 {
@@ -888,16 +890,16 @@ func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, 
 		buf.SetRune(x, startY+2, '─', commentFg, boxBg, cell.AttrNone)
 	}
 
-	typeHint := "(Space/Up/Down: select, or type custom)"
+	typeHint := i18n.T("launch.type_hint")
 	if len(lm.SupportedTypes) > 0 {
-		typeHint = fmt.Sprintf("(Space/Up/Down: %s, or type custom)", strings.Join(lm.SupportedTypes, ", "))
+		typeHint = fmt.Sprintf(i18n.T("launch.type_hint_opts"), strings.Join(lm.SupportedTypes, ", "))
 	}
 
-	targetLabel := "Target:"
-	targetHint := "e.g. main.go, ./cmd/tahr, app.py"
+	targetLabel := i18n.T("launch.lbl_target")
+	targetHint := i18n.T("launch.target_hint")
 	if strings.EqualFold(lm.EditProfile.Type, "shell") {
-		targetLabel = "Command:"
-		targetHint = "e.g. echo hello, fflow stats -re .go, git status"
+		targetLabel = i18n.T("launch.lbl_cmd")
+		targetHint = i18n.T("launch.cmd_hint")
 	}
 
 	fields := []struct {
@@ -905,14 +907,14 @@ func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, 
 		val   string
 		hint  string
 	}{
-		{"Name:", lm.EditProfile.Name, ""},
-		{"Type:", lm.EditProfile.Type, typeHint},
-		{"Request:", lm.EditProfile.Request, "(Space/Up/Down: launch, debug)"},
+		{i18n.T("launch.lbl_name"), lm.EditProfile.Name, ""},
+		{i18n.T("launch.lbl_type"), lm.EditProfile.Type, typeHint},
+		{i18n.T("launch.lbl_request"), lm.EditProfile.Request, i18n.T("launch.request_hint")},
 		{targetLabel, lm.EditProfile.Target, targetHint},
-		{"Args:", strings.Join(lm.EditProfile.Args, " "), "space separated"},
-		{"Cwd:", lm.EditProfile.Cwd, "working directory (optional)"},
-		{"Console:", lm.EditProfile.Console, "(Space/Up/Down: integratedTerminal, internalConsole)"},
-		{"Pre-Launch:", lm.EditProfile.PreLaunchTask, "task/command before launch"},
+		{i18n.T("launch.lbl_args"), strings.Join(lm.EditProfile.Args, " "), i18n.T("launch.args_hint")},
+		{i18n.T("launch.lbl_cwd"), lm.EditProfile.Cwd, i18n.T("launch.cwd_hint")},
+		{i18n.T("launch.lbl_console"), lm.EditProfile.Console, i18n.T("launch.console_hint")},
+		{i18n.T("launch.lbl_prelaunch"), lm.EditProfile.PreLaunchTask, i18n.T("launch.prelaunch_hint")},
 	}
 
 	contentTop := startY + 3
@@ -966,8 +968,8 @@ func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, 
 
 	// Bottom action buttons
 	bottomY := startY + modalH - 2
-	saveBtn := " Save Profile (Ctrl+S) "
-	cancelBtn := " Cancel (Esc) "
+	saveBtn := i18n.T("launch.btn_save")
+	cancelBtn := i18n.T("launch.btn_cancel")
 	for i, r := range []rune(saveBtn) {
 		if startX+3+i < startX+modalW-2 {
 			buf.SetRune(startX+3+i, bottomY, r, accentFg, boxBg, cell.AttrBold)

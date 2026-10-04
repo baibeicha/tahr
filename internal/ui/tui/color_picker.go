@@ -9,6 +9,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -399,7 +400,7 @@ func (cp *ColorPickerModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 	}
 
 	// Title
-	title := fmt.Sprintf(" Color Palette Wheel [%s] ", cp.ColorLabel)
+	title := fmt.Sprintf(" %s: %s ", i18n.T("colorpicker.title"), cp.ColorLabel)
 	for i, r := range title {
 		if startX+2+i < startX+modalW-2 {
 			buf.SetRune(startX+2+i, startY, r, accentFg, themeBg, cell.AttrBold)
@@ -465,12 +466,12 @@ func (cp *ColorPickerModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 
 	// 3. Brightness / Value Slider (Row startY + wheelH + 3)
 	sliderY := startY + wheelH + 3
-	valLabel := fmt.Sprintf("Brightness: %3d%% [◄", int(cp.Val*100))
-	for i, r := range valLabel {
+	valLabel := fmt.Sprintf(i18n.T("colorpicker.brightness"), int(cp.Val*100))
+	for i, r := range []rune(valLabel) {
 		buf.SetRune(startX+4+i, sliderY, r, themeFg, themeBg, cell.AttrNone)
 	}
 
-	sliderStartX := startX + 4 + len(valLabel)
+	sliderStartX := startX + 4 + len([]rune(valLabel))
 	sliderLen := 22
 	sliderThumb := int(cp.Val * float64(sliderLen-1))
 
@@ -492,19 +493,18 @@ func (cp *ColorPickerModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 		buf.SetRune(sliderStartX+i, sliderY, r, fg, sliderBg, cell.AttrBold)
 	}
 	buf.SetRune(sliderStartX+sliderLen, sliderY, '►', themeFg, themeBg, cell.AttrNone)
-	buf.SetRune(sliderStartX+sliderLen+1, sliderY, ']', themeFg, themeBg, cell.AttrNone)
 
 	// 4. Live Swatches & Hex Input Row
 	swatchY := sliderY + 2
 	curColor := HSVToRGB(cp.Hue, cp.Sat, cp.Val)
 	origColor, _ := HexToRGBColor(cp.OrigHex)
 
-	origPrefix := "Original: "
+	origPrefix := i18n.T("colorpicker.original")
 	origStartX := startX + 4
-	for i, r := range origPrefix {
+	for i, r := range []rune(origPrefix) {
 		buf.SetRune(origStartX+i, swatchY, r, themeFg, themeBg, cell.AttrNone)
 	}
-	curX := origStartX + len(origPrefix)
+	curX := origStartX + len([]rune(origPrefix))
 	// Broad TrueColor swatch: ████
 	for i := 0; i < 4; i++ {
 		buf.SetRune(curX+i, swatchY, '█', origColor, themeBg, cell.AttrNone)
@@ -522,11 +522,11 @@ func (cp *ColorPickerModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 	}
 	curX += len(arrow)
 
-	newPrefix := "New: "
-	for i, r := range newPrefix {
+	newPrefix := i18n.T("colorpicker.new")
+	for i, r := range []rune(newPrefix) {
 		buf.SetRune(curX+i, swatchY, r, themeFg, themeBg, cell.AttrNone)
 	}
-	curX += len(newPrefix)
+	curX += len([]rune(newPrefix))
 	for i := 0; i < 4; i++ {
 		buf.SetRune(curX+i, swatchY, '█', curColor, themeBg, cell.AttrNone)
 	}
@@ -551,26 +551,21 @@ func (cp *ColorPickerModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 
 	// 5. Bottom Instructions Bar with explicit button coordinates
 	instY := startY + modalH - 1
-	tabModeStr := " Tab: Mode "
-	for i, r := range tabModeStr {
+	tabModeStr := fmt.Sprintf(" %s ", i18n.T("colorpicker.hint_tab"))
+	for i, r := range []rune(tabModeStr) {
 		buf.SetRune(startX+2+i, instY, r, commentFg, themeBg, cell.AttrNone)
 	}
 
-	cancelStr := " Esc: Cancel "
-	cancelStartX := startX + modalW - 2 - len(cancelStr)
-	for i, r := range cancelStr {
-		fg := themeFg
-		if r == 'E' || r == 's' || r == 'c' || r == ':' {
-			fg = accentFg
-		}
-		buf.SetRune(cancelStartX+i, instY, r, fg, themeBg, cell.AttrNone)
+	cancelStr := fmt.Sprintf(" %s ", i18n.T("colorpicker.hint_cancel"))
+	cancelStartX := startX + modalW - 2 - len([]rune(cancelStr))
+	for i, r := range []rune(cancelStr) {
+		buf.SetRune(cancelStartX+i, instY, r, themeFg, themeBg, cell.AttrNone)
 	}
 
-	applyStr := " Enter: Apply "
-	applyStartX := cancelStartX - len(applyStr) - 1
-	for i, r := range applyStr {
-		fg := accentFg
-		buf.SetRune(applyStartX+i, instY, r, fg, themeBg, cell.AttrBold)
+	applyStr := fmt.Sprintf(" %s ", i18n.T("colorpicker.hint_apply"))
+	applyStartX := cancelStartX - len([]rune(applyStr)) - 1
+	for i, r := range []rune(applyStr) {
+		buf.SetRune(applyStartX+i, instY, r, accentFg, themeBg, cell.AttrBold)
 	}
 }
 

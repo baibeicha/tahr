@@ -341,6 +341,45 @@ type Field struct {
 	Value string
 }
 
+func formatLineNumbers(val string) string {
+	switch strings.ToLower(val) {
+	case "absolute":
+		return i18n.T("settings.val.opt.absolute")
+	case "relative":
+		return i18n.T("settings.val.opt.relative")
+	case "none":
+		return i18n.T("settings.val.opt.none")
+	default:
+		return val
+	}
+}
+
+func formatCursorStyle(val string) string {
+	switch strings.ToLower(val) {
+	case "block":
+		return i18n.T("settings.val.opt.block")
+	case "bar":
+		return i18n.T("settings.val.opt.bar")
+	case "underline":
+		return i18n.T("settings.val.opt.underline")
+	default:
+		return val
+	}
+}
+
+func formatAutoSave(val string) string {
+	switch strings.ToLower(val) {
+	case "off":
+		return i18n.T("settings.val.opt.off")
+	case "on_focus_loss":
+		return i18n.T("settings.val.opt.on_focus_loss")
+	case "after_delay":
+		return i18n.T("settings.val.opt.after_delay")
+	default:
+		return val
+	}
+}
+
 func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 	switch catIdx {
 	case 0: // Editor & Cursor
@@ -363,13 +402,13 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		return []Field{
 			{"tab_size", i18n.T("settings.field.tab_size"), fmt.Sprintf(i18n.T("settings.val.n_spaces"), st.Current.TabSize)},
 			{"use_spaces", i18n.T("settings.field.use_spaces"), spacesStr},
-			{"line_numbers", i18n.T("settings.field.line_numbers"), strings.Title(st.Current.LineNumbers)},
+			{"line_numbers", i18n.T("settings.field.line_numbers"), formatLineNumbers(st.Current.LineNumbers)},
 			{"word_wrap", i18n.T("settings.field.word_wrap"), wrapStr},
-			{"cursor_style", i18n.T("settings.field.cursor_style"), strings.Title(st.Current.CursorStyle)},
+			{"cursor_style", i18n.T("settings.field.cursor_style"), formatCursorStyle(st.Current.CursorStyle)},
 			{"cursor_blink", i18n.T("settings.field.cursor_blink"), blinkStr},
 			{"scrolloff_y", i18n.T("settings.field.scrolloff_y"), fmt.Sprintf(i18n.T("settings.val.n_lines"), st.Current.ScrolloffY)},
 			{"show_minimap", i18n.T("settings.field.show_minimap"), minimapStr},
-			{"auto_save", i18n.T("settings.field.auto_save"), strings.Title(st.Current.AutoSave)},
+			{"auto_save", i18n.T("settings.field.auto_save"), formatAutoSave(st.Current.AutoSave)},
 		}
 
 	case 1: // Appearance & Layout
@@ -433,46 +472,46 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			{"split_4", i18n.T("settings.field.kb_split_4")},
 			{"split_5", i18n.T("settings.field.kb_split_5")},
 			{"split_6", i18n.T("settings.field.kb_split_6")},
-			{"find", "Find in File"},
-			{"replace", "Find & Replace"},
-			{"rename", "Rename Symbol (Project)"},
-			{"goto_line", "Go to Line"},
-			{"omnibar", "Find File (Omnibar)"},
-			{"commands", "Command Palette"},
-			{"select_all", "Select All"},
-			{"next_match", "Select Next Match"},
-			{"copy", "Copy Selection"},
-			{"cut", "Cut Selection"},
-			{"paste", "Paste Clipboard"},
-			{"tab_next", "Next Tab / Buffer"},
-			{"tab_prev", "Previous Tab / Buffer"},
-			{"undo", "Undo Edit"},
-			{"redo", "Redo Edit"},
-			{"breakpoint", "Toggle Breakpoint"},
-			{"step_over", "Step Over"},
-			{"step_into", "Step Into"},
-			{"step_out", "Step Out"},
-			{"definition", "Go to Definition"},
-			{"hover", "Hover Documentation"},
-			{"settings", "Settings Modal"},
-			{"close_tab", "Close Tab"},
-			{"quit", "Quit IDE"},
-			{"terminal_toggle", "Toggle Terminal"},
-			{"terminal_split", "Toggle Terminal Split"},
-			{"terminal_tab_new", "New Terminal Tab"},
-			{"terminal_tab_close", "Close Terminal Tab"},
-			{"quick_fix", "Quick Fix Actions"},
-			{"minimap_toggle", "Toggle Minimap"},
-			{"markdown_preview", "Markdown Preview Split"},
-			{"git_modal", "Git Staging & Graph"},
-			{"marketplace", "Extension Marketplace"},
-			{"completion", "Trigger Completion"},
-			{"pick_color", "Pick / Edit Color at Cursor"},
+			{"find", i18n.T("settings.kb.find")},
+			{"replace", i18n.T("settings.kb.replace")},
+			{"rename", i18n.T("settings.kb.rename")},
+			{"goto_line", i18n.T("settings.kb.goto_line")},
+			{"omnibar", i18n.T("settings.kb.omnibar")},
+			{"commands", i18n.T("settings.kb.commands")},
+			{"select_all", i18n.T("settings.kb.select_all")},
+			{"next_match", i18n.T("settings.kb.next_match")},
+			{"copy", i18n.T("settings.kb.copy")},
+			{"cut", i18n.T("settings.kb.cut")},
+			{"paste", i18n.T("settings.kb.paste")},
+			{"tab_next", i18n.T("settings.kb.tab_next")},
+			{"tab_prev", i18n.T("settings.kb.tab_prev")},
+			{"undo", i18n.T("settings.kb.undo")},
+			{"redo", i18n.T("settings.kb.redo")},
+			{"breakpoint", i18n.T("settings.kb.breakpoint")},
+			{"step_over", i18n.T("settings.kb.step_over")},
+			{"step_into", i18n.T("settings.kb.step_into")},
+			{"step_out", i18n.T("settings.kb.step_out")},
+			{"definition", i18n.T("settings.kb.definition")},
+			{"hover", i18n.T("settings.kb.hover")},
+			{"settings", i18n.T("settings.kb.settings")},
+			{"close_tab", i18n.T("settings.kb.close_tab")},
+			{"quit", i18n.T("settings.kb.quit")},
+			{"terminal_toggle", i18n.T("settings.kb.terminal_toggle")},
+			{"terminal_split", i18n.T("settings.kb.terminal_split")},
+			{"terminal_tab_new", i18n.T("settings.kb.terminal_tab_new")},
+			{"terminal_tab_close", i18n.T("settings.kb.terminal_tab_close")},
+			{"quick_fix", i18n.T("settings.kb.quick_fix")},
+			{"minimap_toggle", i18n.T("settings.kb.minimap_toggle")},
+			{"markdown_preview", i18n.T("settings.kb.markdown_preview")},
+			{"git_modal", i18n.T("settings.kb.git_modal")},
+			{"marketplace", i18n.T("settings.kb.marketplace")},
+			{"completion", i18n.T("settings.kb.completion")},
+			{"pick_color", i18n.T("settings.kb.pick_color")},
 		}
 		for _, k := range keys {
 			val := st.Current.Keybindings[k.id]
 			if val == "" {
-				val = "(not bound)"
+				val = i18n.T("settings.val.not_bound")
 			}
 			fields = append(fields, Field{Key: k.id, Label: k.label, Value: val})
 		}
@@ -484,24 +523,24 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			id    string
 			label string
 		}{
-			{"bg", "Background"},
-			{"fg", "Foreground"},
-			{"sel_bg", "Selection Background"},
-			{"cursor", "Cursor Color"},
-			{"gutter_bg", "Gutter Background"},
-			{"line_number", "Line Numbers"},
-			{"keyword", "Keyword Color"},
-			{"function", "Function Color"},
-			{"string", "String Color"},
-			{"type", "Type Color"},
-			{"comment", "Comment Color"},
-			{"constant", "Constant Color"},
-			{"error", "Error Diagnostic"},
-			{"warn", "Warning Diagnostic"},
-			{"border", "Border Color"},
-			{"popup_bg", "Popup Background"},
-			{"popup_sel_bg", "Popup Selection"},
-			{"occurrence_bg", "Word / Selection Highlight"},
+			{"bg", i18n.T("settings.color.bg")},
+			{"fg", i18n.T("settings.color.fg")},
+			{"sel_bg", i18n.T("settings.color.sel_bg")},
+			{"cursor", i18n.T("settings.color.cursor")},
+			{"gutter_bg", i18n.T("settings.color.gutter_bg")},
+			{"line_number", i18n.T("settings.color.line_number")},
+			{"keyword", i18n.T("settings.color.keyword")},
+			{"function", i18n.T("settings.color.function")},
+			{"string", i18n.T("settings.color.string")},
+			{"type", i18n.T("settings.color.type")},
+			{"comment", i18n.T("settings.color.comment")},
+			{"constant", i18n.T("settings.color.constant")},
+			{"error", i18n.T("settings.color.error")},
+			{"warn", i18n.T("settings.color.warn")},
+			{"border", i18n.T("settings.color.border")},
+			{"popup_bg", i18n.T("settings.color.popup_bg")},
+			{"popup_sel_bg", i18n.T("settings.color.popup_sel_bg")},
+			{"occurrence_bg", i18n.T("settings.color.occurrence_bg")},
 		}
 		for _, c := range colorKeys {
 			hexVal := st.Current.CustomColors[c.id]
@@ -516,8 +555,43 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		var fields []Field
 		fields = append(fields, Field{
 			Key:   "go_sdk_path",
-			Label: "Go SDK Path",
-			Value: defaultStr(st.Current.GoSDKPath, "(auto-detected)"),
+			Label: i18n.T("settings.tool.go_sdk_path"),
+			Value: defaultStr(st.Current.GoSDKPath, i18n.T("settings.tool.auto_detected")),
+		})
+		fields = append(fields, Field{
+			Key:   "gopls_path",
+			Label: i18n.T("settings.field.gopls"),
+			Value: defaultStr(st.Current.GoplsPath, i18n.T("settings.tool.auto_detected")),
+		})
+		fields = append(fields, Field{
+			Key:   "go_build_flags",
+			Label: i18n.T("settings.field.go_flags"),
+			Value: defaultStr(st.Current.GoBuildFlags, "-v"),
+		})
+		fields = append(fields, Field{
+			Key:   "python_path",
+			Label: i18n.T("settings.field.python"),
+			Value: defaultStr(st.Current.PythonPath, "python"),
+		})
+		fields = append(fields, Field{
+			Key:   "python_venv",
+			Label: i18n.T("settings.field.python_venv"),
+			Value: defaultStr(st.Current.PythonVenv, i18n.T("settings.val.not_bound")),
+		})
+		fields = append(fields, Field{
+			Key:   "pyright_path",
+			Label: i18n.T("settings.field.pyright"),
+			Value: defaultStr(st.Current.PyrightPath, i18n.T("settings.tool.auto_detected")),
+		})
+		fields = append(fields, Field{
+			Key:   "cargo_path",
+			Label: i18n.T("settings.field.cargo"),
+			Value: defaultStr(st.Current.CargoPath, "cargo"),
+		})
+		fields = append(fields, Field{
+			Key:   "rust_analyzer",
+			Label: i18n.T("settings.field.rust_analyzer"),
+			Value: defaultStr(st.Current.RustAnalyzer, i18n.T("settings.tool.auto_detected")),
 		})
 		if st.pluginMgr != nil {
 			plugins := st.pluginMgr.InstalledPlugins()
@@ -525,6 +599,9 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 				return plugins[i].ID < plugins[j].ID
 			})
 			for _, p := range plugins {
+				if !st.pluginMgr.IsEnabled(p.ID) {
+					continue
+				}
 				// 1. Language Compiler / Runner
 				for _, lang := range p.Languages {
 					cmd := lang.BuildCmd
@@ -540,15 +617,15 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 							custom = st.Current.GoSDKPath
 						}
 						foundPath, ok := st.pluginMgr.FindToolPath(cmd, custom)
-						status := "[!] Missing"
-						val := cmd + " (Missing)"
+						status := i18n.T("settings.tool.missing")
+						val := fmt.Sprintf(i18n.T("settings.tool.val_missing"), cmd)
 						if ok {
-							status = "[✓] Ready"
+							status = i18n.T("settings.tool.ready")
 							val = foundPath
 						}
 						fields = append(fields, Field{
 							Key:   fmt.Sprintf("tool:compiler:%s:%s", p.ID, cmd),
-							Label: fmt.Sprintf("[%s] Compiler: %s", p.Name, cmd),
+							Label: fmt.Sprintf(i18n.T("settings.tool.lbl_compiler"), p.Name, cmd),
 							Value: fmt.Sprintf("%s (%s)", status, val),
 						})
 					}
@@ -567,15 +644,15 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 						}
 					}
 					foundPath, ok := st.pluginMgr.FindToolPath(cmd, custom)
-					status := "[!] Missing"
-					val := cmd + " (Missing)"
+					status := i18n.T("settings.tool.missing")
+					val := fmt.Sprintf(i18n.T("settings.tool.val_missing"), cmd)
 					if ok {
-						status = "[✓] Ready"
+						status = i18n.T("settings.tool.ready")
 						val = foundPath
 					}
 					fields = append(fields, Field{
 						Key:   fmt.Sprintf("tool:lsp:%s:%s", p.ID, cmd),
-						Label: fmt.Sprintf("[%s] LSP: %s", p.Name, p.LSP.ServerName),
+						Label: fmt.Sprintf(i18n.T("settings.tool.lbl_lsp"), p.Name, p.LSP.ServerName),
 						Value: fmt.Sprintf("%s (%s)", status, val),
 					})
 				}
@@ -587,15 +664,15 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 						custom = st.Current.CustomToolPaths[cmd]
 					}
 					foundPath, ok := st.pluginMgr.FindToolPath(cmd, custom)
-					status := "[!] Missing"
-					val := cmd + " (Missing)"
+					status := i18n.T("settings.tool.missing")
+					val := fmt.Sprintf(i18n.T("settings.tool.val_missing"), cmd)
 					if ok {
-						status = "[✓] Ready"
+						status = i18n.T("settings.tool.ready")
 						val = foundPath
 					}
 					fields = append(fields, Field{
 						Key:   fmt.Sprintf("tool:dap:%s:%s", p.ID, cmd),
-						Label: fmt.Sprintf("[%s] DAP: %s", p.Name, p.DAP.AdapterName),
+						Label: fmt.Sprintf(i18n.T("settings.tool.lbl_dap"), p.Name, p.DAP.AdapterName),
 						Value: fmt.Sprintf("%s (%s)", status, val),
 					})
 				}
@@ -603,17 +680,15 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		}
 		if len(fields) <= 1 {
 			fields = append(fields,
-				Field{Key: "tool:compiler:tahr-go:go", Label: "[Go Language Support] Compiler: go", Value: "[✓] Ready (go)"},
-				Field{Key: "tool:lsp:tahr-go:gopls", Label: "[Go Language Support] LSP: gopls", Value: "[✓] Ready (gopls)"},
-				Field{Key: "tool:dap:tahr-go:dlv", Label: "[Go Language Support] DAP: delve", Value: "[✓] Ready (dlv)"},
+				Field{Key: "tool:none", Label: i18n.T("settings.tool.none_label"), Value: i18n.T("settings.tool.none_val")},
 			)
 		}
 		return fields
 
 	case 6: // Plugins & Marketplace
 		var fields []Field
-		fields = append(fields, Field{Key: "open_marketplace", Label: "Extension Browser", Value: "Open Full Marketplace (Ctrl+Shift+X)"})
-		fields = append(fields, Field{Key: "registry_url", Label: "Primary Registry URL", Value: st.Current.RegistryURL})
+		fields = append(fields, Field{Key: "open_marketplace", Label: i18n.T("settings.plugin.open_market_lbl"), Value: i18n.T("settings.plugin.open_market_val")})
+		fields = append(fields, Field{Key: "registry_url", Label: i18n.T("settings.plugin.registry_url_lbl"), Value: st.Current.RegistryURL})
 
 		// Repositories from live manager or settings
 		var repos []plugin.PluginRepository
@@ -626,11 +701,11 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		}
 
 		for _, r := range repos {
-			rStatus := "Enabled"
+			rStatus := i18n.T("settings.plugin.enabled")
 			if !r.Enabled {
-				rStatus = "Disabled"
+				rStatus = i18n.T("settings.plugin.disabled")
 			}
-			label := fmt.Sprintf("Repo: %s", r.Name)
+			label := fmt.Sprintf(i18n.T("settings.plugin.repo_lbl"), r.Name)
 			val := fmt.Sprintf("%s - %s", rStatus, r.URL)
 			fields = append(fields, Field{Key: "repo_" + r.ID, Label: label, Value: val})
 		}
@@ -639,11 +714,11 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		if st.pluginMgr != nil {
 			installed := st.pluginMgr.Installed()
 			for _, p := range installed {
-				pStatus := "Enabled (Enter: Disable)"
+				pStatus := i18n.T("settings.plugin.status_enabled")
 				if !st.pluginMgr.IsEnabled(p.ID) {
-					pStatus = "Disabled (Enter: Enable)"
+					pStatus = i18n.T("settings.plugin.status_disabled")
 				}
-				label := fmt.Sprintf("Plugin: %s (v%s)", p.Name, p.Version)
+				label := fmt.Sprintf(i18n.T("settings.plugin.plugin_lbl"), p.Name, p.Version)
 				fields = append(fields, Field{Key: "plugin_" + p.ID, Label: label, Value: pStatus})
 
 				if len(p.Settings) > 0 && st.pluginMgr.IsEnabled(p.ID) {
@@ -661,15 +736,15 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			}
 		} else {
 			for _, p := range st.Current.Plugins {
-				status := "Install"
+				status := i18n.T("settings.plugin.install")
 				if p.Installed {
 					if p.Enabled {
-						status = "Enabled (Enter: Disable)"
+						status = i18n.T("settings.plugin.status_enabled")
 					} else {
-						status = "Disabled (Enter: Enable)"
+						status = i18n.T("settings.plugin.status_disabled")
 					}
 				}
-				label := fmt.Sprintf("Plugin: %s (%s)", p.Name, p.Version)
+				label := fmt.Sprintf(i18n.T("settings.plugin.plugin_lbl"), p.Name, p.Version)
 				fields = append(fields, Field{Key: "plugin_" + p.ID, Label: label, Value: status})
 			}
 		}
@@ -2190,22 +2265,22 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 	}
 
 	// Title
-	title := fmt.Sprintf(" Tool Action: %s ", st.ToolAction.ToolName)
+	title := fmt.Sprintf(" %s: %s ", i18n.T("settings.tool.action_title"), st.ToolAction.ToolName)
 	drawString(buf, startX+2, startY, title, accentFg, themeBg, cell.AttrBold, modalW-4)
 
 	// Details
-	statusStr := "[✓] Ready"
+	statusStr := i18n.T("settings.tool.ready")
 	if !st.ToolAction.Ready {
-		statusStr = "[!] Missing"
+		statusStr = i18n.T("settings.tool.missing")
 	}
-	line1 := fmt.Sprintf("Plugin: %s  |  Status: %s", st.ToolAction.PluginName, statusStr)
+	line1 := fmt.Sprintf("%s: %s  │  %s: %s", i18n.T("settings.tool.plugin"), st.ToolAction.PluginName, i18n.T("settings.tool.status"), statusStr)
 	drawString(buf, startX+3, startY+2, line1, themeFg, themeBg, cell.AttrNone, modalW-6)
 
 	curPath := st.ToolAction.CurrentPath
 	if curPath == "" {
-		curPath = "(not found)"
+		curPath = i18n.T("settings.tool.not_found")
 	}
-	line2 := fmt.Sprintf("Path: %s", curPath)
+	line2 := fmt.Sprintf("%s: %s", i18n.T("settings.tool.path"), curPath)
 	line2Runes := []rune(line2)
 	if len(line2Runes) > modalW-6 {
 		line2 = string(line2Runes[:modalW-7]) + "…"
@@ -2213,9 +2288,9 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 	drawString(buf, startX+3, startY+3, line2, themeFg, themeBg, cell.AttrNone, modalW-6)
 
 	// Options
-	opt1 := fmt.Sprintf("  [D] Download & Install Automatically: %s", st.ToolAction.InstallCmd)
+	opt1 := fmt.Sprintf("  D: %s: %s", i18n.T("settings.tool.opt_download"), st.ToolAction.InstallCmd)
 	if st.ToolAction.InstallCmd == "" {
-		opt1 = "  [D] Download & Install Automatically"
+		opt1 = fmt.Sprintf("  D: %s", i18n.T("settings.tool.opt_download"))
 	}
 	opt1Runes := []rune(opt1)
 	if len(opt1Runes) > modalW-6 {
@@ -2224,40 +2299,40 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 	for i, r := range opt1Runes {
 		if startX+2+i < startX+modalW-2 {
 			fg := accentFg
-			if r == '[' || r == ']' || r == 'D' {
+			if r == 'D' || r == ':' {
 				fg = toColor(0xcba6f7) // keyword accent
 			}
 			buf.SetRune(startX+2+i, startY+5, r, fg, themeBg, cell.AttrBold)
 		}
 	}
 
-	opt2 := "  [P] Specify Path to Binary Manually"
+	opt2 := fmt.Sprintf("  P: %s", i18n.T("settings.tool.opt_path"))
 	for i, r := range []rune(opt2) {
 		if startX+2+i < startX+modalW-2 {
 			fg := themeFg
-			if r == '[' || r == ']' || r == 'P' {
+			if r == 'P' || r == ':' {
 				fg = toColor(0xcba6f7)
 			}
 			buf.SetRune(startX+2+i, startY+6, r, fg, themeBg, cell.AttrBold)
 		}
 	}
 
-	opt3 := "  [R] Reset / Revert to Auto-Detection"
+	opt3 := fmt.Sprintf("  R: %s", i18n.T("settings.tool.opt_reset"))
 	for i, r := range []rune(opt3) {
 		if startX+2+i < startX+modalW-2 {
 			fg := themeFg
-			if r == '[' || r == ']' || r == 'R' {
+			if r == 'R' || r == ':' {
 				fg = toColor(0xcba6f7)
 			}
 			buf.SetRune(startX+2+i, startY+7, r, fg, themeBg, cell.AttrBold)
 		}
 	}
 
-	opt4 := "  [Esc] Cancel / Back"
+	opt4 := fmt.Sprintf("  Esc: %s", i18n.T("settings.tool.opt_cancel"))
 	drawString(buf, startX+2, startY+8, opt4, toColor(0x888888), themeBg, cell.AttrNone, modalW-4)
 
 	if st.ToolAction.InputMode {
-		inLbl := "Specify Path: "
+		inLbl := fmt.Sprintf("%s: ", i18n.T("settings.tool.input_path"))
 		drawString(buf, startX+4, startY+10, inLbl, accentFg, themeBg, cell.AttrBold, modalW-8)
 		inX := startX + 4 + len([]rune(inLbl))
 		inW := modalW - 8 - len([]rune(inLbl))
@@ -2269,7 +2344,7 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 			}
 			buf.SetRune(inX+i, startY+10, r, selFg, selBg, cell.AttrBold)
 		}
-		hint := "Enter: Save Path | Esc: Cancel"
+		hint := fmt.Sprintf("%s │ %s", i18n.T("settings.tool.hint_save"), i18n.T("settings.tool.hint_cancel"))
 		drawString(buf, startX+4, startY+12, hint, themeFg, themeBg, cell.AttrNone, modalW-8)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -176,7 +177,7 @@ func (m *RenameModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui
 	}
 
 	// Title & Close [✕]
-	title := " RENAME SYMBOL (PROJECT-WIDE) "
+	title := fmt.Sprintf(" %s ", i18n.T("rename.title"))
 	for i, r := range []rune(title) {
 		if startX+2+i < startX+modalW-4 {
 			buf.SetRune(startX+2+i, startY, r, accentFg, bg, cell.AttrBold)
@@ -185,7 +186,7 @@ func (m *RenameModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui
 	buf.SetRune(startX+modalW-3, startY, '✕', toColor(theme.DiagnosticError), bg, cell.AttrBold)
 
 	// Old Name line
-	oldLbl := fmt.Sprintf("Current: %s", m.OldName)
+	oldLbl := fmt.Sprintf(i18n.T("rename.current"), m.OldName)
 	for i, r := range []rune(oldLbl) {
 		if startX+3+i < startX+modalW-3 {
 			buf.SetRune(startX+3+i, startY+2, r, toColor(theme.Comment), bg, cell.AttrNone)
@@ -193,7 +194,7 @@ func (m *RenameModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui
 	}
 
 	// Input row: New Name: [_______]
-	inLbl := "New Name: "
+	inLbl := i18n.T("rename.new_name")
 	for i, r := range []rune(inLbl) {
 		buf.SetRune(startX+3+i, startY+3, r, fg, bg, cell.AttrBold)
 	}
@@ -210,11 +211,11 @@ func (m *RenameModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui
 	}
 
 	// Buttons: Rename (Enter)   Cancel (Esc)
-	btnRename := " Rename "
+	btnRename := i18n.T("rename.btn_rename")
 	for i, r := range []rune(btnRename) {
 		buf.SetRune(startX+12+i, startY+5, r, toColor(theme.String), activeBg, cell.AttrBold)
 	}
-	btnCancel := " Cancel "
+	btnCancel := i18n.T("rename.btn_cancel")
 	for i, r := range []rune(btnCancel) {
 		buf.SetRune(startX+26+i, startY+5, r, toColor(theme.Comment), bg, cell.AttrNone)
 	}

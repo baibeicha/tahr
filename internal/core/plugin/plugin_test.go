@@ -633,6 +633,129 @@ func TestTier1PluginsPackagingAndInstallation(t *testing.T) {
 	}
 }
 
+func TestPluginDisable_SuppressesLSPAndDAPAndLanguages(t *testing.T) {
+	tempDir := t.TempDir()
+	mgr, err := NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("NewManager failed: %v", err)
+	}
+	defer mgr.Close()
+
+	testGoManifest := Manifest{
+		ID:          "tahr-go",
+		Name:        "Go Language Support",
+		Version:     "1.0.0",
+		Description: "Go tooling",
+		Languages: []LanguageConfig{
+			{
+				ID:         "go",
+				Extensions: []string{".go"},
+			},
+		},
+		LSP: &LSPConfig{
+			ServerName: "gopls",
+			Command:    "gopls",
+		},
+		DAP: &DAPConfig{
+			AdapterName: "delve",
+			Command:     "dlv",
+		},
+	}
+
+	if _, err := mgr.InstallDeclarative(testGoManifest); err != nil {
+		t.Fatalf("failed to install declarative plugin: %v", err)
+	}
+
+	// 1. Initially enabled
+	if !mgr.IsEnabled("tahr-go") {
+		t.Fatalf("expected plugin to be enabled initially")
+	}
+	if !mgr.IsExtensionActive(".go") {
+		t.Fatalf("expected .go extension to be active")
+	}
+	if mgr.GetLanguageConfig(".go") == nil {
+		t.Fatalf("expected .go language config to be present")
+	}
+	if lspCfg := mgr.GetLSPForExt(".go"); lspCfg == nil || lspCfg.ServerName != "gopls" {
+		t.Fatalf("expected gopls LSP config, got %+v", lspCfg)
+	}
+	if dapCfg := mgr.GetDAPForExt(".go"); dapCfg == nil || dapCfg.AdapterName != "delve" {
+		t.Fatalf("expected delve DAP config, got %+v", dapCfg)
+	}
+
+	// 2. Disable plugin
+	var notifiedID string
+	var notifiedEnabled bool
+	mgr.AddLifecycleListener(func(id string, enabled bool) {
+		notifiedID = id
+		notifiedEnabled = enabled
+	})
+
+	if err := mgr.DisablePlugin("tahr-go"); err != nil {
+		t.Fatalf("DisablePlugin failed: %v", err)
+	}
+	if notifiedID != "tahr-go" || notifiedEnabled != false {
+		t.Fatalf("expected lifecycle notification (tahr-go, false), got (%s, %v)", notifiedID, notifiedEnabled)
+	}
+
+	// Verify all features for .go are completely suppressed
+	if mgr.IsEnabled("tahr-go") {
+		t.Errorf("expected plugin to be disabled")
+	}
+	if mgr.IsExtensionActive(".go") {
+		t.Errorf("expected .go extension to be inactive when plugin disabled")
+	}
+	if mgr.GetLanguageConfig(".go") != nil {
+		t.Errorf("expected .go language config to be nil when plugin disabled")
+	}
+	if lspCfg := mgr.GetLSPForExt(".go"); lspCfg != nil {
+		t.Errorf("expected nil LSP config when plugin disabled, got %+v", lspCfg)
+	}
+	if dapCfg := mgr.GetDAPForExt(".go"); dapCfg != nil {
+		t.Errorf("expected nil DAP config when plugin disabled, got %+v", dapCfg)
+	}
+
+	// 3. Simulate IDE restart by creating a new Manager on the same directory
+	mgr2, err := NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("NewManager reload failed: %v", err)
+	}
+	defer mgr2.Close()
+
+	if mgr2.IsEnabled("tahr-go") {
+		t.Errorf("expected plugin to remain disabled across restarts")
+	}
+	if mgr2.IsExtensionActive(".go") {
+		t.Errorf("expected .go to remain inactive across restarts")
+	}
+	if mgr2.GetLanguageConfig(".go") != nil {
+		t.Errorf("expected .go language config to remain nil across restarts")
+	}
+	if lspCfg := mgr2.GetLSPForExt(".go"); lspCfg != nil {
+		t.Errorf("expected nil LSP config across restarts, got %+v", lspCfg)
+	}
+	if dapCfg := mgr2.GetDAPForExt(".go"); dapCfg != nil {
+		t.Errorf("expected nil DAP config across restarts, got %+v", dapCfg)
+	}
+
+	// 4. Re-enable plugin
+	if err := mgr2.EnablePlugin("tahr-go"); err != nil {
+		t.Fatalf("EnablePlugin failed: %v", err)
+	}
+	if !mgr2.IsEnabled("tahr-go") {
+		t.Errorf("expected plugin to be re-enabled")
+	}
+	if !mgr2.IsExtensionActive(".go") {
+		t.Errorf("expected .go to be active after re-enable")
+	}
+	if mgr2.GetLSPForExt(".go") == nil {
+		t.Errorf("expected LSP config restored after re-enable")
+	}
+	if mgr2.GetDAPForExt(".go") == nil {
+		t.Errorf("expected DAP config restored after re-enable")
+	}
+}
+
 
 
 

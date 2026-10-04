@@ -8,6 +8,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/lsp"
 	"tahr/internal/ui"
 )
@@ -187,9 +188,9 @@ func (p *ProblemsPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Them
 	infoFg := cell.Color{Type: cell.ColorRGB, Value: theme.DiagnosticInfo}
 
 	// 1. Header bar
-	headerTitle := fmt.Sprintf(" PROBLEMS (%d errors, %d warnings) ", p.ErrorCount(), p.WarningCount())
+	headerTitle := fmt.Sprintf(" %s ", fmt.Sprintf(i18n.T("problems.title"), p.ErrorCount(), p.WarningCount()))
 	headerRunes := []rune(headerTitle)
-	closeBtn := " ✕ Close "
+	closeBtn := fmt.Sprintf(" %s ", i18n.T("problems.close"))
 	closeRunes := []rune(closeBtn)
 
 	for col := 0; col < w; col++ {
@@ -231,7 +232,7 @@ func (p *ProblemsPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Them
 
 		if idx >= len(p.Items) {
 			if len(p.Items) == 0 && row == 0 {
-				noProb := "No problems found in workspace. Code is clean! ✓"
+				noProb := i18n.T("problems.clean")
 				for ci, cr := range []rune(noProb) {
 					if x+2+ci < x+w-2 {
 						buf.SetRune(x+2+ci, screenY, cr, cell.Color{Type: cell.ColorRGB, Value: theme.String}, bg, cell.AttrNone)
@@ -253,13 +254,13 @@ func (p *ProblemsPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Them
 		}
 
 		// Severity Tag: [ERROR], [WARN], [INFO]
-		tag := "[ERROR] "
+		tag := i18n.T("problems.tag_error")
 		tagFg := errFg
 		if item.Severity == lsp.SeverityWarning {
-			tag = "[WARN]  "
+			tag = i18n.T("problems.tag_warn")
 			tagFg = warnFg
 		} else if item.Severity >= lsp.SeverityInformation {
-			tag = "[INFO]  "
+			tag = i18n.T("problems.tag_info")
 			tagFg = infoFg
 		}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/media"
 	"tahr/internal/core"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -169,7 +170,16 @@ func (h *HoverDocState) Render(buf *buffer.Buffer, screenW, screenH int, theme *
 	// Title in top border
 	title := fmt.Sprintf(" %s ", h.Symbol)
 	if h.Source != "" {
-		title = fmt.Sprintf(" %s [%s] ", h.Symbol, h.Source)
+		sourceLabel := h.Source
+		switch h.Source {
+		case "LSP":
+			sourceLabel = i18n.T("hover.source_lsp")
+		case "Code Comments":
+			sourceLabel = i18n.T("hover.source_comments")
+		case "Image Preview":
+			sourceLabel = i18n.T("hover.source_image")
+		}
+		title = fmt.Sprintf(" %s [%s] ", h.Symbol, sourceLabel)
 	}
 	tRunes := []rune(title)
 	for i, r := range tRunes {

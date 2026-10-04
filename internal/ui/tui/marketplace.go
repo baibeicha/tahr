@@ -45,13 +45,35 @@ type MarketplaceModal struct {
 	StatusIsError bool
 }
 
+func determinePluginCategory(inst *plugin.Manifest) string {
+	if inst == nil {
+		return "tools"
+	}
+	if inst.Category != "" {
+		return strings.ToLower(inst.Category)
+	}
+	if len(inst.Localizations) > 0 {
+		return "i18n"
+	}
+	if len(inst.Themes) > 0 {
+		return "theme"
+	}
+	if inst.LSP != nil {
+		return "lsp"
+	}
+	if inst.DAP != nil {
+		return "dap"
+	}
+	return "tools"
+}
+
 // NewMarketplaceModal creates a new marketplace modal instance.
 func NewMarketplaceModal(mgr *plugin.Manager) *MarketplaceModal {
 	m := &MarketplaceModal{
 		Open:          false,
 		mgr:           mgr,
 		ActiveTab:     0,
-		Categories:    []string{"All", "LSP", "DAP", "Theme", "Tools", "Formatter"},
+		Categories:    []string{"All", "LSP", "DAP", "Theme", "Tools", "i18n", "Database", "Infrastructure"},
 		CatIdx:        0,
 		SearchQuery:   "",
 		SearchFocused: false,
@@ -81,22 +103,25 @@ func (m *MarketplaceModal) Refresh() {
 	if m.ActiveTab == 1 { // Installed tab
 		var installedOnly []plugin.RemotePluginInfo
 		for _, inst := range m.mgr.InstalledPlugins() {
-			catMatch := (cat == "" || cat == "all")
+			pCat := determinePluginCategory(inst)
+			catMatch := (cat == "" || cat == "all" || strings.EqualFold(pCat, cat))
+			if !catMatch {
+				if cat == "dap" && inst.DAP != nil {
+					catMatch = true
+				} else if cat == "lsp" && inst.LSP != nil {
+					catMatch = true
+				} else if cat == "theme" && len(inst.Themes) > 0 {
+					catMatch = true
+				} else if cat == "i18n" && len(inst.Localizations) > 0 {
+					catMatch = true
+				}
+			}
 			if !catMatch {
 				for _, l := range inst.Languages {
 					if strings.EqualFold(l.ID, cat) {
 						catMatch = true
 						break
 					}
-				}
-				if len(inst.Themes) > 0 && cat == "theme" {
-					catMatch = true
-				}
-				if inst.LSP != nil && cat == "lsp" {
-					catMatch = true
-				}
-				if inst.DAP != nil && cat == "dap" {
-					catMatch = true
 				}
 			}
 			if !catMatch {
@@ -112,22 +137,13 @@ func (m *MarketplaceModal) Refresh() {
 				}
 			}
 
-			category := "tools"
-			if len(inst.Themes) > 0 {
-				category = "theme"
-			} else if inst.LSP != nil {
-				category = "lsp"
-			} else if inst.DAP != nil {
-				category = "dap"
-			}
-
 			installedOnly = append(installedOnly, plugin.RemotePluginInfo{
 				ID:          inst.ID,
 				Name:        inst.Name,
 				Version:     inst.Version,
 				Author:      inst.Author,
 				Description: inst.Description,
-				Category:    category,
+				Category:    pCat,
 				Installed:   true,
 				Enabled:     m.mgr.IsEnabled(inst.ID),
 			})
@@ -664,7 +680,8 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			buf.SetRune(sqX+i, startY+3, r, sqFg, sqBg, cell.AttrBold)
 		}
 
-		catLabel := fmt.Sprintf("Category: ◄ %s ►", m.Categories[m.CatIdx])
+		catDisplay := i18n.T("market.cat." + strings.ToLower(m.Categories[m.CatIdx]))
+		catLabel := fmt.Sprintf("%s: ◄ %s ►", i18n.T("market.category"), catDisplay)
 		catRunes := []rune(catLabel)
 		catX := startX + modalW - len(catRunes) - 3
 		for i, r := range catRunes {
@@ -814,10 +831,10 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			// Capabilities & Tags
 			capY := bodyTop + 6 + len(descLines) + 1
 			if capY < startY+modalH-4 {
-				capStr := "Capabilities: [fs:read] [process:exec] (Wasm Sandboxed)"
+				capStr := i18n.T("market.capabilities")
 				drawString(buf, rightStartX, capY, capStr, keywordFg, themeBg, cell.AttrNone, rightW)
 				if len(p.Tags) > 0 {
-					tagStr := fmt.Sprintf("Tags: %s", strings.Join(p.Tags, ", "))
+					tagStr := fmt.Sprintf(i18n.T("market.tags"), strings.Join(p.Tags, ", "))
 					drawString(buf, rightStartX, capY+1, tagStr, commentFg, themeBg, cell.AttrNone, rightW)
 				}
 			}
@@ -891,15 +908,15 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 		_ = modalW - leftW - 4
 
 		if m.AddingRepo {
-			hStr := " + Add New Plugin Repository Server "
+			hStr := fmt.Sprintf(" %s ", i18n.T("market.add_server"))
 			if m.EditingRepoID != "" {
-				hStr = " ✎ Edit Plugin Repository Server "
+				hStr = fmt.Sprintf(" %s ", i18n.T("market.edit_server"))
 			}
 			drawString(buf, rightStartX, bodyTop, hStr, accentFg, themeBg, cell.AttrBold, modalW-leftW-4)
 
-			f0 := fmt.Sprintf("Name : %s_", m.AddRepoName)
-			f1 := fmt.Sprintf("URL  : %s_", m.AddRepoURL)
-			f2 := fmt.Sprintf("Type : %s_ (http, github, local)", m.AddRepoType)
+			f0 := fmt.Sprintf("%s : %s_", i18n.T("market.field_name"), m.AddRepoName)
+			f1 := fmt.Sprintf("%s  : %s_", i18n.T("market.field_url"), m.AddRepoURL)
+			f2 := fmt.Sprintf("%s : %s_", i18n.T("market.field_type"), m.AddRepoType)
 
 			renderField := func(y int, text string, focused bool) {
 				bg := themeBg
@@ -917,25 +934,29 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			renderField(bodyTop+4, f1, m.AddRepoField == 1)
 			renderField(bodyTop+6, f2, m.AddRepoField == 2)
 
-			help := " Tab: Switch Field | Enter: Save Server | Esc: Cancel "
+			help := fmt.Sprintf(" %s ", i18n.T("market.hint_form"))
 			drawString(buf, rightStartX, bodyTop+9, help, commentFg, themeBg, cell.AttrNone, modalW-leftW-4)
 		} else if m.SelectedRepo >= 0 && m.SelectedRepo < len(m.Repositories) {
 			repo := m.Repositories[m.SelectedRepo]
 
-			hStr := fmt.Sprintf("Server: %s", repo.Name)
+			hStr := fmt.Sprintf(i18n.T("market.server_name"), repo.Name)
 			drawString(buf, rightStartX, bodyTop, hStr, accentFg, themeBg, cell.AttrBold, modalW-leftW-4)
 
-			urlStr := fmt.Sprintf("URL: %s", repo.URL)
+			urlStr := fmt.Sprintf(i18n.T("market.server_url"), repo.URL)
 			drawString(buf, rightStartX, bodyTop+2, urlStr, themeFg, themeBg, cell.AttrNone, modalW-leftW-4)
 
-			typeStr := fmt.Sprintf("Type: %s  |  Status: %v", repo.Type, repo.Enabled)
+			statusText := i18n.T("settings.plugin.enabled")
+			if !repo.Enabled {
+				statusText = i18n.T("settings.plugin.disabled")
+			}
+			typeStr := fmt.Sprintf(i18n.T("market.server_type_status"), repo.Type, statusText)
 			drawString(buf, rightStartX, bodyTop+3, typeStr, commentFg, themeBg, cell.AttrNone, modalW-leftW-4)
 
-			actStr := " A: Add Server | E: Edit URL/Name | T: Ping/Test | Space: Toggle | D: Delete "
+			actStr := fmt.Sprintf(" %s ", i18n.T("market.server_actions"))
 			drawString(buf, rightStartX, bodyTop+5, actStr, stringFg, themeBg, cell.AttrBold, modalW-leftW-4)
 
 			if m.RepoTestMsg != "" {
-				resLabel := fmt.Sprintf("Test Status: %s", m.RepoTestMsg)
+				resLabel := fmt.Sprintf(i18n.T("market.test_status"), m.RepoTestMsg)
 				fg := stringFg
 				if m.StatusIsError {
 					fg = toColor(th.DiagnosticError)
@@ -949,11 +970,11 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 	status := m.StatusMessage
 	if status == "" {
 		if m.ActiveTab == 1 {
-			status = " [Tab: Switch Focus] [Space/Enter: Toggle Enabled] [d/Del: Uninstall] [R: Refresh] [Esc: Close] "
+			status = i18n.T("market.status_tab1")
 		} else if m.ActiveTab == 2 {
-			status = " [Tab: Switch Focus] [A: Add Server] [E: Edit] [Space: Toggle] [d/Del: Remove] [T: Test] [Esc: Close] "
+			status = i18n.T("market.status_tab2")
 		} else {
-			status = " [Tab: Switch Focus] [/: Search] [Enter: Install] [R: Refresh] [Esc: Close] "
+			status = i18n.T("market.status_tab0")
 		}
 	}
 	sFg := commentFg
@@ -1020,9 +1041,9 @@ func (m *MarketplaceModal) HandleClick(mouseX, mouseY, w, h int) bool {
 
 	// Click on tab row (startY+1)
 	if mouseY == startY+1 {
-		tab1Len := len(" 1: Marketplace ")
-		tab2Len := len(" 2: Installed ")
-		tab3Len := len(" 3: Repositories & Servers ")
+		tab1Len := len([]rune(i18n.T("market.tab_browse")))
+		tab2Len := len([]rune(i18n.T("market.tab_installed")))
+		tab3Len := len([]rune(i18n.T("market.tab_repos")))
 
 		tab1Start := startX + 2
 		tab1End := tab1Start + tab1Len
@@ -1046,6 +1067,47 @@ func (m *MarketplaceModal) HandleClick(mouseX, mouseY, w, h int) bool {
 		if mouseX >= tab3Start && mouseX < tab3End {
 			m.ActiveTab = 2
 			m.SelectedRepo = 0
+			m.Refresh()
+			return true
+		}
+	}
+
+	// Click on search & category row (startY+3)
+	if m.ActiveTab != 2 && mouseY == startY+3 {
+		searchLabel := i18n.T("market.search")
+		sqX := startX + 2 + len([]rune(searchLabel))
+		// Click on search input box
+		if mouseX >= sqX && mouseX <= sqX+25 {
+			m.SearchFocused = true
+			return true
+		}
+
+		catDisplay := i18n.T("market.cat." + strings.ToLower(m.Categories[m.CatIdx]))
+		catLabel := fmt.Sprintf("%s: ◄ %s ►", i18n.T("market.category"), catDisplay)
+		catRunes := []rune(catLabel)
+		catX := startX + modalW - len(catRunes) - 3
+		if mouseX >= catX && mouseX < startX+modalW-1 {
+			arrowLeftIdx := -1
+			arrowRightIdx := -1
+			for idx, r := range catRunes {
+				if r == '◄' {
+					arrowLeftIdx = idx
+				} else if r == '►' {
+					arrowRightIdx = idx
+				}
+			}
+			relX := mouseX - catX
+			if arrowLeftIdx >= 0 && relX <= arrowLeftIdx+1 {
+				if m.CatIdx > 0 {
+					m.CatIdx--
+				} else {
+					m.CatIdx = len(m.Categories) - 1
+				}
+			} else if arrowRightIdx >= 0 && relX >= arrowRightIdx-1 {
+				m.CatIdx = (m.CatIdx + 1) % len(m.Categories)
+			} else {
+				m.CatIdx = (m.CatIdx + 1) % len(m.Categories)
+			}
 			m.Refresh()
 			return true
 		}

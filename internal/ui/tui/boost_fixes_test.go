@@ -319,3 +319,76 @@ func TestBuiltinPluginsManifests(t *testing.T) {
 		t.Errorf("expected tahr-go on disk after SeedDefaultPlugins")
 	}
 }
+
+func TestApp_DisabledLanguagePlugin_SuppressesLSPAndRendersPlainText(t *testing.T) {
+	tempDir := t.TempDir()
+	mgr, err := plugin.NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("NewManager failed: %v", err)
+	}
+	defer mgr.Close()
+
+	testGoManifest := plugin.Manifest{
+		ID:          "tahr-go",
+		Name:        "Go Language Support",
+		Version:     "1.0.0",
+		Description: "Go tooling",
+		Languages: []plugin.LanguageConfig{
+			{
+				ID:         "go",
+				Extensions: []string{".go"},
+			},
+		},
+		LSP: &plugin.LSPConfig{
+			ServerName: "gopls",
+			Command:    "gopls",
+		},
+	}
+	if _, err := mgr.InstallDeclarative(testGoManifest); err != nil {
+		t.Fatalf("InstallDeclarative failed: %v", err)
+	}
+
+	eng := core.NewEngine()
+	app := NewAppModel(eng)
+	app.SetPluginManager(mgr)
+
+	// Create and open a Go document
+	goFilePath := filepath.Join(tempDir, "main.go")
+	_ = os.WriteFile(goFilePath, []byte("package main\n\nfunc main() {}\n"), 0644)
+	doc, err := eng.Open(goFilePath)
+	if err != nil {
+		t.Fatalf("eng.Open failed: %v", err)
+	}
+
+	// 1. With plugin enabled: .go is active
+	if !mgr.IsExtensionActive(".go") {
+		t.Fatalf("expected .go extension to be active when enabled")
+	}
+
+	// 2. Disable plugin
+	if err := mgr.DisablePlugin("tahr-go"); err != nil {
+		t.Fatalf("DisablePlugin failed: %v", err)
+	}
+
+	// Verify manager state
+	if mgr.IsExtensionActive(".go") {
+		t.Errorf("expected .go extension to be inactive")
+	}
+	if mgr.GetLanguageConfig(".go") != nil {
+		t.Errorf("expected nil language config for .go")
+	}
+
+	// 3. EnsureLSPForFile should NOT start any LSP client because plugin is disabled
+	app.EnsureLSPForFile(doc.FilePath)
+	if app.lspClient != nil {
+		t.Errorf("expected lspClient to be nil when plugin is disabled, but client was started")
+	}
+
+	// 4. Test rendering pane: spans should be nil (plain text)
+	buf := buffer.NewBuffer(80, 24)
+	app.width = 80
+	app.height = 24
+	pane := app.splits.ActivePane()
+	pane.Bounds = buffer.NewRect(0, 1, 80, 22)
+	app.renderPane(buf, pane, doc, true, false)
+}

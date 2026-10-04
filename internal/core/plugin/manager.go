@@ -48,6 +48,9 @@ type PluginState struct {
 	Enabled map[string]bool `json:"enabled"`
 }
 
+// LifecycleListener is invoked whenever a plugin is enabled or disabled.
+type LifecycleListener func(pluginID string, enabled bool)
+
 // Manager coordinates plugin discovery, installation, and registration.
 type Manager struct {
 	mu                sync.RWMutex
@@ -61,6 +64,7 @@ type Manager struct {
 	installed         map[string]*Manifest
 	languages         map[string]*LanguageConfig // ext -> config
 	host              *WASMHost
+	listeners         []LifecycleListener
 }
 
 // NewManager creates a plugin manager rooted at pluginsDir.
@@ -329,6 +333,7 @@ func (m *Manager) Discover() error {
 		}
 	}
 
+	m.rebuildActiveLanguagesLocked()
 	return nil
 }
 
@@ -435,10 +440,7 @@ func (m *Manager) Installed() map[string]*Manifest {
 	return res
 }
 
-// IsEnabled returns whether the specified plugin ID is currently active.
-func (m *Manager) IsEnabled(id string) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+func (m *Manager) isEnabledLocked(id string) bool {
 	if m.state.Enabled != nil {
 		if enabled, ok := m.state.Enabled[id]; ok {
 			return enabled
@@ -448,10 +450,57 @@ func (m *Manager) IsEnabled(id string) bool {
 	return ok
 }
 
+// IsEnabled returns whether the specified plugin ID is currently active.
+func (m *Manager) IsEnabled(id string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.isEnabledLocked(id)
+}
+
+// IsExtensionActive returns true if an enabled plugin provides support for this file extension.
+func (m *Manager) IsExtensionActive(ext string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.languages[ext] != nil
+}
+
+// AddLifecycleListener registers a callback invoked when a plugin is enabled or disabled.
+func (m *Manager) AddLifecycleListener(listener LifecycleListener) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.listeners = append(m.listeners, listener)
+}
+
+func (m *Manager) notifyLifecycle(pluginID string, enabled bool) {
+	m.mu.RLock()
+	var list []LifecycleListener
+	if len(m.listeners) > 0 {
+		list = append([]LifecycleListener(nil), m.listeners...)
+	}
+	m.mu.RUnlock()
+	for _, l := range list {
+		l(pluginID, enabled)
+	}
+}
+
+func (m *Manager) rebuildActiveLanguagesLocked() {
+	m.languages = make(map[string]*LanguageConfig)
+	for _, inst := range m.installed {
+		if !m.isEnabledLocked(inst.ID) {
+			continue
+		}
+		for i := range inst.Languages {
+			lang := &inst.Languages[i]
+			for _, ext := range lang.Extensions {
+				m.languages[ext] = lang
+			}
+		}
+	}
+}
+
 // EnablePlugin loads and activates an installed plugin from disk.
 func (m *Manager) EnablePlugin(id string) error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	if m.state.Enabled == nil {
 		m.state.Enabled = make(map[string]bool)
 	}
@@ -464,24 +513,22 @@ func (m *Manager) EnablePlugin(id string) error {
 		var err error
 		manifest, err = LoadManifest(manifestPath)
 		if err != nil {
+			m.mu.Unlock()
 			return err
 		}
 		m.installed[manifest.ID] = manifest
 	}
-	for i := range manifest.Languages {
-		lang := &manifest.Languages[i]
-		for _, ext := range lang.Extensions {
-			m.languages[ext] = lang
-		}
-	}
+	m.rebuildActiveLanguagesLocked()
 	m.registerLocalizationsLocked(manifest, filepath.Join(m.pluginsDir, id))
+	m.mu.Unlock()
+
+	m.notifyLifecycle(id, true)
 	return nil
 }
 
 // DisablePlugin deactivates a plugin without deleting disk files.
 func (m *Manager) DisablePlugin(id string) error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	if m.state.Enabled == nil {
 		m.state.Enabled = make(map[string]bool)
 	}
@@ -490,17 +537,14 @@ func (m *Manager) DisablePlugin(id string) error {
 
 	manifest, ok := m.installed[id]
 	if ok {
-		for _, lang := range manifest.Languages {
-			for _, ext := range lang.Extensions {
-				if cur := m.languages[ext]; cur != nil && cur.ID == lang.ID {
-					delete(m.languages, ext)
-				}
-			}
-		}
 		for _, loc := range manifest.Localizations {
 			i18n.DeregisterTranslations(loc.Locale)
 		}
 	}
+	m.rebuildActiveLanguagesLocked()
+	m.mu.Unlock()
+
+	m.notifyLifecycle(id, false)
 	return nil
 }
 
@@ -744,15 +788,16 @@ func (m *Manager) InstallDeclarative(manifest Manifest) (*Manifest, error) {
 
 	m.mu.Lock()
 	m.installed[manifest.ID] = &manifest
-	for i := range manifest.Languages {
-		lang := &manifest.Languages[i]
-		for _, ext := range lang.Extensions {
-			m.languages[ext] = lang
-		}
+	if m.state.Enabled == nil {
+		m.state.Enabled = make(map[string]bool)
 	}
+	m.state.Enabled[manifest.ID] = true
+	_ = m.saveStateLocked()
+	m.rebuildActiveLanguagesLocked()
 	m.registerLocalizationsLocked(&manifest, destDir)
 	m.mu.Unlock()
 
+	m.notifyLifecycle(manifest.ID, true)
 	return &manifest, nil
 }
 
@@ -779,6 +824,9 @@ func (m *Manager) GetLSPForExt(ext string) *LSPConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	for _, p := range m.installed {
+		if !m.isEnabledLocked(p.ID) {
+			continue
+		}
 		for _, l := range p.Languages {
 			for _, e := range l.Extensions {
 				if e == ext && p.LSP != nil {
@@ -795,6 +843,9 @@ func (m *Manager) GetDAPForExt(ext string) *DAPConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	for _, p := range m.installed {
+		if !m.isEnabledLocked(p.ID) {
+			continue
+		}
 		for _, l := range p.Languages {
 			for _, e := range l.Extensions {
 				if e == ext && p.DAP != nil {
@@ -1364,7 +1415,16 @@ func (m *Manager) FetchCatalog(query, category string) ([]RemotePluginInfo, erro
 
 		// Category filter
 		if catLower != "" && catLower != "all" {
-			if strings.ToLower(p.Category) != catLower {
+			catMatch := strings.EqualFold(p.Category, catLower)
+			if !catMatch {
+				for _, t := range p.Tags {
+					if strings.EqualFold(t, catLower) {
+						catMatch = true
+						break
+					}
+				}
+			}
+			if !catMatch {
 				continue
 			}
 		}
@@ -1490,26 +1550,19 @@ func (m *Manager) InstallFromURL(downloadURL string) (*Manifest, error) {
 // Uninstall deletes an installed plugin by ID.
 func (m *Manager) Uninstall(id string) error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	pDir := filepath.Join(m.pluginsDir, id)
 	_ = os.RemoveAll(pDir)
 
-	manifest := m.installed[id]
-	if manifest != nil {
-		for _, lang := range manifest.Languages {
-			for _, ext := range lang.Extensions {
-				if cur := m.languages[ext]; cur != nil && cur.ID == lang.ID {
-					delete(m.languages, ext)
-				}
-			}
-		}
-	}
 	delete(m.installed, id)
 	if m.state.Enabled != nil {
 		delete(m.state.Enabled, id)
 		_ = m.saveStateLocked()
 	}
+	m.rebuildActiveLanguagesLocked()
+	m.mu.Unlock()
+
+	m.notifyLifecycle(id, false)
 	return nil
 }
 

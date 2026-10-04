@@ -15,6 +15,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -84,12 +85,12 @@ func (s *SearchInFilesModal) ExecuteSearch(workspaceDir string) {
 		s.Matches = nil
 		s.SelectedIndex = 0
 		s.Searching = false
-		s.statusMsg = "Type to search..."
+		s.statusMsg = i18n.T("searchfiles.type_to_search")
 		s.mu.Unlock()
 		return
 	}
 	s.Searching = true
-	s.statusMsg = "Searching..."
+	s.statusMsg = i18n.T("searchfiles.searching")
 	s.Matches = nil
 	s.mu.Unlock()
 
@@ -111,7 +112,7 @@ func (s *SearchInFilesModal) ExecuteSearch(workspaceDir string) {
 		if err != nil {
 			s.mu.Lock()
 			s.Searching = false
-			s.statusMsg = fmt.Sprintf("Invalid regex: %v", err)
+			s.statusMsg = fmt.Sprintf(i18n.T("searchfiles.invalid_regex"), err)
 			s.mu.Unlock()
 			return
 		}
@@ -178,9 +179,9 @@ func (s *SearchInFilesModal) ExecuteSearch(workspaceDir string) {
 	s.TotalSearched = filesSearched
 	s.Searching = false
 	if len(results) >= maxResults {
-		s.statusMsg = fmt.Sprintf("%d+ matches in %d files", maxResults, filesSearched)
+		s.statusMsg = fmt.Sprintf(i18n.T("searchfiles.matches_overflow"), maxResults, filesSearched)
 	} else {
-		s.statusMsg = fmt.Sprintf("%d matches in %d files", len(results), filesSearched)
+		s.statusMsg = fmt.Sprintf(i18n.T("searchfiles.matches_found"), len(results), filesSearched)
 	}
 	if s.SelectedIndex >= len(s.Matches) {
 		s.SelectedIndex = max(0, len(s.Matches)-1)
@@ -429,7 +430,7 @@ func (s *SearchInFilesModal) Render(buf *buffer.Buffer, w, h int, theme ui.Theme
 	buf.SetRune(bx+mw-1, by+3, '┤', borderFg, bg, cell.AttrNone)
 
 	// Title
-	title := " Search in Files (Ctrl+Shift+F) "
+	title := fmt.Sprintf(" %s ", i18n.T("searchfiles.title"))
 	for i, r := range []rune(title) {
 		if bx+2+i < bx+mw-2 {
 			buf.SetRune(bx+2+i, by, r, matchFg, bg, cell.AttrBold)
@@ -437,7 +438,7 @@ func (s *SearchInFilesModal) Render(buf *buffer.Buffer, w, h int, theme ui.Theme
 	}
 
 	// Toggles
-	toggles := fmt.Sprintf("[Alt+C: Case %v] [Alt+R: Regex %v] [Alt+W: Word %v]", s.CaseSensitive, s.UseRegex, s.WholeWord)
+	toggles := fmt.Sprintf(i18n.T("searchfiles.toggles"), s.CaseSensitive, s.UseRegex, s.WholeWord)
 	for i, r := range []rune(toggles) {
 		col := bx + mw - 2 - len([]rune(toggles)) + i
 		if col > bx+len([]rune(title))+4 && col < bx+mw-1 {
@@ -446,7 +447,7 @@ func (s *SearchInFilesModal) Render(buf *buffer.Buffer, w, h int, theme ui.Theme
 	}
 
 	// Input box
-	inputPrompt := "Search: "
+	inputPrompt := i18n.T("searchfiles.prompt")
 	for i, r := range []rune(inputPrompt) {
 		buf.SetRune(bx+2+i, by+1, r, textFg, bg, cell.AttrBold)
 	}
@@ -468,7 +469,7 @@ func (s *SearchInFilesModal) Render(buf *buffer.Buffer, w, h int, theme ui.Theme
 	// Status line
 	status := s.statusMsg
 	if status == "" {
-		status = "Type to search project files..."
+		status = i18n.T("searchfiles.type_to_search")
 	}
 	for i, r := range []rune(status) {
 		if bx+2+i < bx+mw-2 {

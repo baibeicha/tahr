@@ -462,7 +462,7 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 	buf.SetRune(startX+modalW-2, startY, '✕', toColor(theme.DiagnosticError), bg, cell.AttrBold)
 
 	// Row 1: Find: [query_______]  Aa  \b  ◀  ▶  ⇄  2/14
-	lblFind := "Find: "
+	lblFind := i18n.T("find.find_label")
 	for i, r := range []rune(lblFind) {
 		buf.SetRune(startX+2+i, startY+1, r, fg, bg, cell.AttrBold)
 	}
@@ -556,7 +556,7 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 
 	// Row 2 / 3: Replace Mode Elements
 	if m.ReplaceMode {
-		lblRepl := "Repl: "
+		lblRepl := i18n.T("find.repl_label")
 		for i, r := range []rune(lblRepl) {
 			buf.SetRune(startX+2+i, startY+3, r, fg, bg, cell.AttrBold)
 		}
@@ -591,7 +591,7 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 		}
 
 		// Hotkey Hint
-		hint := "Enter: Replace │ Alt+Enter: All │ Tab: Switch │ ⇄: Find │ Alt+Bksp: Undo"
+		hint := i18n.T("find.hint_repl")
 		for i, r := range []rune(hint) {
 			if startX+2+i < startX+modalW-2 {
 				buf.SetRune(startX+2+i, startY+5, r, toColor(theme.Comment), bg, cell.AttrNone)
@@ -599,7 +599,7 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 		}
 	} else {
 		// Find Hint
-		hint := "Enter: Next │ Shift+Enter: Prev │ Alt+W: Word │ ⇄: Repl │ Alt+Bksp: Undo"
+		hint := i18n.T("find.hint_find")
 		for i, r := range []rune(hint) {
 			if startX+2+i < startX+modalW-2 {
 				buf.SetRune(startX+2+i, startY+3, r, toColor(theme.Comment), bg, cell.AttrNone)

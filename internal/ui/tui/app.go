@@ -1449,7 +1449,7 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 	var toolName, pluginName, installCmd string
 	var customPath string
 
-	// 1. Check if installed plugins define an LSP for this extension
+	// 1. Check if an active enabled plugin defines an LSP for this extension
 	if m.pluginMgr != nil {
 		if lspCfg := m.pluginMgr.GetLSPForExt(ext); lspCfg != nil && lspCfg.Command != "" {
 			toolName = lspCfg.Command
@@ -1459,11 +1459,13 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 			}
 			installCmd = lspCfg.InstallCmd
 			lspArgs = lspCfg.Args
+		} else {
+			// No enabled plugin provides an LSP for this extension.
+			// Treat file as plain text without starting any LSP server.
+			return
 		}
-	}
-
-	// 2. Fall back to standard defaults for known languages
-	if toolName == "" {
+	} else {
+		// 2. Standalone fallback (only when no plugin manager is attached, e.g. minimal test)
 		switch ext {
 		case ".go":
 			toolName = "gopls"
@@ -1622,8 +1624,11 @@ func (m *AppModel) refreshDocumentStructure() {
 	ext := filepath.Ext(doc.FilePath)
 	text, _ := doc.Buffer.GetText()
 
-	// 1. Instantly populate structure using fast regex (0ms turnaround)
-	items := ExtractSymbolsRegex(ext, string(text))
+	// 1. Instantly populate structure using fast regex (0ms turnaround) if language plugin is enabled
+	var items []StructureItem
+	if m.pluginMgr == nil || (ext != "" && m.pluginMgr.IsExtensionActive(ext)) {
+		items = ExtractSymbolsRegex(ext, string(text))
+	}
 	m.structurePanel.SetItems(items)
 
 	// 2. Query richer LSP document symbols in the background without blocking the UI thread
@@ -1818,7 +1823,45 @@ func (m *AppModel) SetPluginManager(mgr *plugin.Manager) {
 	if m.settings != nil {
 		m.settings.SetPluginManager(mgr)
 	}
+	if mgr != nil {
+		mgr.AddLifecycleListener(func(pluginID string, enabled bool) {
+			m.onPluginLifecycleChanged(pluginID, enabled)
+		})
+	}
 	m.applyCurrentSettings()
+}
+
+func (m *AppModel) onPluginLifecycleChanged(pluginID string, enabled bool) {
+	if !enabled {
+		// A plugin was disabled: if active document's language is no longer active,
+		// terminate running LSP, clear diagnostics and revert to plain text.
+		doc := m.eng.ActiveDocument()
+		if doc != nil {
+			ext := filepath.Ext(doc.FilePath)
+			if m.pluginMgr != nil && !m.pluginMgr.IsExtensionActive(ext) {
+				if m.lspClient != nil {
+					_ = m.lspClient.Close()
+					m.lspClient = nil
+				}
+				m.diagDetails = make(map[int][]lsp.Diagnostic)
+				m.docDiagDetails = make(map[string]map[int][]lsp.Diagnostic)
+				if m.problemsPanel != nil {
+					m.problemsPanel.Refresh(m.docDiagDetails)
+				}
+				m.refreshDocumentStructure()
+			}
+		}
+	} else {
+		// A plugin was enabled: re-initialize LSP and symbols if active document matches.
+		doc := m.eng.ActiveDocument()
+		if doc != nil && doc.FilePath != "" {
+			m.EnsureLSPForFile(doc.FilePath)
+			m.refreshDocumentStructure()
+		}
+	}
+	if m.launchModal != nil && m.pluginMgr != nil {
+		m.launchModal.SetSupportedTypes(m.pluginMgr.GetSupportedLaunchTypes())
+	}
 }
 
 // normalizeURI standardizes Windows and POSIX URIs and file paths for reliable matching.
@@ -4215,19 +4258,19 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				node := m.treeFlat[nodeIdx]
 				m.contextMenuTarget = node.Path
 				m.contextMenuItems = []contextMenuItem{
-					{label: "New File...", action: "new_file"},
-					{label: "New Directory...", action: "new_dir"},
-					{label: "Rename...", action: "rename"},
-					{label: "Move...", action: "move"},
-					{label: "Copy Relative Path", action: "copy_path"},
-					{label: "Delete", action: "delete"},
+					{label: i18n.T("ctx.new_file"), action: "new_file"},
+					{label: i18n.T("ctx.new_dir"), action: "new_dir"},
+					{label: i18n.T("ctx.rename"), action: "rename"},
+					{label: i18n.T("ctx.move"), action: "move"},
+					{label: i18n.T("ctx.copy_path"), action: "copy_path"},
+					{label: i18n.T("ctx.delete"), action: "delete"},
 				}
 			} else {
 				m.contextMenuTarget = ""
 				m.contextMenuItems = []contextMenuItem{
-					{label: "New File...", action: "new_file"},
-					{label: "New Directory...", action: "new_dir"},
-					{label: "Refresh Explorer", action: "refresh"},
+					{label: i18n.T("ctx.new_file"), action: "new_file"},
+					{label: i18n.T("ctx.new_dir"), action: "new_dir"},
+					{label: i18n.T("ctx.refresh"), action: "refresh"},
 				}
 			}
 			m.contextMenuOpen = true
@@ -5175,32 +5218,32 @@ func (m *AppModel) updateTooltip(x, y int) {
 			if x >= btn.minX && x <= btn.maxX {
 				switch btn.id {
 				case "menu":
-					m.setTooltip("Main Menu", x, y)
+					m.setTooltip(i18n.T("tooltip.menu"), x, y)
 				case "find_files":
-					m.setTooltip("Find File / Omnibar (Ctrl+P)", x, y)
+					m.setTooltip(i18n.T("tooltip.find_files"), x, y)
 				case "split":
 					title := "Single Pane"
 					if m.splits != nil {
-						title = m.splits.ModeTitle()
+						title = splitModeTitle(m.splits)
 					}
-					m.setTooltip(fmt.Sprintf("Split Panes (%s) - Click or Ctrl+\\ to cycle", title), x, y)
+					m.setTooltip(fmt.Sprintf(i18n.T("tooltip.split"), title), x, y)
 				case "run":
-					m.setTooltip("Run Active Profile (F5 / Ctrl+R)", x, y)
+					m.setTooltip(i18n.T("tooltip.run"), x, y)
 				case "build":
-					m.setTooltip("Build Active Profile (F7 / Ctrl+Shift+B)", x, y)
+					m.setTooltip(i18n.T("tooltip.build"), x, y)
 				case "term":
-					m.setTooltip("Integrated Terminal (F4 / Ctrl+~)", x, y)
+					m.setTooltip(i18n.T("tooltip.term"), x, y)
 				case "hud":
-					m.setTooltip("DAP Debugger (F8)", x, y)
+					m.setTooltip(i18n.T("tooltip.hud"), x, y)
 				case "profile_select":
-					m.setTooltip("Select Run/Debug Profile", x, y)
+					m.setTooltip(i18n.T("tooltip.profile_select"), x, y)
 				default:
 					m.setTooltip(btn.id, x, y)
 				}
 				return
 			}
 		}
-		m.setTooltip("Tahr Terminal IDE v0.4.0", x, y)
+		m.setTooltip(i18n.T("tooltip.app_version"), x, y)
 		return
 	}
 
@@ -5208,11 +5251,11 @@ func (m *AppModel) updateTooltip(x, y int) {
 	if y == 1 {
 		for _, hit := range m.tabHitboxes {
 			if x >= hit.closeX-1 && x <= hit.closeX+1 {
-				m.setTooltip("Close Buffer (Ctrl+W)", x, y)
+				m.setTooltip(i18n.T("tooltip.tab_close"), x, y)
 				return
 			} else if x >= hit.minX && x <= hit.maxX {
 				docName := filepath.Base(hit.docID)
-				m.setTooltip(fmt.Sprintf("Switch to %s", docName), x, y)
+				m.setTooltip(fmt.Sprintf(i18n.T("tooltip.tab_switch"), docName), x, y)
 				return
 			}
 		}
@@ -5222,20 +5265,20 @@ func (m *AppModel) updateTooltip(x, y int) {
 	if stripLeftW > 0 && x < stripLeftW {
 		switch y {
 		case 2:
-			m.setTooltip("Toggle Project Explorer (F2)", x, y)
+			m.setTooltip(i18n.T("tooltip.side_explorer"), x, y)
 			return
 		case 4:
-			m.setTooltip("Structure & Symbols Outline", x, y)
+			m.setTooltip(i18n.T("tooltip.side_outline"), x, y)
 			return
 		case 6:
-			m.setTooltip("Version Control (Git)", x, y)
+			m.setTooltip(i18n.T("tooltip.side_git"), x, y)
 			return
 		case 8:
-			m.setTooltip("Plugins & Marketplace (Ctrl+Shift+X)", x, y)
+			m.setTooltip(i18n.T("tooltip.side_plugins"), x, y)
 			return
 		default:
 			if y >= m.height-3 && y <= m.height-1 {
-				m.setTooltip("IDE Settings (Ctrl+,)", x, y)
+				m.setTooltip(i18n.T("tooltip.side_settings"), x, y)
 				return
 			}
 		}
@@ -5254,19 +5297,19 @@ func (m *AppModel) updateTooltip(x, y int) {
 	if sideW >= 18 && y == editorTop {
 		dockBtnStart := treeStartX + sideW - 5
 		if x >= dockBtnStart && x <= dockBtnStart+1 {
-			m.setTooltip("Decrease Tree Width (Alt+[)", x, y)
+			m.setTooltip(i18n.T("tooltip.tree_dec_width"), x, y)
 			return
 		}
 		if x >= dockBtnStart+2 && x <= dockBtnStart+3 {
-			m.setTooltip("Increase Tree Width (Alt+])", x, y)
+			m.setTooltip(i18n.T("tooltip.tree_inc_width"), x, y)
 			return
 		}
 		if x >= dockBtnStart+4 && x < treeStartX+sideW {
-			m.setTooltip("Move Tree Dock Left/Right (Ctrl+Alt+E)", x, y)
+			m.setTooltip(i18n.T("tooltip.tree_dock"), x, y)
 			return
 		}
 	} else if sideW > 0 && y == editorTop && x >= treeStartX+sideW-2 && x < treeStartX+sideW {
-		m.setTooltip("Move Tree Dock Left/Right (Ctrl+Alt+E)", x, y)
+		m.setTooltip(i18n.T("tooltip.tree_dock"), x, y)
 		return
 	}
 
@@ -5278,19 +5321,48 @@ func (m *AppModel) updateTooltip(x, y int) {
 	}
 	if x >= editorLeft && x < editorLeft+gutterWidth && y >= editorTop && y < m.height-1 {
 		line := m.viewportY + (y - editorTop) + 1
-		m.setTooltip(fmt.Sprintf("Line %d - Toggle Breakpoint (F9)", line), x, y)
+		m.setTooltip(fmt.Sprintf(i18n.T("tooltip.breakpoint"), line), x, y)
 		return
 	}
 
 	m.tooltipText = ""
 }
 
+func splitModeTitle(sm *SplitManager) string {
+	if sm == nil {
+		return i18n.T("split.mode_single")
+	}
+	switch sm.Mode {
+	case SplitSingle:
+		return i18n.T("split.mode_single")
+	case Split2Cols:
+		return i18n.T("split.mode_2cols")
+	case Split2Rows:
+		return i18n.T("split.mode_2rows")
+	case Split3Cols:
+		return i18n.T("split.mode_3cols")
+	case Split4Grid:
+		return i18n.T("split.mode_4grid")
+	case Split5Panes:
+		return i18n.T("split.mode_5panes")
+	case Split6Grid:
+		return i18n.T("split.mode_6grid")
+	default:
+		return i18n.T("split.mode_single")
+	}
+}
+
 func (m *AppModel) setTooltip(text string, x, y int) {
 	m.tooltipText = text
 	m.tooltipX = x + 1
-	m.tooltipY = y + 1
-	if m.tooltipX+len(text)+4 >= m.width {
-		m.tooltipX = max(0, m.width-len(text)-5)
+	if y == 0 {
+		m.tooltipY = 2
+	} else {
+		m.tooltipY = y + 1
+	}
+	textW := buffer.StringWidth(text)
+	if m.tooltipX+textW+2 >= m.width {
+		m.tooltipX = max(0, m.width-textW-2)
 	}
 	if m.tooltipY >= m.height-1 {
 		m.tooltipY = max(0, y-1)
@@ -6993,7 +7065,13 @@ func (m *AppModel) View(f *tea.Frame) {
 			b, _ := doc.Buffer.GetLine(i)
 			sampleLines = append(sampleLines, string(b))
 		}
-		crumbs := syntax.ExtractBreadcrumbs(doc.FilePath, sampleLines, cursorLine)
+		var crumbs []syntax.BreadcrumbItem
+		ext := filepath.Ext(doc.FilePath)
+		if m.pluginMgr == nil || (ext != "" && m.pluginMgr.IsExtensionActive(ext)) {
+			crumbs = syntax.ExtractBreadcrumbs(doc.FilePath, sampleLines, cursorLine)
+		} else if base := filepath.Base(doc.FilePath); base != "" && base != "." {
+			crumbs = []syntax.BreadcrumbItem{{Kind: "file", Name: base, Icon: "file", Line: 0}}
+		}
 		if len(crumbs) > 0 {
 			crumbStr := syntax.FormatBreadcrumbs(crumbs)
 			crumbRunes := []rune(" " + crumbStr + " ")
@@ -7361,10 +7439,10 @@ func (m *AppModel) View(f *tea.Frame) {
 		termFg := toColor(m.theme.Foreground)
 		borderFg := toColor(m.theme.BorderColor)
 
-		focusStatus := "INACTIVE"
+		focusStatus := i18n.T("term.inactive")
 		statusFg := toColor(m.theme.Comment)
 		if m.terminalFocused {
-			focusStatus = "FOCUSED"
+			focusStatus = i18n.T("term.focused")
 			statusFg = toColor(m.theme.Function)
 		}
 
@@ -7373,7 +7451,7 @@ func (m *AppModel) View(f *tea.Frame) {
 
 		maxTabsW := w - 20
 
-		prefix := fmt.Sprintf("%c── >_ TERMINAL  %s  ", box.TopLeft, focusStatus)
+		prefix := fmt.Sprintf("%c── %s  %s  ", box.TopLeft, i18n.T("term.title"), focusStatus)
 		pRunes := []rune(prefix)
 
 		for x := 0; x < w; x++ {
@@ -7426,7 +7504,7 @@ func (m *AppModel) View(f *tea.Frame) {
 		}
 
 		// + Add button
-		addLabel := " + Add "
+		addLabel := fmt.Sprintf(" %s ", i18n.T("term.add"))
 		addRunes := []rune(addLabel)
 		if curX+len(addRunes) < maxTabsW {
 			startAddX := curX
@@ -7447,11 +7525,11 @@ func (m *AppModel) View(f *tea.Frame) {
 		}
 
 		// Split tag button
-		splitTag := " Split "
+		splitTag := fmt.Sprintf(" %s ", i18n.T("term.split"))
 		if m.terminal.SplitMode == TermSplitHorizontal {
-			splitTag = " Stack "
+			splitTag = fmt.Sprintf(" %s ", i18n.T("term.stack"))
 		} else if m.terminal.SplitMode == TermSplitVertical {
-			splitTag = " Tabs "
+			splitTag = fmt.Sprintf(" %s ", i18n.T("term.tabs"))
 		}
 		splitRunes := []rune(splitTag)
 		if curX+len(splitRunes) < maxTabsW {
@@ -7480,8 +7558,8 @@ func (m *AppModel) View(f *tea.Frame) {
 		rButtons := []headerBtn{
 			{-18, "▲", btnFg, btnBg},
 			{-16, "▼", btnFg, btnBg},
-			{-14, "Clear", btnFg, btnBg},
-			{-8, "Kill", btnFg, btnBg},
+			{-14, i18n.T("term.clear"), btnFg, btnBg},
+			{-8, i18n.T("term.kill"), btnFg, btnBg},
 			{-3, "✕", btnFg, btnBg},
 		}
 
@@ -7609,10 +7687,7 @@ func (m *AppModel) View(f *tea.Frame) {
 	if m.lspClient != nil {
 		lspStatus = i18n.T("status.lsp_active")
 	}
-	splitTitle := "Single"
-	if m.splits != nil {
-		splitTitle = m.splits.ModeTitle()
-	}
+	splitTitle := splitModeTitle(m.splits)
 	goVer := "Go"
 	if m.sdkManager != nil {
 		goVer = m.sdkManager.GoVersionShort()
@@ -7909,7 +7984,13 @@ func (m *AppModel) renderPane(buf *buffer.Buffer, pane *SplitPane, doc *core.Doc
 				b, _ := doc.Buffer.GetLine(i)
 				sampleLines = append(sampleLines, string(b))
 			}
-			crumbs := syntax.ExtractBreadcrumbs(doc.FilePath, sampleLines, cursorLine)
+			var crumbs []syntax.BreadcrumbItem
+			ext := filepath.Ext(doc.FilePath)
+			if m.pluginMgr == nil || (ext != "" && m.pluginMgr.IsExtensionActive(ext)) {
+				crumbs = syntax.ExtractBreadcrumbs(doc.FilePath, sampleLines, cursorLine)
+			} else if base := filepath.Base(doc.FilePath); base != "" && base != "." {
+				crumbs = []syntax.BreadcrumbItem{{Kind: "file", Name: base, Icon: "file", Line: 0}}
+			}
 			if len(crumbs) > 0 {
 				titleStr += " " + syntax.FormatBreadcrumbs(crumbs)
 			}
@@ -8173,12 +8254,11 @@ func (m *AppModel) renderPane(buf *buffer.Buffer, pane *SplitPane, doc *core.Doc
 			lineStr := string(lineBytes)
 			rawRunes := []rune(lineStr)
 			lang := filepath.Ext(doc.FilePath)
-			if lang == "" {
-				lang = "go"
-			}
-			spans = m.treeEngine.HighlightLine(lang, lineStr)
-			if len(spans) == 0 {
-				spans = m.highlighter.HighlightLine(lang, lineStr)
+			if m.pluginMgr == nil || (lang != "" && m.pluginMgr.IsExtensionActive(lang)) {
+				spans = m.treeEngine.HighlightLine(lang, lineStr)
+				if len(spans) == 0 && lang != "" {
+					spans = m.highlighter.HighlightLine(lang, lineStr)
+				}
 			}
 			hexMatches = FindHexColorsInLine(lineStr)
 
@@ -8659,7 +8739,7 @@ func (m *AppModel) renderTooltip(buf *buffer.Buffer, w, h int) {
 	}
 	text := fmt.Sprintf(" %s ", m.tooltipText)
 	runes := []rune(text)
-	textLen := len(runes)
+	textLen := buffer.StringWidth(text)
 	tx := m.tooltipX
 	ty := m.tooltipY
 
@@ -8678,9 +8758,12 @@ func (m *AppModel) renderTooltip(buf *buffer.Buffer, w, h int) {
 
 	bg := toColor(m.theme.PopupSelBg)
 	fg := toColor(m.theme.PopupSelFg)
-	for i, r := range runes {
-		if tx+i < w {
-			buf.SetRune(tx+i, ty, r, fg, bg, cell.AttrBold)
+	curX := tx
+	for _, r := range runes {
+		rw := buffer.RuneWidth(r)
+		if curX+rw <= w {
+			buf.SetRune(curX, ty, r, fg, bg, cell.AttrBold)
+			curX += max(1, rw)
 		}
 	}
 }
@@ -9587,8 +9670,8 @@ func (m *AppModel) executeMainMenuItem(action string) {
 				target = "untitled.txt"
 			}
 			_ = m.eng.Dispatch(core.Command{ID: core.CmdFileSave, Args: target})
-			m.toasts.Success("SAVED", filepath.Base(target))
-			m.statusMessage = fmt.Sprintf("Saved %s", target)
+			m.toasts.Success(i18n.T("toast.saved"), filepath.Base(target))
+			m.statusMessage = fmt.Sprintf(i18n.T("status.saved"), target)
 		}
 	case "marketplace":
 		if m.marketplace != nil {

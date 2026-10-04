@@ -10,6 +10,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"github.com/mattn/go-runewidth"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/plugin"
 	"tahr/internal/ui"
 )
@@ -471,8 +472,8 @@ func (m *NewProjectModal) HandleClick(mouseX, mouseY, screenW, screenH int) (boo
 
 	// Bottom action buttons on Row: screenH - 2
 	bottomY := screenH - 2
-	btnCancelText := " Cancel "
-	btnCreateText := " Create Project "
+	btnCancelText := i18n.T("newproj.btn_cancel")
+	btnCreateText := i18n.T("newproj.btn_create")
 	cancelX := screenW - 2 - len([]rune(btnCancelText)) - 1
 	createX := cancelX - len([]rune(btnCreateText)) - 2
 
@@ -681,8 +682,8 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 	buf.SetRune(divX, screenH-1, '┴', borderFg, bg, cell.AttrNone)
 
 	// Top Title (Clean, NO square brackets)
-	title := " CREATE NEW PROJECT "
-	for i, r := range title {
+	title := fmt.Sprintf(" %s ", i18n.T("newproj.title"))
+	for i, r := range []rune(title) {
 		if 2+i < divX-1 {
 			buf.SetRune(2+i, 0, r, accentFg, bg, cell.AttrBold)
 		}
@@ -692,8 +693,8 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 	buf.SetRune(screenW-3, 0, '✕', toColor(theme.DiagnosticError), bg, cell.AttrBold)
 
 	// 2. Left Column: Templates List (NO emojis/smileys)
-	lblTemplates := " PROJECT TEMPLATES "
-	for i, r := range lblTemplates {
+	lblTemplates := fmt.Sprintf(" %s ", i18n.T("newproj.templates"))
+	for i, r := range []rune(lblTemplates) {
 		if 2+i < divX {
 			buf.SetRune(2+i, 1, r, commentFg, bg, cell.AttrBold)
 		}
@@ -803,7 +804,7 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 	// Draw Input Fields in Form Area
 	drawInputField := func(label, val string, row int, isFocused bool) {
 		// Label
-		for i, r := range label {
+		for i, r := range []rune(label) {
 			if rightStartX+i < midDivX {
 				buf.SetRune(rightStartX+i, row, r, fg, bg, cell.AttrBold)
 			}
@@ -834,10 +835,10 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 	}
 
 	// Field 1: Project Name
-	drawInputField("Project Name:", m.ProjectName, 5, m.ActiveField == FieldName)
+	drawInputField(i18n.T("newproj.name"), m.ProjectName, 5, m.ActiveField == FieldName)
 
 	// Field 2: Location
-	drawInputField("Location:    ", m.Location, 7, m.ActiveField == FieldLocation)
+	drawInputField(i18n.T("newproj.location"), m.Location, 7, m.ActiveField == FieldLocation)
 
 	// Suggestions under Location
 	sugOffset := 0
@@ -856,7 +857,7 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 				prefix = "> "
 			}
 			line := fmt.Sprintf("%s%s", prefix, sug)
-			for i, r := range line {
+			for i, r := range []rune(line) {
 				if rightStartX+i < midDivX {
 					buf.SetRune(rightStartX+i, sugRow, r, sugFg, sugBg, cell.AttrNone)
 				}
@@ -868,7 +869,7 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 	// Field 3: Module Name (if supported by template)
 	modRow := 9 + sugOffset
 	if hasModule {
-		drawInputField("Module / Pkg:", m.ModuleName, modRow, m.ActiveField == FieldModule)
+		drawInputField(i18n.T("newproj.module"), m.ModuleName, modRow, m.ActiveField == FieldModule)
 	}
 
 	// Field 4: SDK Toolchain
@@ -878,14 +879,14 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 	}
 	sdkText := m.SDKInfo
 	if sdkText == "" {
-		sdkText = "Auto-detected SDK toolchain"
+		sdkText = i18n.T("newproj.sdk_auto")
 	}
-	drawInputField("SDK Toolchain:", sdkText, sdkRow, m.ActiveField == FieldSDK)
+	drawInputField(i18n.T("newproj.sdk"), sdkText, sdkRow, m.ActiveField == FieldSDK)
 
 	// Draw ASCII File Tree Preview
 	if previewW >= 20 {
-		treeHeader := " PROJECT STRUCTURE PREVIEW "
-		for i, r := range treeHeader {
+		treeHeader := fmt.Sprintf(" %s ", i18n.T("newproj.preview"))
+		for i, r := range []rune(treeHeader) {
 			if previewStartX+i < rightEndX {
 				buf.SetRune(previewStartX+i, 5, r, commentFg, bg, cell.AttrBold)
 			}
@@ -950,14 +951,14 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 	bottomY := screenH - 2
 
 	// Action buttons (Create Project & Cancel)
-	btnCancelText := " Cancel "
-	btnCreateText := " Create Project "
+	btnCancelText := i18n.T("newproj.btn_cancel")
+	btnCreateText := i18n.T("newproj.btn_create")
 	cancelX := screenW - 2 - len([]rune(btnCancelText)) - 1
 	createX := cancelX - len([]rune(btnCreateText)) - 2
 
 	// Help shortcuts on bottom-left (guaranteed not to overlap buttons)
-	hint := "Tab: Next Field  │  ↑/↓: Select  │  Enter: Create  │  Esc: Cancel"
-	for i, r := range hint {
+	hint := i18n.T("newproj.hint")
+	for i, r := range []rune(hint) {
 		if 2+i < createX-2 {
 			buf.SetRune(2+i, bottomY, r, commentFg, bg, cell.AttrNone)
 		}
@@ -970,7 +971,7 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 		createBg = toColor(theme.Function)
 		createFg = toColor(theme.Background)
 	}
-	for i, r := range btnCreateText {
+	for i, r := range []rune(btnCreateText) {
 		buf.SetRune(createX+i, bottomY, r, createFg, createBg, cell.AttrBold)
 	}
 
@@ -981,7 +982,7 @@ func (m *NewProjectModal) Render(buf *buffer.Buffer, screenW, screenH int, theme
 		cancelBg = activeBg
 		cancelFg = fg
 	}
-	for i, r := range btnCancelText {
+	for i, r := range []rune(btnCancelText) {
 		buf.SetRune(cancelX+i, bottomY, r, cancelFg, cancelBg, cell.AttrNone)
 	}
 }

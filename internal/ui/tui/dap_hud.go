@@ -7,6 +7,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"tahr/internal/core/dap"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -92,9 +93,9 @@ func RenderDAPHUD(
 	}
 
 	// 2. Control Toolbar (Row 0 of HUD)
-	title := " DEBUGGER "
+	title := fmt.Sprintf(" %s ", i18n.T("dap.title"))
 	curX := x + 1
-	for _, r := range title {
+	for _, r := range []rune(title) {
 		buf.SetRune(curX, y, r, warnFg, bg, cell.AttrBold)
 		curX++
 	}
@@ -104,17 +105,17 @@ func RenderDAPHUD(
 		label string
 		fg    cell.Color
 	}{
-		{"dap_cont", " ▶ Cont ", greenFg},
-		{"dap_over", " ↷ Over ", accentFg},
-		{"dap_into", " ⇣ Into ", accentFg},
-		{"dap_out", " ⇡ Out ", accentFg},
-		{"dap_stop", " ■ Stop ", errFg},
+		{"dap_cont", i18n.T("dap.btn_cont"), greenFg},
+		{"dap_over", i18n.T("dap.btn_over"), accentFg},
+		{"dap_into", i18n.T("dap.btn_into"), accentFg},
+		{"dap_out", i18n.T("dap.btn_out"), accentFg},
+		{"dap_stop", i18n.T("dap.btn_stop"), errFg},
 	}
 
 	curX += 2
 	for _, b := range controlBtns {
 		btnStart := curX
-		for _, r := range b.label {
+		for _, r := range []rune(b.label) {
 			if curX < x+w-2 {
 				buf.SetRune(curX, y, r, b.fg, btnBg, cell.AttrBold)
 				curX++
@@ -132,15 +133,15 @@ func RenderDAPHUD(
 	}
 
 	closeBtn := " ✕ "
-	closeStartX := x + w - len(closeBtn) - 1
+	closeStartX := x + w - len([]rune(closeBtn)) - 1
 	if closeStartX > curX {
-		for i, r := range closeBtn {
+		for i, r := range []rune(closeBtn) {
 			buf.SetRune(closeStartX+i, y, r, errFg, btnBg, cell.AttrBold)
 		}
 		hud.Buttons = append(hud.Buttons, DAPHUDBtn{
 			ID:   "dap_close",
 			MinX: closeStartX,
-			MaxX: closeStartX + len(closeBtn) - 1,
+			MaxX: closeStartX + len([]rune(closeBtn)) - 1,
 			Y:    y,
 		})
 	}
@@ -151,9 +152,9 @@ func RenderDAPHUD(
 		tab   DAPHUDTab
 		label string
 	}{
-		{HUDTabVariables, " Variables "},
-		{HUDTabStack, " Call Stack "},
-		{HUDTabWatch, " Watch & Eval "},
+		{HUDTabVariables, i18n.T("dap.tab_variables")},
+		{HUDTabStack, i18n.T("dap.tab_stack")},
+		{HUDTabWatch, i18n.T("dap.tab_watch")},
 	}
 
 	tabX := x + 2
@@ -168,7 +169,7 @@ func RenderDAPHUD(
 			tFg = toColor(th.Foreground)
 			attr = cell.AttrBold
 		}
-		for _, r := range t.label {
+		for _, r := range []rune(t.label) {
 			if tabX < x+w-2 {
 				buf.SetRune(tabX, tabY, r, tFg, tBg, attr)
 				tabX++
@@ -192,13 +193,13 @@ func RenderDAPHUD(
 
 	var contentLines []string
 	if sess == nil {
-		contentLines = []string{"(No active debugging session. Press F5 to launch)"}
+		contentLines = []string{i18n.T("dap.no_session")}
 	} else {
 		switch hud.ActiveTab {
 		case HUDTabVariables:
 			vars := sess.Variables()
 			if len(vars) == 0 {
-				contentLines = []string{"(No local variables available at current breakpoint)"}
+				contentLines = []string{i18n.T("dap.no_variables")}
 			} else {
 				for _, v := range vars {
 					contentLines = append(contentLines, fmt.Sprintf("  %s (%s) = %s", v.Name, v.Type, v.Value))
@@ -208,7 +209,7 @@ func RenderDAPHUD(
 		case HUDTabStack:
 			frames := sess.StackFrames()
 			if len(frames) == 0 {
-				contentLines = []string{"(No call stack available)"}
+				contentLines = []string{i18n.T("dap.no_stack")}
 			} else {
 				for i, fr := range frames {
 					prefix := "  "
@@ -221,10 +222,10 @@ func RenderDAPHUD(
 			}
 
 		case HUDTabWatch:
-			contentLines = append(contentLines, fmt.Sprintf("Eval Expr: %s█", hud.WatchInput))
-			contentLines = append(contentLines, "Results History:")
+			contentLines = append(contentLines, fmt.Sprintf(i18n.T("dap.eval_expr"), hud.WatchInput))
+			contentLines = append(contentLines, i18n.T("dap.results_history"))
 			if len(hud.WatchResults) == 0 {
-				contentLines = append(contentLines, "  (Type expression and press Enter to evaluate)")
+				contentLines = append(contentLines, i18n.T("dap.eval_hint"))
 			} else {
 				for _, res := range hud.WatchResults {
 					contentLines = append(contentLines, fmt.Sprintf("  %s", res))
