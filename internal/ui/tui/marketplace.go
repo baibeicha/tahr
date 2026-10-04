@@ -7,6 +7,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/plugin"
 	"tahr/internal/ui"
 )
@@ -621,15 +622,11 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 	}
 
 	// Title
-	title := " TAHR EXTENSION MARKETPLACE "
-	for i, r := range title {
-		if startX+2+i < startX+modalW-2 {
-			buf.SetRune(startX+2+i, startY, r, accentFg, themeBg, cell.AttrBold)
-		}
-	}
+	title := i18n.T("market.title")
+	drawString(buf, startX+2, startY, title, accentFg, themeBg, cell.AttrBold, modalW-4)
 
 	// 2. Tabs Row (Row startY+1)
-	tabs := []string{" 1: Marketplace ", " 2: Installed ", " 3: Repositories & Servers "}
+	tabs := []string{i18n.T("market.tab_browse"), i18n.T("market.tab_installed"), i18n.T("market.tab_repos")}
 	tabX := startX + 2
 	for idx, tab := range tabs {
 		tBg := themeBg
@@ -639,7 +636,7 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			tFg = accentFg
 			attr = cell.AttrBold
 		}
-		for _, r := range tab {
+		for _, r := range []rune(tab) {
 			buf.SetRune(tabX, startY+1, r, tFg, tBg, attr)
 			tabX++
 		}
@@ -653,11 +650,9 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 
 	// 3. Search & Category bar (Row startY+3)
 	if m.ActiveTab != 2 {
-		searchLabel := "Search: "
-		for i, r := range searchLabel {
-			buf.SetRune(startX+2+i, startY+3, r, themeFg, themeBg, cell.AttrNone)
-		}
-		sqX := startX + 2 + len(searchLabel)
+		searchLabel := i18n.T("market.search")
+		drawString(buf, startX+2, startY+3, searchLabel, themeFg, themeBg, cell.AttrNone, modalW-4)
+		sqX := startX + 2 + len([]rune(searchLabel))
 		sqBg := themeBg
 		sqFg := themeFg
 		if m.SearchFocused {
@@ -665,13 +660,14 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			sqFg = selFg
 		}
 		queryBox := fmt.Sprintf(" %s_ ", m.SearchQuery)
-		for i, r := range queryBox {
+		for i, r := range []rune(queryBox) {
 			buf.SetRune(sqX+i, startY+3, r, sqFg, sqBg, cell.AttrBold)
 		}
 
 		catLabel := fmt.Sprintf("Category: ◄ %s ►", m.Categories[m.CatIdx])
-		catX := startX + modalW - len(catLabel) - 3
-		for i, r := range catLabel {
+		catRunes := []rune(catLabel)
+		catX := startX + modalW - len(catRunes) - 3
+		for i, r := range catRunes {
 			buf.SetRune(catX+i, startY+3, r, keywordFg, themeBg, cell.AttrNone)
 		}
 
@@ -725,16 +721,27 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			// Line 1: Name, Version, Category badge
 			catBadge := fmt.Sprintf("[%s]", strings.ToUpper(p.Category))
 			leftStr := fmt.Sprintf("%s %s", p.Name, p.Version)
-			if len(leftStr)+len(catBadge)+2 > leftW-2 {
-				maxLen := leftW - len(catBadge) - 5
-				if maxLen > 0 && len(leftStr) > maxLen {
-					leftStr = leftStr[:maxLen] + ".."
+			leftRunes := []rune(leftStr)
+			badgeRunes := []rune(catBadge)
+			maxLen := leftW - len(badgeRunes) - 5
+			if maxLen > 0 && len(leftRunes) > maxLen {
+				leftStr = string(leftRunes[:maxLen]) + ".."
+			}
+			topLine := fmt.Sprintf(" %s", leftStr)
+			for col := 0; col < leftW-2; col++ {
+				if startX+1+col < divX {
+					buf.SetRune(startX+1+col, rowY, ' ', pFg, pBg, attr)
 				}
 			}
-			topLine := fmt.Sprintf(" %-*s %s", leftW-len(catBadge)-4, leftStr, catBadge)
-			for col, r := range topLine {
+			for col, r := range []rune(topLine) {
 				if startX+1+col < divX {
 					buf.SetRune(startX+1+col, rowY, r, pFg, pBg, attr)
+				}
+			}
+			badgeX := startX + leftW - len(badgeRunes) - 2
+			for col, r := range badgeRunes {
+				if badgeX+col < divX {
+					buf.SetRune(badgeX+col, rowY, r, keywordFg, pBg, attr)
 				}
 			}
 
@@ -748,19 +755,20 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 				}
 			}
 			subLine := fmt.Sprintf("   by %s (%s) %s", p.Author, p.RepoName, statusStr)
-			if len(subLine) > leftW-2 {
-				subLine = subLine[:leftW-2]
-			}
-			subLine = fmt.Sprintf("%-*s", leftW-2, subLine)
-			for col, r := range subLine {
+			for col := 0; col < leftW-2; col++ {
 				if startX+1+col < divX {
-					sFg := commentFg
-					if strings.Contains(statusStr, "[✓]") {
-						sFg = stringFg
-					}
-					if isCur {
-						sFg = pFg
-					}
+					buf.SetRune(startX+1+col, rowY+1, ' ', themeFg, pBg, cell.AttrNone)
+				}
+			}
+			sFg := commentFg
+			if strings.Contains(statusStr, "[✓]") {
+				sFg = stringFg
+			}
+			if isCur {
+				sFg = pFg
+			}
+			for col, r := range []rune(subLine) {
+				if startX+1+col < divX {
 					buf.SetRune(startX+1+col, rowY+1, r, sFg, pBg, cell.AttrNone)
 				}
 			}
@@ -775,41 +783,31 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 
 			// Header: Title & Version
 			hStr := fmt.Sprintf("%s  v%s", p.Name, p.Version)
-			for i, r := range hStr {
-				buf.SetRune(rightStartX+i, bodyTop, r, accentFg, themeBg, cell.AttrBold)
-			}
+			drawString(buf, rightStartX, bodyTop, hStr, accentFg, themeBg, cell.AttrBold, rightW)
 
 			// Author & Source
-			metaStr := fmt.Sprintf("Author: %s  |  Source: %s", p.Author, p.RepoName)
-			for i, r := range metaStr {
-				buf.SetRune(rightStartX+i, bodyTop+1, r, commentFg, themeBg, cell.AttrNone)
-			}
+			metaStr := i18n.T("market.author", p.Author, p.RepoName)
+			drawString(buf, rightStartX, bodyTop+1, metaStr, commentFg, themeBg, cell.AttrNone, rightW)
 
 			// Action buttons row
-			actionRow := " Enter: Install / Update "
+			actionRow := i18n.T("market.install")
+			btnFg := stringFg
 			if p.Installed {
 				if p.Enabled {
-					actionRow = " Enabled ✓ (Space/Enter: Disable)    d/Del: Uninstall "
+					actionRow = i18n.T("market.enabled")
 				} else {
-					actionRow = " Disabled (Space/Enter: Enable)    d/Del: Uninstall "
-				}
-			}
-			for i, r := range actionRow {
-				btnFg := stringFg
-				if p.Installed && !p.Enabled {
+					actionRow = i18n.T("market.disabled")
 					btnFg = commentFg
 				}
-				buf.SetRune(rightStartX+i, bodyTop+3, r, btnFg, themeBg, cell.AttrBold)
 			}
+			drawString(buf, rightStartX, bodyTop+3, actionRow, btnFg, themeBg, cell.AttrBold, rightW)
 
 			// Description
 			buf.SetRune(rightStartX, bodyTop+5, '─', borderFg, themeBg, cell.AttrNone)
 			descLines := wrapString(p.Description, rightW)
 			for idx, dl := range descLines {
 				if bodyTop+6+idx < startY+modalH-2 {
-					for i, r := range dl {
-						buf.SetRune(rightStartX+i, bodyTop+6+idx, r, themeFg, themeBg, cell.AttrNone)
-					}
+					drawString(buf, rightStartX, bodyTop+6+idx, dl, themeFg, themeBg, cell.AttrNone, rightW)
 				}
 			}
 
@@ -817,14 +815,10 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			capY := bodyTop + 6 + len(descLines) + 1
 			if capY < startY+modalH-4 {
 				capStr := "Capabilities: [fs:read] [process:exec] (Wasm Sandboxed)"
-				for i, r := range capStr {
-					buf.SetRune(rightStartX+i, capY, r, keywordFg, themeBg, cell.AttrNone)
-				}
+				drawString(buf, rightStartX, capY, capStr, keywordFg, themeBg, cell.AttrNone, rightW)
 				if len(p.Tags) > 0 {
 					tagStr := fmt.Sprintf("Tags: %s", strings.Join(p.Tags, ", "))
-					for i, r := range tagStr {
-						buf.SetRune(rightStartX+i, capY+1, r, commentFg, themeBg, cell.AttrNone)
-					}
+					drawString(buf, rightStartX, capY+1, tagStr, commentFg, themeBg, cell.AttrNone, rightW)
 				}
 			}
 		}
@@ -856,25 +850,39 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			}
 
 			line1 := fmt.Sprintf(" %s %s [%s]", check, repo.Name, repo.Type)
-			if len(line1) > leftW-2 {
-				line1 = line1[:leftW-2]
+			line1Runes := []rune(line1)
+			if len(line1Runes) > leftW-2 {
+				line1 = string(line1Runes[:leftW-2])
 			}
-			line1 = fmt.Sprintf("%-*s", leftW-2, line1)
-			for col, r := range line1 {
-				buf.SetRune(startX+1+col, rowY, r, rFg, rBg, attr)
+			for col := 0; col < leftW-2; col++ {
+				if startX+1+col < divX {
+					buf.SetRune(startX+1+col, rowY, ' ', rFg, rBg, attr)
+				}
+			}
+			for col, r := range []rune(line1) {
+				if startX+1+col < divX {
+					buf.SetRune(startX+1+col, rowY, r, rFg, rBg, attr)
+				}
 			}
 
 			line2 := fmt.Sprintf("     %s", repo.URL)
-			if len(line2) > leftW-2 {
-				line2 = line2[:leftW-5] + "..."
+			line2Runes := []rune(line2)
+			if len(line2Runes) > leftW-2 {
+				line2 = string(line2Runes[:leftW-5]) + "..."
 			}
-			line2 = fmt.Sprintf("%-*s", leftW-2, line2)
-			for col, r := range line2 {
-				sFg := commentFg
-				if isCur {
-					sFg = rFg
+			for col := 0; col < leftW-2; col++ {
+				if startX+1+col < divX {
+					buf.SetRune(startX+1+col, rowY+1, ' ', themeFg, rBg, cell.AttrNone)
 				}
-				buf.SetRune(startX+1+col, rowY+1, r, sFg, rBg, cell.AttrNone)
+			}
+			sFg := commentFg
+			if isCur {
+				sFg = rFg
+			}
+			for col, r := range []rune(line2) {
+				if startX+1+col < divX {
+					buf.SetRune(startX+1+col, rowY+1, r, sFg, rBg, cell.AttrNone)
+				}
 			}
 		}
 
@@ -887,9 +895,7 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			if m.EditingRepoID != "" {
 				hStr = " ✎ Edit Plugin Repository Server "
 			}
-			for i, r := range hStr {
-				buf.SetRune(rightStartX+i, bodyTop, r, accentFg, themeBg, cell.AttrBold)
-			}
+			drawString(buf, rightStartX, bodyTop, hStr, accentFg, themeBg, cell.AttrBold, modalW-leftW-4)
 
 			f0 := fmt.Sprintf("Name : %s_", m.AddRepoName)
 			f1 := fmt.Sprintf("URL  : %s_", m.AddRepoURL)
@@ -902,7 +908,7 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 					bg = selBg
 					fg = selFg
 				}
-				for i, r := range text {
+				for i, r := range []rune(text) {
 					buf.SetRune(rightStartX+i, y, r, fg, bg, cell.AttrNone)
 				}
 			}
@@ -912,31 +918,21 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			renderField(bodyTop+6, f2, m.AddRepoField == 2)
 
 			help := " Tab: Switch Field | Enter: Save Server | Esc: Cancel "
-			for i, r := range help {
-				buf.SetRune(rightStartX+i, bodyTop+9, r, commentFg, themeBg, cell.AttrNone)
-			}
+			drawString(buf, rightStartX, bodyTop+9, help, commentFg, themeBg, cell.AttrNone, modalW-leftW-4)
 		} else if m.SelectedRepo >= 0 && m.SelectedRepo < len(m.Repositories) {
 			repo := m.Repositories[m.SelectedRepo]
 
 			hStr := fmt.Sprintf("Server: %s", repo.Name)
-			for i, r := range hStr {
-				buf.SetRune(rightStartX+i, bodyTop, r, accentFg, themeBg, cell.AttrBold)
-			}
+			drawString(buf, rightStartX, bodyTop, hStr, accentFg, themeBg, cell.AttrBold, modalW-leftW-4)
 
 			urlStr := fmt.Sprintf("URL: %s", repo.URL)
-			for i, r := range urlStr {
-				buf.SetRune(rightStartX+i, bodyTop+2, r, themeFg, themeBg, cell.AttrNone)
-			}
+			drawString(buf, rightStartX, bodyTop+2, urlStr, themeFg, themeBg, cell.AttrNone, modalW-leftW-4)
 
 			typeStr := fmt.Sprintf("Type: %s  |  Status: %v", repo.Type, repo.Enabled)
-			for i, r := range typeStr {
-				buf.SetRune(rightStartX+i, bodyTop+3, r, commentFg, themeBg, cell.AttrNone)
-			}
+			drawString(buf, rightStartX, bodyTop+3, typeStr, commentFg, themeBg, cell.AttrNone, modalW-leftW-4)
 
 			actStr := " A: Add Server | E: Edit URL/Name | T: Ping/Test | Space: Toggle | D: Delete "
-			for i, r := range actStr {
-				buf.SetRune(rightStartX+i, bodyTop+5, r, stringFg, themeBg, cell.AttrBold)
-			}
+			drawString(buf, rightStartX, bodyTop+5, actStr, stringFg, themeBg, cell.AttrBold, modalW-leftW-4)
 
 			if m.RepoTestMsg != "" {
 				resLabel := fmt.Sprintf("Test Status: %s", m.RepoTestMsg)
@@ -944,9 +940,7 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 				if m.StatusIsError {
 					fg = toColor(th.DiagnosticError)
 				}
-				for i, r := range resLabel {
-					buf.SetRune(rightStartX+i, bodyTop+7, r, fg, themeBg, cell.AttrBold)
-				}
+				drawString(buf, rightStartX, bodyTop+7, resLabel, fg, themeBg, cell.AttrBold, modalW-leftW-4)
 			}
 		}
 	}
@@ -966,7 +960,7 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 	if m.StatusIsError {
 		sFg = toColor(th.DiagnosticError)
 	}
-	for i, r := range status {
+	for i, r := range []rune(status) {
 		if startX+2+i < startX+modalW-2 {
 			buf.SetRune(startX+2+i, startY+modalH-1, r, sFg, themeBg, cell.AttrNone)
 		}
@@ -986,7 +980,7 @@ func wrapString(s string, width int) []string {
 	for _, w := range words {
 		if cur == "" {
 			cur = w
-		} else if len(cur)+1+len(w) <= width {
+		} else if len([]rune(cur))+1+len([]rune(w)) <= width {
 			cur += " " + w
 		} else {
 			lines = append(lines, cur)

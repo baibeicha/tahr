@@ -215,7 +215,7 @@ func (qf *QuickFixModal) Render(buf *buffer.Buffer, theme *ui.Theme) {
 
 	// Title
 	title := " Quick Fix (Alt+Enter) "
-	for i, r := range title {
+	for i, r := range []rune(title) {
 		tx := qf.X + 2 + i
 		if tx < qf.X+qf.Width-1 {
 			buf.SetRune(tx, qf.Y, r, accentFg, bg, cell.AttrBold)
@@ -246,11 +246,12 @@ func (qf *QuickFixModal) Render(buf *buffer.Buffer, theme *ui.Theme) {
 		}
 
 		lineStr := fmt.Sprintf("%s%-10s %s", prefix, kindTag, act.Title)
+		lineRunes := []rune(lineStr)
 		for col := 0; col < qf.Width-2; col++ {
 			drawX := qf.X + 1 + col
 			var r rune = ' '
-			if col < len(lineStr) {
-				r = rune(lineStr[col])
+			if col < len(lineRunes) {
+				r = lineRunes[col]
 			}
 			attr := cell.AttrNone
 			if isSelected {
@@ -262,8 +263,9 @@ func (qf *QuickFixModal) Render(buf *buffer.Buffer, theme *ui.Theme) {
 
 	// Footer hint
 	footer := " Enter: Apply  Esc: Cancel "
-	for i, r := range footer {
-		fx := qf.X + qf.Width - len(footer) - 2 + i
+	footerRunes := []rune(footer)
+	for i, r := range footerRunes {
+		fx := qf.X + qf.Width - len(footerRunes) - 2 + i
 		if fx > qf.X && fx < qf.X+qf.Width-1 {
 			buf.SetRune(fx, qf.Y+qf.Height-1, r, toColor(theme.Comment), bg, cell.AttrNone)
 		}

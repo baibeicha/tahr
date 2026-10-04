@@ -177,7 +177,7 @@ func (m *RenameModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui
 
 	// Title & Close [✕]
 	title := " RENAME SYMBOL (PROJECT-WIDE) "
-	for i, r := range title {
+	for i, r := range []rune(title) {
 		if startX+2+i < startX+modalW-4 {
 			buf.SetRune(startX+2+i, startY, r, accentFg, bg, cell.AttrBold)
 		}
@@ -186,7 +186,7 @@ func (m *RenameModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui
 
 	// Old Name line
 	oldLbl := fmt.Sprintf("Current: %s", m.OldName)
-	for i, r := range oldLbl {
+	for i, r := range []rune(oldLbl) {
 		if startX+3+i < startX+modalW-3 {
 			buf.SetRune(startX+3+i, startY+2, r, toColor(theme.Comment), bg, cell.AttrNone)
 		}
@@ -194,27 +194,28 @@ func (m *RenameModal) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui
 
 	// Input row: New Name: [_______]
 	inLbl := "New Name: "
-	for i, r := range inLbl {
+	for i, r := range []rune(inLbl) {
 		buf.SetRune(startX+3+i, startY+3, r, fg, bg, cell.AttrBold)
 	}
-	inFieldX := startX + 3 + len(inLbl)
-	inFieldW := modalW - len(inLbl) - 6
+	inFieldX := startX + 3 + len([]rune(inLbl))
+	inFieldW := modalW - len([]rune(inLbl)) - 6
 	disp := m.NewName + "▏"
+	dispRunes := []rune(disp)
 	for i := 0; i < inFieldW; i++ {
 		r := ' '
-		if i < len([]rune(disp)) {
-			r = []rune(disp)[i]
+		if i < len(dispRunes) {
+			r = dispRunes[i]
 		}
 		buf.SetRune(inFieldX+i, startY+3, r, fg, activeBg, cell.AttrNone)
 	}
 
 	// Buttons: Rename (Enter)   Cancel (Esc)
 	btnRename := " Rename "
-	for i, r := range btnRename {
+	for i, r := range []rune(btnRename) {
 		buf.SetRune(startX+12+i, startY+5, r, toColor(theme.String), activeBg, cell.AttrBold)
 	}
 	btnCancel := " Cancel "
-	for i, r := range btnCancel {
+	for i, r := range []rune(btnCancel) {
 		buf.SetRune(startX+26+i, startY+5, r, toColor(theme.Comment), bg, cell.AttrNone)
 	}
 }

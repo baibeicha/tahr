@@ -6,6 +6,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -453,20 +454,16 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 	}
 
 	// Header Title & Close button
-	title := " FIND "
+	title := i18n.T("find.title_find")
 	if m.ReplaceMode {
-		title = " FIND & REPLACE "
+		title = i18n.T("find.title_replace")
 	}
-	for i, r := range title {
-		if startX+2+i < startX+modalW-4 {
-			buf.SetRune(startX+2+i, startY, r, accentFg, bg, cell.AttrBold)
-		}
-	}
+	drawString(buf, startX+2, startY, title, accentFg, bg, cell.AttrBold, modalW-4)
 	buf.SetRune(startX+modalW-2, startY, '✕', toColor(theme.DiagnosticError), bg, cell.AttrBold)
 
 	// Row 1: Find: [query_______]  Aa  \b  ◀  ▶  ⇄  2/14
 	lblFind := "Find: "
-	for i, r := range lblFind {
+	for i, r := range []rune(lblFind) {
 		buf.SetRune(startX+2+i, startY+1, r, fg, bg, cell.AttrBold)
 	}
 
@@ -551,7 +548,7 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 			matchInfo = " 0/0 "
 		}
 	}
-	for i, r := range matchInfo {
+	for i, r := range []rune(matchInfo) {
 		if findFieldEnd+18+i < startX+modalW-1 {
 			buf.SetRune(findFieldEnd+18+i, startY+1, r, toColor(theme.Constant), bg, cell.AttrNone)
 		}
@@ -560,7 +557,7 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 	// Row 2 / 3: Replace Mode Elements
 	if m.ReplaceMode {
 		lblRepl := "Repl: "
-		for i, r := range lblRepl {
+		for i, r := range []rune(lblRepl) {
 			buf.SetRune(startX+2+i, startY+3, r, fg, bg, cell.AttrBold)
 		}
 
@@ -584,18 +581,18 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 		}
 
 		// Replace and Replace All buttons (clean text without harsh dark background or square brackets)
-		replBtn := " Replace "
-		for i, r := range replBtn {
+		replBtn := i18n.T("find.btn_replace")
+		for i, r := range []rune(replBtn) {
 			buf.SetRune(findFieldEnd+1+i, startY+3, r, toColor(theme.String), bg, cell.AttrBold)
 		}
-		allBtn := " Replace All "
-		for i, r := range allBtn {
+		allBtn := i18n.T("find.btn_replace_all")
+		for i, r := range []rune(allBtn) {
 			buf.SetRune(findFieldEnd+11+i, startY+3, r, toColor(theme.DiagnosticWarn), bg, cell.AttrBold)
 		}
 
 		// Hotkey Hint
 		hint := "Enter: Replace │ Alt+Enter: All │ Tab: Switch │ ⇄: Find │ Alt+Bksp: Undo"
-		for i, r := range hint {
+		for i, r := range []rune(hint) {
 			if startX+2+i < startX+modalW-2 {
 				buf.SetRune(startX+2+i, startY+5, r, toColor(theme.Comment), bg, cell.AttrNone)
 			}
@@ -603,7 +600,7 @@ func (m *FindReplaceModal) Render(buf *buffer.Buffer, screenW, screenH int, them
 	} else {
 		// Find Hint
 		hint := "Enter: Next │ Shift+Enter: Prev │ Alt+W: Word │ ⇄: Repl │ Alt+Bksp: Undo"
-		for i, r := range hint {
+		for i, r := range []rune(hint) {
 			if startX+2+i < startX+modalW-2 {
 				buf.SetRune(startX+2+i, startY+3, r, toColor(theme.Comment), bg, cell.AttrNone)
 			}

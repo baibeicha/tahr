@@ -307,27 +307,32 @@ func (st *SettingsState) SetPluginManager(mgr *plugin.Manager) {
 }
 
 // NewSettingsState creates a fresh settings modal state.
+func (st *SettingsState) getCategories() []string {
+	return []string{
+		i18n.T("settings.cat.editor"),
+		i18n.T("settings.cat.appearance"),
+		i18n.T("settings.cat.splits"),
+		i18n.T("settings.cat.keybindings"),
+		i18n.T("settings.cat.colors"),
+		i18n.T("settings.cat.toolchains"),
+		i18n.T("settings.cat.plugins"),
+	}
+}
+
 func NewSettingsState() *SettingsState {
 	s := LoadSettings()
-	return &SettingsState{
-		Open:        false,
-		CategoryIdx: 0,
-		FieldIdx:    0,
-		FocusRight:  false,
-		Categories: []string{
-			"Editor & Cursor",
-			"Appearance & Layout",
-			"Split Panes (1-6)",
-			"Keyboard & Shortcuts",
-			"Color Palette (HEX)",
-			"Toolchains & SDKs",
-			"Plugins & Marketplace",
-		},
+	st := &SettingsState{
+		Open:          false,
+		CategoryIdx:   0,
+		FieldIdx:      0,
+		FocusRight:    false,
 		Current:       s,
 		Original:      s,
 		PluginViewTab: "all",
 		ColorPicker:   NewColorPickerModal(),
 	}
+	st.Categories = st.getCategories()
+	return st
 }
 
 type Field struct {
@@ -339,32 +344,32 @@ type Field struct {
 func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 	switch catIdx {
 	case 0: // Editor & Cursor
-		wrapStr := "Disabled"
+		wrapStr := i18n.T("settings.val.disabled")
 		if st.Current.WordWrap {
-			wrapStr = "Enabled"
+			wrapStr = i18n.T("settings.val.enabled")
 		}
-		spacesStr := "Spaces"
+		spacesStr := i18n.T("settings.val.spaces")
 		if !st.Current.UseSpaces {
-			spacesStr = "Tabs"
+			spacesStr = i18n.T("settings.val.tabs")
 		}
-		blinkStr := "Enabled"
+		blinkStr := i18n.T("settings.val.enabled")
 		if !st.Current.CursorBlink {
-			blinkStr = "Disabled"
+			blinkStr = i18n.T("settings.val.disabled")
 		}
-		minimapStr := "Enabled"
+		minimapStr := i18n.T("settings.val.enabled")
 		if !st.Current.ShowMinimap {
-			minimapStr = "Disabled"
+			minimapStr = i18n.T("settings.val.disabled")
 		}
 		return []Field{
-			{"tab_size", "Tab Size", fmt.Sprintf("%d spaces", st.Current.TabSize)},
-			{"use_spaces", "Indentation", spacesStr},
-			{"line_numbers", "Line Numbers", strings.Title(st.Current.LineNumbers)},
-			{"word_wrap", "Word Wrap", wrapStr},
-			{"cursor_style", "Cursor Style", strings.Title(st.Current.CursorStyle)},
-			{"cursor_blink", "Cursor Blink", blinkStr},
-			{"scrolloff_y", "Scroll Margin", fmt.Sprintf("%d lines", st.Current.ScrolloffY)},
-			{"show_minimap", "Code Minimap", minimapStr},
-			{"auto_save", "Auto Save", strings.Title(st.Current.AutoSave)},
+			{"tab_size", i18n.T("settings.field.tab_size"), fmt.Sprintf(i18n.T("settings.val.n_spaces"), st.Current.TabSize)},
+			{"use_spaces", i18n.T("settings.field.use_spaces"), spacesStr},
+			{"line_numbers", i18n.T("settings.field.line_numbers"), strings.Title(st.Current.LineNumbers)},
+			{"word_wrap", i18n.T("settings.field.word_wrap"), wrapStr},
+			{"cursor_style", i18n.T("settings.field.cursor_style"), strings.Title(st.Current.CursorStyle)},
+			{"cursor_blink", i18n.T("settings.field.cursor_blink"), blinkStr},
+			{"scrolloff_y", i18n.T("settings.field.scrolloff_y"), fmt.Sprintf(i18n.T("settings.val.n_lines"), st.Current.ScrolloffY)},
+			{"show_minimap", i18n.T("settings.field.show_minimap"), minimapStr},
+			{"auto_save", i18n.T("settings.field.auto_save"), strings.Title(st.Current.AutoSave)},
 		}
 
 	case 1: // Appearance & Layout
@@ -377,35 +382,35 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			}
 		}
 		themeStr := strings.Title(st.Current.Theme)
-		dockStr := "Left Dock (default)"
+		dockStr := i18n.T("settings.val.dock_left")
 		if st.Current.TreePosition == "right" {
-			dockStr = "Right Dock"
+			dockStr = i18n.T("settings.val.dock_right")
 		}
-		animStr := "Smooth (120 FPS)"
+		animStr := i18n.T("settings.val.anim_smooth")
 		if !st.Current.SmoothAnim {
-			animStr = "Instant (0 ms)"
+			animStr = i18n.T("settings.val.anim_instant")
 		}
-		iconsStr := "Unicode Clean"
+		iconsStr := i18n.T("settings.val.icons_unicode")
 		if st.Current.FileIconStyle == "nerd_fonts" {
-			iconsStr = "Nerd Fonts"
+			iconsStr = i18n.T("settings.val.icons_nerd")
 		} else if st.Current.FileIconStyle == "minimal" {
-			iconsStr = "Minimal"
+			iconsStr = i18n.T("settings.val.icons_minimal")
 		}
 		return []Field{
-			{"language", "Language", currentLangName},
-			{"theme", "Theme Preset", themeStr},
-			{"tree_position", "Project Tree Dock", dockStr},
-			{"file_icon_style", "File Icons Style", iconsStr},
-			{"smooth_anim", "Tree Animations", animStr},
+			{"language", i18n.T("settings.field.language"), currentLangName},
+			{"theme", i18n.T("settings.field.theme"), themeStr},
+			{"tree_position", i18n.T("settings.field.tree_position"), dockStr},
+			{"file_icon_style", i18n.T("settings.field.file_icon_style"), iconsStr},
+			{"smooth_anim", i18n.T("settings.field.smooth_anim"), animStr},
 		}
 
 	case 2: // Split Panes (1-6)
-		splitStr := fmt.Sprintf("%d Pane(s)", st.Current.DefaultSplit)
+		splitStr := fmt.Sprintf(i18n.T("settings.val.n_panes"), st.Current.DefaultSplit)
 		return []Field{
-			{"default_split", "Default Split View", splitStr},
-			{"split_cycle", "Cycle Layout Hotkey", st.Current.Keybindings["split_cycle"]},
-			{"split_next", "Focus Next Pane", st.Current.Keybindings["split_next"]},
-			{"split_prev", "Focus Prev Pane", st.Current.Keybindings["split_prev"]},
+			{"default_split", i18n.T("settings.field.default_split"), splitStr},
+			{"split_cycle", i18n.T("settings.field.split_cycle"), st.Current.Keybindings["split_cycle"]},
+			{"split_next", i18n.T("settings.field.split_next"), st.Current.Keybindings["split_next"]},
+			{"split_prev", i18n.T("settings.field.split_prev"), st.Current.Keybindings["split_prev"]},
 		}
 
 	case 3: // Keyboard & Shortcuts
@@ -414,20 +419,20 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			id    string
 			label string
 		}{
-			{"save", "Save Document"},
-			{"run", "Run Active Profile"},
-			{"build", "Build Project"},
-			{"tree_toggle", "Toggle Project Tree"},
-			{"tree_dock", "Swap Tree Left/Right"},
-			{"split_cycle", "Cycle Splits (1-6)"},
-			{"split_next", "Focus Next Split"},
-			{"split_prev", "Focus Prev Split"},
-			{"split_1", "Split: 1 Single"},
-			{"split_2", "Split: 2 Columns"},
-			{"split_3", "Split: 3 Columns"},
-			{"split_4", "Split: 4 Grid (2x2)"},
-			{"split_5", "Split: 5 Panes"},
-			{"split_6", "Split: 6 Grid (3x2)"},
+			{"save", i18n.T("settings.field.kb_save")},
+			{"run", i18n.T("settings.field.kb_run")},
+			{"build", i18n.T("settings.field.kb_build")},
+			{"tree_toggle", i18n.T("settings.field.kb_tree_toggle")},
+			{"tree_dock", i18n.T("settings.field.kb_tree_dock")},
+			{"split_cycle", i18n.T("settings.field.kb_split_cycle")},
+			{"split_next", i18n.T("settings.field.kb_split_next")},
+			{"split_prev", i18n.T("settings.field.kb_split_prev")},
+			{"split_1", i18n.T("settings.field.kb_split_1")},
+			{"split_2", i18n.T("settings.field.kb_split_2")},
+			{"split_3", i18n.T("settings.field.kb_split_3")},
+			{"split_4", i18n.T("settings.field.kb_split_4")},
+			{"split_5", i18n.T("settings.field.kb_split_5")},
+			{"split_6", i18n.T("settings.field.kb_split_6")},
 			{"find", "Find in File"},
 			{"replace", "Find & Replace"},
 			{"rename", "Rename Symbol (Project)"},
@@ -731,12 +736,8 @@ func (st *SettingsState) Render(buf *buffer.Buffer, w, h int, themeBg, themeFg, 
 	}
 
 	// Title
-	title := " IDE Settings (Ctrl+,) "
-	for i, r := range title {
-		if startX+2+i < startX+modalW-2 {
-			buf.SetRune(startX+2+i, startY, r, accentFg, themeBg, cell.AttrBold)
-		}
-	}
+	title := fmt.Sprintf(" %s (Ctrl+,) ", i18n.T("settings.title"))
+	drawString(buf, startX+2, startY, title, accentFg, themeBg, cell.AttrBold, modalW-4)
 
 	// 2. Vertical Divider
 	divX := startX + catW
@@ -745,7 +746,8 @@ func (st *SettingsState) Render(buf *buffer.Buffer, w, h int, themeBg, themeFg, 
 	}
 
 	// 3. Categories on Left
-	for idx, cat := range st.Categories {
+	categories := st.getCategories()
+	for idx, cat := range categories {
 		rowY := startY + 2 + idx
 		if rowY >= startY+modalH-2 {
 			break
@@ -763,9 +765,14 @@ func (st *SettingsState) Render(buf *buffer.Buffer, w, h int, themeBg, themeFg, 
 				attr = cell.AttrBold
 			}
 		}
-		catLine := fmt.Sprintf(" %-*s", catW-2, cat)
-		for i, r := range catLine {
-			buf.SetRune(startX+1+i, rowY, r, cFg, cBg, attr)
+		for x := 1; x < catW; x++ {
+			buf.SetRune(startX+x, rowY, ' ', cFg, cBg, attr)
+		}
+		catRunes := []rune(cat)
+		for i, r := range catRunes {
+			if 2+i < catW {
+				buf.SetRune(startX+2+i, rowY, r, cFg, cBg, attr)
+			}
 		}
 	}
 
@@ -803,57 +810,68 @@ func (st *SettingsState) Render(buf *buffer.Buffer, w, h int, themeBg, themeFg, 
 			attr = cell.AttrBold
 		}
 
+		for col := 0; col < formW; col++ {
+			buf.SetRune(formStartX+col, rowY, ' ', fFg, fBg, attr)
+		}
+
 		if st.CategoryIdx == 4 {
 			// Color category with TrueColor swatch: ███ #1e1e2e (no brackets)
-			labelPart := fmt.Sprintf("%-22s : ", f.Label)
-			swatchStr := "███"
-			afterPart := fmt.Sprintf(" %s", f.Value)
-
-			for i := 0; i < formW; i++ {
-				buf.SetRune(formStartX+i, rowY, ' ', fFg, fBg, attr)
+			labelRunes := []rune(f.Label)
+			for i, r := range labelRunes {
+				if i < 22 {
+					buf.SetRune(formStartX+i, rowY, r, fFg, fBg, attr)
+				}
 			}
-			for i, r := range labelPart {
-				buf.SetRune(formStartX+i, rowY, r, fFg, fBg, attr)
+			if formW > 23 {
+				buf.SetRune(formStartX+23, rowY, ':', fFg, fBg, attr)
 			}
-			swatchX := formStartX + len(labelPart)
+			swatchX := formStartX + 25
 			swatchColor, ok := HexToRGBColor(f.Value)
 			if !ok {
 				swatchColor = fFg
 			}
-			for i, r := range swatchStr {
+			swatchRunes := []rune("███")
+			for i, r := range swatchRunes {
 				buf.SetRune(swatchX+i, rowY, r, swatchColor, fBg, cell.AttrNone)
 			}
-			for i, r := range afterPart {
-				buf.SetRune(swatchX+len([]rune(swatchStr))+i, rowY, r, fFg, fBg, attr)
+			valX := swatchX + len(swatchRunes) + 1
+			for i, r := range []rune(f.Value) {
+				if valX+i < formStartX+formW {
+					buf.SetRune(valX+i, rowY, r, fFg, fBg, attr)
+				}
 			}
 			continue
 		}
 
-		fieldLine := ""
-		if isCurrentField && st.RebindingKey {
-			fieldLine = fmt.Sprintf("%-22s : [Press new key...]", f.Label)
-		} else if isCurrentField && st.EditingText {
-			fieldLine = fmt.Sprintf("%-22s : [%s_]", f.Label, st.InputBuffer)
-		} else {
-			fieldLine = fmt.Sprintf("%-22s : %s", f.Label, f.Value)
+		labelRunes := []rune(f.Label)
+		for i, r := range labelRunes {
+			if i < 22 {
+				buf.SetRune(formStartX+i, rowY, r, fFg, fBg, attr)
+			}
+		}
+		if formW > 23 {
+			buf.SetRune(formStartX+23, rowY, ':', fFg, fBg, attr)
 		}
 
-		if len(fieldLine) > formW {
-			fieldLine = fieldLine[:formW]
+		valStartX := formStartX + 25
+		valText := f.Value
+		if isCurrentField && st.RebindingKey {
+			valText = i18n.T("settings.hint.press_key")
+		} else if isCurrentField && st.EditingText {
+			valText = fmt.Sprintf("[%s_]", st.InputBuffer)
 		}
-		fieldLine = fmt.Sprintf("%-*s", formW, fieldLine)
-		for i, r := range fieldLine {
-			buf.SetRune(formStartX+i, rowY, r, fFg, fBg, attr)
+
+		valRunes := []rune(valText)
+		for i, r := range valRunes {
+			if valStartX+i < formStartX+formW {
+				buf.SetRune(valStartX+i, rowY, r, fFg, fBg, attr)
+			}
 		}
 	}
 
 	// 5. Bottom action hints
-	actions := " [Tab: Switch] [Enter: Edit/Rebind] [Ctrl+S: Save] [Ctrl+R: Reset] [Esc: Close] "
-	for i, r := range actions {
-		if startX+2+i < startX+modalW-2 {
-			buf.SetRune(startX+2+i, startY+modalH-1, r, themeFg, themeBg, cell.AttrNone)
-		}
-	}
+	actions := i18n.T("settings.hint.actions")
+	drawString(buf, startX+2, startY+modalH-1, actions, themeFg, themeBg, cell.AttrNone, modalW-4)
 
 	if st.ToolAction.Open {
 		st.renderToolAction(buf, w, h, themeBg, themeFg, borderFg, selBg, selFg, accentFg)
@@ -1433,7 +1451,7 @@ func (st *SettingsState) HandleKey(k input.Key) (bool, bool) { // (handled, shou
 
 	case input.KeyDown:
 		if !st.FocusRight {
-			if st.CategoryIdx+1 < len(st.Categories) {
+			if st.CategoryIdx+1 < len(st.getCategories()) {
 				st.CategoryIdx++
 				st.FieldIdx = 0
 			}
@@ -2064,7 +2082,7 @@ func (st *SettingsState) HandleClick(mouseX, mouseY, w, h int) (handled bool, sh
 
 	// Click on left category list
 	if mouseX >= startX+1 && mouseX < divX {
-		for idx := range st.Categories {
+		for idx := range st.getCategories() {
 			rowY := startY + 2 + idx
 			if mouseY == rowY {
 				st.CategoryIdx = idx
@@ -2173,11 +2191,7 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 
 	// Title
 	title := fmt.Sprintf(" Tool Action: %s ", st.ToolAction.ToolName)
-	for i, r := range title {
-		if startX+2+i < startX+modalW-2 {
-			buf.SetRune(startX+2+i, startY, r, accentFg, themeBg, cell.AttrBold)
-		}
-	}
+	drawString(buf, startX+2, startY, title, accentFg, themeBg, cell.AttrBold, modalW-4)
 
 	// Details
 	statusStr := "[✓] Ready"
@@ -2185,35 +2199,29 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 		statusStr = "[!] Missing"
 	}
 	line1 := fmt.Sprintf("Plugin: %s  |  Status: %s", st.ToolAction.PluginName, statusStr)
-	for i, r := range line1 {
-		if startX+3+i < startX+modalW-3 {
-			buf.SetRune(startX+3+i, startY+2, r, themeFg, themeBg, cell.AttrNone)
-		}
-	}
+	drawString(buf, startX+3, startY+2, line1, themeFg, themeBg, cell.AttrNone, modalW-6)
 
 	curPath := st.ToolAction.CurrentPath
 	if curPath == "" {
 		curPath = "(not found)"
 	}
 	line2 := fmt.Sprintf("Path: %s", curPath)
-	if len(line2) > modalW-6 {
-		line2 = line2[:modalW-7] + "…"
+	line2Runes := []rune(line2)
+	if len(line2Runes) > modalW-6 {
+		line2 = string(line2Runes[:modalW-7]) + "…"
 	}
-	for i, r := range line2 {
-		if startX+3+i < startX+modalW-3 {
-			buf.SetRune(startX+3+i, startY+3, r, themeFg, themeBg, cell.AttrNone)
-		}
-	}
+	drawString(buf, startX+3, startY+3, line2, themeFg, themeBg, cell.AttrNone, modalW-6)
 
 	// Options
 	opt1 := fmt.Sprintf("  [D] Download & Install Automatically: %s", st.ToolAction.InstallCmd)
 	if st.ToolAction.InstallCmd == "" {
 		opt1 = "  [D] Download & Install Automatically"
 	}
-	if len(opt1) > modalW-6 {
-		opt1 = opt1[:modalW-7] + "…"
+	opt1Runes := []rune(opt1)
+	if len(opt1Runes) > modalW-6 {
+		opt1Runes = append(opt1Runes[:modalW-7], '…')
 	}
-	for i, r := range opt1 {
+	for i, r := range opt1Runes {
 		if startX+2+i < startX+modalW-2 {
 			fg := accentFg
 			if r == '[' || r == ']' || r == 'D' {
@@ -2224,7 +2232,7 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 	}
 
 	opt2 := "  [P] Specify Path to Binary Manually"
-	for i, r := range opt2 {
+	for i, r := range []rune(opt2) {
 		if startX+2+i < startX+modalW-2 {
 			fg := themeFg
 			if r == '[' || r == ']' || r == 'P' {
@@ -2235,7 +2243,7 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 	}
 
 	opt3 := "  [R] Reset / Revert to Auto-Detection"
-	for i, r := range opt3 {
+	for i, r := range []rune(opt3) {
 		if startX+2+i < startX+modalW-2 {
 			fg := themeFg
 			if r == '[' || r == ']' || r == 'R' {
@@ -2246,30 +2254,22 @@ func (st *SettingsState) renderToolAction(buf *buffer.Buffer, w, h int, themeBg,
 	}
 
 	opt4 := "  [Esc] Cancel / Back"
-	for i, r := range opt4 {
-		if startX+2+i < startX+modalW-2 {
-			buf.SetRune(startX+2+i, startY+8, r, toColor(0x888888), themeBg, cell.AttrNone)
-		}
-	}
+	drawString(buf, startX+2, startY+8, opt4, toColor(0x888888), themeBg, cell.AttrNone, modalW-4)
 
 	if st.ToolAction.InputMode {
 		inLbl := "Specify Path: "
-		for i, r := range inLbl {
-			buf.SetRune(startX+4+i, startY+10, r, accentFg, themeBg, cell.AttrBold)
-		}
-		inX := startX + 4 + len(inLbl)
-		inW := modalW - 8 - len(inLbl)
-		inVal := st.ToolAction.InputPath + "_"
+		drawString(buf, startX+4, startY+10, inLbl, accentFg, themeBg, cell.AttrBold, modalW-8)
+		inX := startX + 4 + len([]rune(inLbl))
+		inW := modalW - 8 - len([]rune(inLbl))
+		inValRunes := []rune(st.ToolAction.InputPath + "_")
 		for i := 0; i < inW; i++ {
 			r := ' '
-			if i < len(inVal) {
-				r = rune(inVal[i])
+			if i < len(inValRunes) {
+				r = inValRunes[i]
 			}
 			buf.SetRune(inX+i, startY+10, r, selFg, selBg, cell.AttrBold)
 		}
 		hint := "Enter: Save Path | Esc: Cancel"
-		for i, r := range hint {
-			buf.SetRune(startX+4+i, startY+12, r, themeFg, themeBg, cell.AttrNone)
-		}
+		drawString(buf, startX+4, startY+12, hint, themeFg, themeBg, cell.AttrNone, modalW-8)
 	}
 }

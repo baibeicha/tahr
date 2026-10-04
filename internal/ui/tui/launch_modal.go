@@ -652,7 +652,7 @@ func (lm *LaunchConfigModal) Render(buf *buffer.Buffer, screenW, screenH int, th
 
 	// Title
 	title := " Launch & Debug Configurations (.tahr/launch.json) "
-	for i, r := range title {
+	for i, r := range []rune(title) {
 		if startX+3+i < startX+modalW-2 {
 			buf.SetRune(startX+3+i, startY, r, keywordFg, boxBg, cell.AttrBold)
 		}
@@ -668,7 +668,7 @@ func (lm *LaunchConfigModal) Render(buf *buffer.Buffer, screenW, screenH int, th
 func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, modalW, modalH int, boxBg, boxFg, selBg, selFg, accentFg, commentFg cell.Color) {
 	// Top hint without brackets
 	hint := " ↑/↓: Navigate  │  Space: Set Active  │  a: Add  │  e: Edit  │  d: Delete  │  o: Open File  │  F5: Run "
-	for i, r := range hint {
+	for i, r := range []rune(hint) {
 		if startX+2+i < startX+modalW-2 {
 			buf.SetRune(startX+2+i, startY+1, r, commentFg, boxBg, cell.AttrNone)
 		}
@@ -693,7 +693,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 
 	// Left column header
 	leftHeader := " Profiles "
-	for i, r := range leftHeader {
+	for i, r := range []rune(leftHeader) {
 		if startX+2+i < dividerX {
 			buf.SetRune(startX+2+i, contentTop, r, accentFg, boxBg, cell.AttrBold)
 		}
@@ -707,7 +707,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 
 	if cfgCount == 0 {
 		emptyMsg := "No launch profiles"
-		for i, r := range emptyMsg {
+		for i, r := range []rune(emptyMsg) {
 			if startX+2+i < dividerX {
 				buf.SetRune(startX+2+i, contentTop+2, r, commentFg, boxBg, cell.AttrItalic)
 			}
@@ -773,7 +773,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 	// Right column: Details for selected profile
 	rightStartX := dividerX + 2
 	rightHeader := " Configuration Details "
-	for i, r := range rightHeader {
+	for i, r := range []rune(rightHeader) {
 		if rightStartX+i < startX+modalW-2 {
 			buf.SetRune(rightStartX+i, contentTop, r, accentFg, boxBg, cell.AttrBold)
 		}
@@ -804,13 +804,13 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 			if dRowY >= startY+modalH-3 {
 				break
 			}
-			for li, r := range d.lbl {
+			for li, r := range []rune(d.lbl) {
 				if rightStartX+li < startX+modalW-2 {
 					buf.SetRune(rightStartX+li, dRowY, r, commentFg, boxBg, cell.AttrBold)
 				}
 			}
 			valX := rightStartX + 12
-			for vi, r := range d.val {
+			for vi, r := range []rune(d.val) {
 				if valX+vi < startX+modalW-2 {
 					buf.SetRune(valX+vi, dRowY, r, boxFg, boxBg, cell.AttrNone)
 				}
@@ -820,7 +820,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 		// Action buttons at bottom of right column without brackets
 		actionRowY := startY + modalH - 3
 		actions := " Edit (e)   Delete (d)   Open launch.json (o)   Run (F5) "
-		for ai, r := range actions {
+		for ai, r := range []rune(actions) {
 			if rightStartX+ai < startX+modalW-2 {
 				buf.SetRune(rightStartX+ai, actionRowY, r, accentFg, boxBg, cell.AttrBold)
 			}
@@ -843,7 +843,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 			if hRowY >= startY+modalH-3 {
 				break
 			}
-			for li, r := range hLine {
+			for li, r := range []rune(hLine) {
 				if rightStartX+li < startX+modalW-2 {
 					fg := boxFg
 					attr := cell.AttrNone
@@ -865,7 +865,7 @@ func (lm *LaunchConfigModal) renderListView(buf *buffer.Buffer, startX, startY, 
 	if statusText == "" && lm.Config != nil {
 		statusText = fmt.Sprintf("Active: %s  │  Total Configurations: %d", lm.Config.ActiveProfile, len(lm.Config.Configurations))
 	}
-	for i, r := range statusText {
+	for i, r := range []rune(statusText) {
 		if startX+2+i < startX+modalW-2 {
 			buf.SetRune(startX+2+i, statusY, r, accentFg, boxBg, cell.AttrNone)
 		}
@@ -877,7 +877,7 @@ func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, 
 	if lm.Mode == LaunchModeAdd {
 		subTitle = " ADD CONFIGURATION PROFILE "
 	}
-	for i, r := range subTitle {
+	for i, r := range []rune(subTitle) {
 		if startX+3+i < startX+modalW-2 {
 			buf.SetRune(startX+3+i, startY+1, r, accentFg, boxBg, cell.AttrBold)
 		}
@@ -933,7 +933,7 @@ func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, 
 		}
 
 		// Draw label
-		for lx, r := range f.label {
+		for lx, r := range []rune(f.label) {
 			buf.SetRune(startX+3+lx, rowY, r, lblFg, boxBg, cell.AttrBold)
 		}
 
@@ -956,7 +956,7 @@ func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, 
 
 		// Hint
 		if f.hint != "" && isCur {
-			for hx, r := range f.hint {
+			for hx, r := range []rune(f.hint) {
 				if inputStart+hx < startX+modalW-2 {
 					buf.SetRune(inputStart+hx, rowY+1, r, commentFg, boxBg, cell.AttrDim)
 				}
@@ -968,13 +968,13 @@ func (lm *LaunchConfigModal) renderEditView(buf *buffer.Buffer, startX, startY, 
 	bottomY := startY + modalH - 2
 	saveBtn := " Save Profile (Ctrl+S) "
 	cancelBtn := " Cancel (Esc) "
-	for i, r := range saveBtn {
+	for i, r := range []rune(saveBtn) {
 		if startX+3+i < startX+modalW-2 {
 			buf.SetRune(startX+3+i, bottomY, r, accentFg, boxBg, cell.AttrBold)
 		}
 	}
-	cancelX := startX + 3 + len(saveBtn) + 2
-	for i, r := range cancelBtn {
+	cancelX := startX + 3 + len([]rune(saveBtn)) + 2
+	for i, r := range []rune(cancelBtn) {
 		if cancelX+i < startX+modalW-2 {
 			buf.SetRune(cancelX+i, bottomY, r, commentFg, boxBg, cell.AttrNone)
 		}

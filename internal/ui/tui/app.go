@@ -6794,12 +6794,13 @@ func (m *AppModel) View(f *tea.Frame) {
 		}
 	}
 
-	splitLabel := " Split:1 "
+	splitPanes := 1
 	if m.splits != nil {
-		splitLabel = fmt.Sprintf(" Split:%d ", m.splits.TotalPanes())
+		splitPanes = m.splits.TotalPanes()
 	}
+	splitLabel := fmt.Sprintf(" %s ", i18n.T("toolbar.split", splitPanes))
 
-	activeProfName := "No Profile"
+	activeProfName := i18n.T("toolbar.no_profile")
 	if m.launchConfig != nil {
 		if act := m.launchConfig.GetActive(); act != nil && act.Name != "" {
 			activeProfName = act.Name
@@ -6825,10 +6826,10 @@ func (m *AppModel) View(f *tea.Frame) {
 		fg    cell.Color
 		bg    cell.Color
 	}{
-		{"find_files", " Find ", toColor(m.theme.Foreground), btnBg},
+		{"find_files", fmt.Sprintf(" %s ", i18n.T("toolbar.find")), toColor(m.theme.Foreground), btnBg},
 		{"split", splitLabel, toColor(m.theme.Function), btnBg},
-		{"term", " Term ", toColor(m.theme.Constant), btnBg},
-		{"build", " Build ", toColor(m.theme.DiagnosticWarn), btnBg},
+		{"term", fmt.Sprintf(" %s ", i18n.T("toolbar.term")), toColor(m.theme.Constant), btnBg},
+		{"build", fmt.Sprintf(" %s ", i18n.T("toolbar.build")), toColor(m.theme.DiagnosticWarn), btnBg},
 	}
 
 	rightButtons := []struct {
@@ -6838,8 +6839,8 @@ func (m *AppModel) View(f *tea.Frame) {
 		bg    cell.Color
 	}{
 		{"profile_select", fmt.Sprintf(" %s ▼ ", displayProfName), toColor(m.theme.Keyword), btnBg},
-		{"run", " ▶ Run ", toColor(m.theme.String), btnBg},
-		{"hud", " Debug ", toColor(m.theme.DiagnosticError), btnBg},
+		{"run", fmt.Sprintf(" %s ", i18n.T("toolbar.run")), toColor(m.theme.String), btnBg},
+		{"hud", fmt.Sprintf(" %s ", i18n.T("toolbar.debug")), toColor(m.theme.DiagnosticError), btnBg},
 	}
 
 	curX := len([]rune(titlePrefix))
@@ -7560,21 +7561,21 @@ func (m *AppModel) View(f *tea.Frame) {
 	statusBg := toColor(m.theme.StatusBarBg)
 	statusFg := toColor(m.theme.StatusBarFg)
 	sels := doc.Buffer.GetSelections()
-	cursorInfo := "Ln 1, Col 1"
+	cursorInfo := fmt.Sprintf(i18n.T("status.cursor_info"), 1, 1)
 	if len(sels) > 0 {
 		head := sels[0].Head
 		if m.splits != nil && m.splits.TotalPanes() > 1 {
-			cursorInfo = fmt.Sprintf("[%d/%d] Ln %d, Col %d", m.splits.ActiveIndex+1, m.splits.TotalPanes(), head.Line+1, head.Column+1)
+			cursorInfo = fmt.Sprintf(i18n.T("status.cursor_info_split"), m.splits.ActiveIndex+1, m.splits.TotalPanes(), head.Line+1, head.Column+1)
 		} else {
-			cursorInfo = fmt.Sprintf("Ln %d, Col %d", head.Line+1, head.Column+1)
+			cursorInfo = fmt.Sprintf(i18n.T("status.cursor_info"), head.Line+1, head.Column+1)
 		}
 	}
 
-	modeStr := "NORMAL"
+	modeStr := i18n.T("status.mode.normal")
 	if m.settings != nil && m.settings.Current.VimMode && m.vimFSM != nil {
 		modeStr = fmt.Sprintf("VIM [%s]", m.vimFSM.Mode)
 	} else if m.sidebarFocused {
-		modeStr = "EXPLORER"
+		modeStr = i18n.T("status.mode.explorer")
 	}
 	if m.snippetSession != nil && m.snippetSession.Active {
 		cursorInfo += " | " + m.snippetSession.FormatSnippetPrompt()
@@ -7604,9 +7605,9 @@ func (m *AppModel) View(f *tea.Frame) {
 		leftStatus = fmt.Sprintf(" %s", m.statusMessage)
 	}
 
-	lspStatus := "LSP: OFF"
+	lspStatus := i18n.T("status.lsp_off")
 	if m.lspClient != nil {
-		lspStatus = "LSP: ACTIVE"
+		lspStatus = i18n.T("status.lsp_active")
 	}
 	splitTitle := "Single"
 	if m.splits != nil {
@@ -7618,7 +7619,7 @@ func (m *AppModel) View(f *tea.Frame) {
 	}
 	probStatus := ""
 	if m.problemsPanel != nil && (m.problemsPanel.ErrorCount() > 0 || m.problemsPanel.WarningCount() > 0) {
-		probStatus = fmt.Sprintf("%d ✕ %d ⚠ | ", m.problemsPanel.ErrorCount(), m.problemsPanel.WarningCount())
+		probStatus = fmt.Sprintf("%d ✕ %d ▲ | ", m.problemsPanel.ErrorCount(), m.problemsPanel.WarningCount())
 	}
 	rightStatus := fmt.Sprintf("%s%s | %s | %s | UTF-8 ", probStatus, goVer, lspStatus, splitTitle)
 	gap := w - len([]rune(leftStatus)) - len([]rune(rightStatus))
