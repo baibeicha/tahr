@@ -4,15 +4,6 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Productivity code generator for Go developers: struct tags (json, db, yaml, validate), constructor generation (New...), and interface method stubs (impl)",
-  "languages": [
-    {
-      "id": "go",
-      "extensions": [
-        ".go"
-      ],
-      "comment_token": "//"
-    }
-  ],
   "commands": [
     {
       "id": "go-generator.addTags",

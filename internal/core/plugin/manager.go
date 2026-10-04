@@ -61,6 +61,7 @@ type Manager struct {
 	stateFile         string
 	state             PluginState
 	repositories      []PluginRepository
+	workspaceRoot     string
 	installed         map[string]*Manifest
 	languages         map[string]*LanguageConfig // ext -> config
 	host              *WASMHost
@@ -108,6 +109,8 @@ func NewManager(pluginsDir string) (*Manager, error) {
 	if isDefaultDir {
 		m.SeedDefaultPlugins()
 	}
+
+
 	_ = m.Discover()
 	return m, nil
 }
@@ -411,11 +414,47 @@ func (m *Manager) Link(sourceDir string) (*Manifest, error) {
 	return manifest, nil
 }
 
+// CanonicalLanguagePlugins maps file extensions and language IDs to their canonical plugin ID.
+var CanonicalLanguagePlugins = map[string]string{
+	".go":        "tahr-go",
+	"go":         "tahr-go",
+	".py":        "tahr-python",
+	".pyw":       "tahr-python",
+	".pyi":       "tahr-python",
+	"python":     "tahr-python",
+	".rs":        "tahr-rust",
+	"rust":       "tahr-rust",
+	".ts":        "tahr-ts",
+	".tsx":       "tahr-ts",
+	".js":        "tahr-ts",
+	".jsx":       "tahr-ts",
+	".mjs":       "tahr-ts",
+	".cjs":       "tahr-ts",
+	"typescript": "tahr-ts",
+	"javascript": "tahr-ts",
+	".c":         "tahr-clangd",
+	".h":         "tahr-clangd",
+	".cpp":       "tahr-clangd",
+	".cc":        "tahr-clangd",
+	".cxx":       "tahr-clangd",
+	".hpp":       "tahr-clangd",
+	".hxx":       "tahr-clangd",
+	"c":          "tahr-clangd",
+	"cpp":        "tahr-clangd",
+	"c_cpp":      "tahr-clangd",
+}
+
 // GetLanguageConfig returns the configuration associated with file extension.
 func (m *Manager) GetLanguageConfig(ext string) *LanguageConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.languages[ext]
+	normExt := strings.ToLower(ext)
+	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
+		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+			return nil
+		}
+	}
+	return m.languages[normExt]
 }
 
 // InstalledPlugins returns a list of all loaded manifests.
@@ -461,7 +500,13 @@ func (m *Manager) IsEnabled(id string) bool {
 func (m *Manager) IsExtensionActive(ext string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.languages[ext] != nil
+	normExt := strings.ToLower(ext)
+	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
+		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+			return false
+		}
+	}
+	return m.languages[normExt] != nil
 }
 
 // AddLifecycleListener registers a callback invoked when a plugin is enabled or disabled.
@@ -492,7 +537,13 @@ func (m *Manager) rebuildActiveLanguagesLocked() {
 		for i := range inst.Languages {
 			lang := &inst.Languages[i]
 			for _, ext := range lang.Extensions {
-				m.languages[ext] = lang
+				normExt := strings.ToLower(ext)
+				if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
+					if inst.ID != primaryID && m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+						continue
+					}
+				}
+				m.languages[normExt] = lang
 			}
 		}
 	}
@@ -595,8 +646,6 @@ func copyDir(src, dst string) error {
 func (m *Manager) SeedDefaultPlugins() {
 	// 1. Purge legacy auto-seeded stubs from earlier versions (themes and uninstalled languages)
 	legacyStubs := []string{
-		"tahr-python",
-		"tahr-rust",
 		"tahr-markdown",
 		"tahr-theme-dracula",
 		"tahr-theme-nord",
@@ -642,48 +691,85 @@ func (m *Manager) SeedDefaultPlugins() {
 	}
 
 	// 3. Ensure tahr-ru is seeded if available in any candidate dir
-	ruDir := filepath.Join(m.pluginsDir, "tahr-ru")
-	if _, err := os.Stat(filepath.Join(ruDir, "plugin.json")); os.IsNotExist(err) {
-		for _, cd := range m.candidatePluginDirs() {
-			if cd == m.pluginsDir {
-				continue
-			}
-			candRu := filepath.Join(cd, "tahr-ru")
-			if fi, err := os.Stat(filepath.Join(candRu, "plugin.json")); err == nil && !fi.IsDir() {
-				_ = copyDir(candRu, ruDir)
-				break
-			}
-			candArchive := filepath.Join(cd, "tahr-ru.tahr")
-			if fi, err := os.Stat(candArchive); err == nil && !fi.IsDir() {
-				_, _ = UnpackArchive(candArchive, ruDir)
-				break
+	// 3. Ensure standard plugins (tahr-ru, tahr-python, tahr-rust, tahr-ts, tahr-clangd) are seeded if available in any candidate dir
+	autoSeedPlugins := []string{"tahr-ru", "tahr-python", "tahr-rust", "tahr-ts", "tahr-clangd"}
+	for _, pid := range autoSeedPlugins {
+		targetDir := filepath.Join(m.pluginsDir, pid)
+		if _, err := os.Stat(filepath.Join(targetDir, "plugin.json")); os.IsNotExist(err) {
+			for _, cd := range m.candidatePluginDirs() {
+				if cd == m.pluginsDir {
+					continue
+				}
+				candDir := filepath.Join(cd, pid)
+				if fi, err := os.Stat(filepath.Join(candDir, "plugin.json")); err == nil && !fi.IsDir() {
+					_ = copyDir(candDir, targetDir)
+					break
+				}
+				candArchive := filepath.Join(cd, pid+".tahr")
+				if fi, err := os.Stat(candArchive); err == nil && !fi.IsDir() {
+					_, _ = UnpackArchive(candArchive, targetDir)
+					break
+				}
 			}
 		}
-	}
-	if _, err := os.Stat(filepath.Join(ruDir, "plugin.json")); err == nil {
-		if m.state.Enabled != nil {
-			if _, ok := m.state.Enabled["tahr-ru"]; !ok {
-				m.state.Enabled["tahr-ru"] = true
+		if _, err := os.Stat(filepath.Join(targetDir, "plugin.json")); err == nil {
+			if m.state.Enabled != nil {
+				if _, ok := m.state.Enabled[pid]; !ok {
+					m.state.Enabled[pid] = true
+				}
 			}
 		}
 	}
 	_ = m.saveStateLocked()
 }
 
+// SetWorkspaceRoot sets the current active workspace directory for tool and virtualenv discovery.
+func (m *Manager) SetWorkspaceRoot(root string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.workspaceRoot = root
+}
+
+// WorkspaceRoot returns the current active workspace directory.
+func (m *Manager) WorkspaceRoot() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.workspaceRoot
+}
+
+// fileWithExtensions returns file paths with appropriate platform executable extensions.
+func fileWithExtensions(baseDir, toolName string) []string {
+	if toolName == "" || baseDir == "" {
+		return nil
+	}
+	if runtime.GOOS == "windows" {
+		ext := strings.ToLower(filepath.Ext(toolName))
+		if ext == ".exe" || ext == ".cmd" || ext == ".bat" || ext == ".ps1" {
+			return []string{filepath.Join(baseDir, toolName)}
+		}
+		return []string{
+			filepath.Join(baseDir, toolName+".exe"),
+			filepath.Join(baseDir, toolName+".cmd"),
+			filepath.Join(baseDir, toolName+".bat"),
+			filepath.Join(baseDir, toolName),
+		}
+	}
+	return []string{filepath.Join(baseDir, toolName)}
+}
+
 // FindToolPath resolves the absolute or executable path of a tool binary.
-// It checks in order: customPath -> exec.LookPath -> ~/go/bin -> GOPATH/bin -> GOROOT/bin -> known SDK dirs.
+// It checks in order: customPath -> direct LookPath -> workspace venvs -> VIRTUAL_ENV ->
+// npm global -> Python user/system scripts -> GOPATH/GOROOT -> Cargo -> known SDK dirs -> aliases.
 func (m *Manager) FindToolPath(toolName string, customPath string) (string, bool) {
 	if customPath != "" {
 		if fi, err := os.Stat(customPath); err == nil {
 			if !fi.IsDir() {
 				return customPath, true
 			}
-			dirCandidates := []string{
-				filepath.Join(customPath, toolName),
-				filepath.Join(customPath, toolName+".exe"),
-				filepath.Join(customPath, "bin", toolName),
-				filepath.Join(customPath, "bin", toolName+".exe"),
-			}
+			var dirCandidates []string
+			dirCandidates = append(dirCandidates, fileWithExtensions(customPath, toolName)...)
+			dirCandidates = append(dirCandidates, fileWithExtensions(filepath.Join(customPath, "bin"), toolName)...)
+			dirCandidates = append(dirCandidates, fileWithExtensions(filepath.Join(customPath, "Scripts"), toolName)...)
 			for _, dc := range dirCandidates {
 				if dfi, err := os.Stat(dc); err == nil && !dfi.IsDir() {
 					return dc, true
@@ -704,65 +790,349 @@ func (m *Manager) FindToolPath(toolName string, customPath string) (string, bool
 		return p, true
 	}
 
-	// Windows fallback with .exe
-	if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(toolName), ".exe") {
-		if p, err := exec.LookPath(toolName + ".exe"); err == nil {
-			if abs, err := filepath.Abs(p); err == nil {
+	// Windows fallback with standard extensions
+	if runtime.GOOS == "windows" {
+		for _, ext := range []string{".exe", ".cmd", ".bat"} {
+			if !strings.HasSuffix(strings.ToLower(toolName), ext) {
+				if p, err := exec.LookPath(toolName + ext); err == nil {
+					if abs, err := filepath.Abs(p); err == nil {
+						return abs, true
+					}
+					return p, true
+				}
+			}
+		}
+	}
+
+	var candidates []string
+
+	// 2. Workspace & CWD virtual environment detection (.venv, venv, env)
+	var searchRoots []string
+	if m != nil {
+		m.mu.RLock()
+		ws := m.workspaceRoot
+		m.mu.RUnlock()
+		if ws != "" {
+			searchRoots = append(searchRoots, ws)
+		}
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		alreadyAdded := false
+		for _, r := range searchRoots {
+			if r == cwd {
+				alreadyAdded = true
+				break
+			}
+		}
+		if !alreadyAdded {
+			searchRoots = append(searchRoots, cwd)
+		}
+	}
+
+	for _, root := range searchRoots {
+		for _, vName := range []string{".venv", "venv", "env"} {
+			if runtime.GOOS == "windows" {
+				candidates = append(candidates, fileWithExtensions(filepath.Join(root, vName, "Scripts"), toolName)...)
+			} else {
+				candidates = append(candidates, filepath.Join(root, vName, "bin", toolName))
+			}
+		}
+	}
+
+	// 3. VIRTUAL_ENV environment variable
+	if venv := os.Getenv("VIRTUAL_ENV"); venv != "" {
+		if runtime.GOOS == "windows" {
+			candidates = append(candidates, fileWithExtensions(filepath.Join(venv, "Scripts"), toolName)...)
+		} else {
+			candidates = append(candidates, filepath.Join(venv, "bin", toolName))
+		}
+	}
+
+	// 4. User home paths (~/go/bin, ~/.cargo/bin, ~/.npm-global/bin)
+	home, _ := os.UserHomeDir()
+	if home != "" {
+		if runtime.GOOS == "windows" {
+			candidates = append(candidates, fileWithExtensions(filepath.Join(home, "go", "bin"), toolName)...)
+			candidates = append(candidates, fileWithExtensions(filepath.Join(home, ".cargo", "bin"), toolName)...)
+		} else {
+			candidates = append(candidates,
+				filepath.Join(home, "go", "bin", toolName),
+				filepath.Join(home, ".cargo", "bin", toolName),
+				filepath.Join(home, ".npm-global", "bin", toolName),
+				filepath.Join(home, ".local", "bin", toolName),
+			)
+		}
+	}
+
+	// 5. Global Node/npm and Python Scripts on Windows
+	if runtime.GOOS == "windows" {
+		if appdata := os.Getenv("APPDATA"); appdata != "" {
+			candidates = append(candidates, fileWithExtensions(filepath.Join(appdata, "npm"), toolName)...)
+			candidates = append(candidates, fileWithExtensions(filepath.Join(appdata, "Python", "Scripts"), toolName)...)
+		}
+		if localApp := os.Getenv("LOCALAPPDATA"); localApp != "" {
+			pyBase := filepath.Join(localApp, "Programs", "Python")
+			if entries, err := os.ReadDir(pyBase); err == nil {
+				for _, e := range entries {
+					if e.IsDir() {
+						candidates = append(candidates, fileWithExtensions(filepath.Join(pyBase, e.Name(), "Scripts"), toolName)...)
+						candidates = append(candidates, fileWithExtensions(filepath.Join(pyBase, e.Name()), toolName)...)
+					}
+				}
+			}
+		}
+		// Known Python installations on Windows (clean absolute paths)
+		for _, pyRoot := range []string{`D:\Python`, `C:\Python313`, `C:\Python312`, `C:\Python311`, `C:\Python310`, `C:\Python`} {
+			candidates = append(candidates, fileWithExtensions(filepath.Join(pyRoot, "Scripts"), toolName)...)
+			candidates = append(candidates, fileWithExtensions(pyRoot, toolName)...)
+		}
+	}
+
+	// 6. GOPATH & GOROOT
+	if gopath := os.Getenv("GOPATH"); gopath != "" {
+		candidates = append(candidates, fileWithExtensions(filepath.Join(gopath, "bin"), toolName)...)
+	}
+	if goroot := os.Getenv("GOROOT"); goroot != "" {
+		candidates = append(candidates, fileWithExtensions(filepath.Join(goroot, "bin"), toolName)...)
+	}
+
+	// 7. Known SDK installation directories (use clean absolute Windows paths with backslashes)
+	sdkDirs := []string{
+		`D:\go\sdk\go1.26.2\bin`,
+		`C:\Program Files\Go\bin`,
+		`C:\Go\bin`,
+		`C:\Program Files\LLVM\bin`,
+		`D:\LLVM\bin`,
+	}
+	for _, sd := range sdkDirs {
+		candidates = append(candidates, fileWithExtensions(sd, toolName)...)
+	}
+
+	// 8. Search candidate paths
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
+			if abs, err := filepath.Abs(c); err == nil {
 				return abs, true
 			}
+			return c, true
+		}
+	}
+
+	// 9. Tool alias fallback
+	switch toolName {
+	case "pyright-langserver":
+		if p, ok := m.findToolPathWithoutAlias("pyright", customPath); ok {
+			return p, true
+		}
+	case "pyright":
+		if p, ok := m.findToolPathWithoutAlias("pyright-langserver", customPath); ok {
+			return p, true
+		}
+	case "pylsp":
+		if p, ok := m.findToolPathWithoutAlias("python-lsp-server", customPath); ok {
 			return p, true
 		}
 	}
 
-	// 2. User home paths (~/go/bin, ~/.cargo/bin)
-	home, _ := os.UserHomeDir()
+	return "", false
+}
+
+func (m *Manager) findToolPathWithoutAlias(toolName string, customPath string) (string, bool) {
+	if customPath != "" {
+		if fi, err := os.Stat(customPath); err == nil && !fi.IsDir() {
+			return customPath, true
+		}
+	}
+	if p, err := exec.LookPath(toolName); err == nil {
+		return p, true
+	}
+	if runtime.GOOS == "windows" {
+		for _, ext := range []string{".exe", ".cmd", ".bat"} {
+			if p, err := exec.LookPath(toolName + ext); err == nil {
+				return p, true
+			}
+		}
+	}
 	var candidates []string
+	home, _ := os.UserHomeDir()
 	if home != "" {
-		candidates = append(candidates,
-			filepath.Join(home, "go", "bin", toolName),
-			filepath.Join(home, "go", "bin", toolName+".exe"),
-			filepath.Join(home, ".cargo", "bin", toolName),
-			filepath.Join(home, ".cargo", "bin", toolName+".exe"),
-		)
+		candidates = append(candidates, fileWithExtensions(filepath.Join(home, "go", "bin"), toolName)...)
 	}
-
-	// 3. GOPATH & GOROOT
-	if gopath := os.Getenv("GOPATH"); gopath != "" {
-		candidates = append(candidates,
-			filepath.Join(gopath, "bin", toolName),
-			filepath.Join(gopath, "bin", toolName+".exe"),
-		)
+	if runtime.GOOS == "windows" {
+		if appdata := os.Getenv("APPDATA"); appdata != "" {
+			candidates = append(candidates, fileWithExtensions(filepath.Join(appdata, "npm"), toolName)...)
+		}
+		for _, pyRoot := range []string{`D:\Python`, `C:\Python312`, `C:\Python311`, `C:\Python310`} {
+			candidates = append(candidates, fileWithExtensions(filepath.Join(pyRoot, "Scripts"), toolName)...)
+			candidates = append(candidates, fileWithExtensions(pyRoot, toolName)...)
+		}
 	}
-	if goroot := os.Getenv("GOROOT"); goroot != "" {
-		candidates = append(candidates,
-			filepath.Join(goroot, "bin", toolName),
-			filepath.Join(goroot, "bin", toolName+".exe"),
-		)
-	}
-
-	// 4. Known SDK installation directories
-	candidates = append(candidates,
-		filepath.Join("D:", "go", "sdk", "go1.26.2", "bin", toolName),
-		filepath.Join("D:", "go", "sdk", "go1.26.2", "bin", toolName+".exe"),
-		filepath.Join("C:", "Users", "user", "go", "bin", toolName),
-		filepath.Join("C:", "Users", "user", "go", "bin", toolName+".exe"),
-		filepath.Join("C:", "Program Files", "Go", "bin", toolName),
-		filepath.Join("C:", "Program Files", "Go", "bin", toolName+".exe"),
-		filepath.Join("C:", "Go", "bin", toolName),
-		filepath.Join("C:", "Go", "bin", toolName+".exe"),
-		filepath.Join("D:", "Python", toolName),
-		filepath.Join("D:", "Python", toolName+".exe"),
-		filepath.Join("D:", "Python", "Scripts", toolName),
-		filepath.Join("D:", "Python", "Scripts", toolName+".exe"),
-	)
-
 	for _, c := range candidates {
 		if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
 			return c, true
 		}
 	}
-
 	return "", false
+}
+
+// SmartInstallOption represents a scored package manager command alternative.
+type SmartInstallOption struct {
+	Command        string
+	PackageManager string
+	Score          int
+}
+
+// ResolveSmartInstallCommand analyzes rawCmd (which may contain '||' fallbacks)
+// and selects the best, PowerShell-safe, single command that matches the current
+// OS and available package managers on the host machine.
+func ResolveSmartInstallCommand(rawCmd, toolName string, mgr *Manager) (bestCmd string, alternatives []string) {
+	rawCmd = strings.TrimSpace(rawCmd)
+	if rawCmd == "" {
+		return "", nil
+	}
+
+	parts := strings.Split(rawCmd, "||")
+	var candidates []SmartInstallOption
+
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		fields := strings.Fields(p)
+		if len(fields) == 0 {
+			continue
+		}
+		pm := fields[0]
+
+		// 1. OS Compatibility Check
+		switch pm {
+		case "winget", "choco", "scoop":
+			if runtime.GOOS != "windows" {
+				continue
+			}
+		case "brew":
+			if runtime.GOOS == "windows" {
+				continue
+			}
+		case "apt", "apt-get", "dnf", "yum", "pacman":
+			if runtime.GOOS != "linux" {
+				continue
+			}
+		}
+
+		// 2. Package manager availability and adaptation
+		score := 0
+		finalCmd := p
+
+		switch pm {
+		case "pip", "pip3":
+			pipPath := ""
+			if mgr != nil {
+				pipPath, _ = mgr.FindToolPath("pip", "")
+			}
+			if pipPath == "" {
+				pipPath, _ = exec.LookPath("pip")
+			}
+			if pipPath != "" {
+				score = 120 // Highest preference for Python tools
+			} else {
+				// Check if python/python3 is available to run `python -m pip`
+				pyPath := ""
+				if mgr != nil {
+					pyPath, _ = mgr.FindToolPath("python", "")
+					if pyPath == "" {
+						pyPath, _ = mgr.FindToolPath("python3", "")
+					}
+				}
+				if pyPath == "" {
+					pyPath, _ = exec.LookPath("python")
+					if pyPath == "" {
+						pyPath, _ = exec.LookPath("python3")
+					}
+				}
+				if pyPath != "" {
+					score = 115
+					subArgs := strings.Join(fields[1:], " ")
+					finalCmd = "python -m pip " + subArgs
+				} else {
+					score = 10
+				}
+			}
+		case "npm":
+			npmPath := ""
+			if mgr != nil {
+				npmPath, _ = mgr.FindToolPath("npm", "")
+			}
+			if npmPath == "" {
+				npmPath, _ = exec.LookPath("npm")
+			}
+			if npmPath != "" {
+				score = 100
+			} else {
+				score = 10
+			}
+		case "go":
+			goPath := ""
+			if mgr != nil {
+				goPath, _ = mgr.FindToolPath("go", "")
+			}
+			if goPath == "" {
+				goPath, _ = exec.LookPath("go")
+			}
+			if goPath != "" {
+				score = 100
+			} else {
+				score = 10
+			}
+		case "cargo", "rustup":
+			cPath := ""
+			if mgr != nil {
+				cPath, _ = mgr.FindToolPath(pm, "")
+			}
+			if cPath == "" {
+				cPath, _ = exec.LookPath(pm)
+			}
+			if cPath != "" {
+				score = 100
+			} else {
+				score = 10
+			}
+		case "winget":
+			if _, err := exec.LookPath("winget"); err == nil {
+				score = 100
+			} else {
+				score = 20
+			}
+		default:
+			if _, err := exec.LookPath(pm); err == nil {
+				score = 80
+			} else {
+				score = 10
+			}
+		}
+
+		candidates = append(candidates, SmartInstallOption{
+			Command:        finalCmd,
+			PackageManager: pm,
+			Score:          score,
+		})
+	}
+
+	if len(candidates) == 0 {
+		first := strings.TrimSpace(parts[0])
+		return first, nil
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return candidates[i].Score > candidates[j].Score
+	})
+
+	bestCmd = candidates[0].Command
+	for i := 1; i < len(candidates); i++ {
+		alternatives = append(alternatives, candidates[i].Command)
+	}
+	return bestCmd, alternatives
 }
 
 // InstallDeclarative writes a declarative plugin manifest to pluginsDir/<id>/plugin.json and registers it.
@@ -823,13 +1193,19 @@ func (m *Manager) InstalledThemes() map[string]ThemeConfig {
 func (m *Manager) GetLSPForExt(ext string) *LSPConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	normExt := strings.ToLower(ext)
+	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
+		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+			return nil
+		}
+	}
 	for _, p := range m.installed {
 		if !m.isEnabledLocked(p.ID) {
 			continue
 		}
 		for _, l := range p.Languages {
 			for _, e := range l.Extensions {
-				if e == ext && p.LSP != nil {
+				if strings.ToLower(e) == normExt && p.LSP != nil {
 					return p.LSP
 				}
 			}
@@ -842,13 +1218,19 @@ func (m *Manager) GetLSPForExt(ext string) *LSPConfig {
 func (m *Manager) GetDAPForExt(ext string) *DAPConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+	normExt := strings.ToLower(ext)
+	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
+		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+			return nil
+		}
+	}
 	for _, p := range m.installed {
 		if !m.isEnabledLocked(p.ID) {
 			continue
 		}
 		for _, l := range p.Languages {
 			for _, e := range l.Extensions {
-				if e == ext && p.DAP != nil {
+				if strings.ToLower(e) == normExt && p.DAP != nil {
 					return p.DAP
 				}
 			}
@@ -856,6 +1238,7 @@ func (m *Manager) GetDAPForExt(ext string) *DAPConfig {
 	}
 	return nil
 }
+
 
 // DefaultRepositories returns the initial set of marketplace sources.
 func DefaultRepositories() []PluginRepository {
@@ -1131,12 +1514,24 @@ func (m *Manager) GetSupportedLaunchTypes() []string {
 		}
 		for _, lang := range inst.Languages {
 			if lang.ID != "" {
-				typeSet[strings.ToLower(lang.ID)] = true
+				lID := strings.ToLower(lang.ID)
+				if primaryID, ok := CanonicalLanguagePlugins[lID]; ok {
+					if inst.ID != primaryID && m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+						continue
+					}
+				}
+				typeSet[lID] = true
 			}
 		}
 		for _, tmpl := range inst.LaunchTemplates {
 			if tmpl.Type != "" {
-				typeSet[strings.ToLower(tmpl.Type)] = true
+				tID := strings.ToLower(tmpl.Type)
+				if primaryID, ok := CanonicalLanguagePlugins[tID]; ok {
+					if inst.ID != primaryID && m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+						continue
+					}
+				}
+				typeSet[tID] = true
 			}
 		}
 	}

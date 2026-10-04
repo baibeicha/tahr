@@ -47,7 +47,7 @@
       "setup.py",
       ".git"
     ],
-    "install_cmd": "npm install -g pyright || pip install pyright"
+    "install_cmd": "pip install pyright || npm install -g pyright"
   },
   "dap": {
     "adapter_name": "debugpy",

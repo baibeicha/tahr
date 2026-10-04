@@ -8,6 +8,7 @@ import (
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"tahr/internal/core"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/launch"
 	"tahr/internal/core/plugin"
 	"tahr/internal/ui"
@@ -85,6 +86,7 @@ func TestLaunchModal_ShellCommandLabel(t *testing.T) {
 		t.Fatalf("temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
+	i18n.SetLocale("en")
 
 	_ = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module testapp\n"), 0644)
 	cfg, _ := launch.Load(tmpDir)

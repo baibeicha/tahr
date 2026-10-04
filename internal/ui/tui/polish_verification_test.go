@@ -8,6 +8,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"github.com/baibeicha/goatui/pkg/tea"
 	"tahr/internal/core"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/plugin"
 )
 
@@ -119,7 +120,8 @@ func TestTabSizeDynamic(t *testing.T) {
 		t.Fatal("expected active document")
 	}
 
-	// Set TabSize to 2 spaces
+	// Set TabSize to 2 spaces with default settings
+	app.settings.Current = DefaultSettings()
 	app.settings.Current.TabSize = 2
 	app.settings.Current.UseSpaces = true
 	app.applyCurrentSettings()
@@ -186,6 +188,7 @@ func TestMultiRepositoryLiveSettings(t *testing.T) {
 		t.Fatalf("NewManager failed: %v", err)
 	}
 	defer pm.Close()
+	i18n.SetLocale("en")
 
 	eng := core.NewEngine()
 	app := NewAppModel(eng)

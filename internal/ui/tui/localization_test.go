@@ -54,6 +54,7 @@ func TestTooltip_RussianAndEnglish(t *testing.T) {
 
 	// 2. In Russian
 	i18n.SetLocale("ru")
+	defer i18n.SetLocale("en")
 	app.updateTooltip(0, 0)
 	if app.tooltipText != "Главное меню" {
 		t.Errorf("expected 'Главное меню', got %q", app.tooltipText)

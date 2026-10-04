@@ -362,6 +362,7 @@ type AppModel struct {
 	// LSP and Plugins
 	lspClient     *lsp.Client
 	lspDocVersion int
+	lspCurrentCmd string
 	pluginMgr     *plugin.Manager
 
 	// DAP (Debug Adapter Protocol)
@@ -878,7 +879,21 @@ func (m *AppModel) openLaunchConfigModal() {
 }
 
 func (m *AppModel) runProfile(p launch.Profile) {
+	pType := strings.ToLower(p.Type)
+	if m.pluginMgr != nil {
+		if primaryPlugin, ok := plugin.CanonicalLanguagePlugins[pType]; ok {
+			if m.pluginMgr.Installed()[primaryPlugin] != nil && !m.pluginMgr.IsEnabled(primaryPlugin) {
+				m.statusMessage = fmt.Sprintf("Cannot run: plugin '%s' is disabled", primaryPlugin)
+				if m.toasts != nil {
+					m.toasts.Error("RUN", fmt.Sprintf("Plugin '%s' is disabled", primaryPlugin))
+				}
+				return
+			}
+		}
+	}
+
 	doc := m.eng.ActiveDocument()
+
 	if doc != nil && doc.Buffer.IsModified() {
 		target := doc.FilePath
 		if target == "" {
@@ -991,6 +1006,19 @@ func (m *AppModel) runProfile(p launch.Profile) {
 }
 
 func (m *AppModel) debugProfile(p launch.Profile) {
+	pType := strings.ToLower(p.Type)
+	if m.pluginMgr != nil {
+		if primaryPlugin, ok := plugin.CanonicalLanguagePlugins[pType]; ok {
+			if m.pluginMgr.Installed()[primaryPlugin] != nil && !m.pluginMgr.IsEnabled(primaryPlugin) {
+				m.statusMessage = fmt.Sprintf("Cannot debug: plugin '%s' is disabled", primaryPlugin)
+				if m.toasts != nil {
+					m.toasts.Error("DEBUG", fmt.Sprintf("Plugin '%s' is disabled", primaryPlugin))
+				}
+				return
+			}
+		}
+	}
+
 	doc := m.eng.ActiveDocument()
 	if doc != nil && doc.Buffer.IsModified() {
 		target := doc.FilePath
@@ -999,6 +1027,7 @@ func (m *AppModel) debugProfile(p launch.Profile) {
 		}
 		_ = m.eng.Dispatch(core.Command{ID: core.CmdFileSave, Args: target})
 	}
+
 
 	if m.dapSession != nil {
 		target := p.Target
@@ -1451,6 +1480,10 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 
 	// 1. Check if an active enabled plugin defines an LSP for this extension
 	if m.pluginMgr != nil {
+		ws := m.workspaceDir
+		m.pluginMgr.SetWorkspaceRoot(ws)
+
+
 		if lspCfg := m.pluginMgr.GetLSPForExt(ext); lspCfg != nil && lspCfg.Command != "" {
 			toolName = lspCfg.Command
 			pluginName = lspCfg.ServerName
@@ -1474,7 +1507,7 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 		case ".py":
 			toolName = "pyright-langserver"
 			pluginName = "Python Language Support"
-			installCmd = "pip install pyright"
+			installCmd = "pip install pyright || npm install -g pyright"
 			lspArgs = []string{"--stdio"}
 		case ".rs":
 			toolName = "rust-analyzer"
@@ -1536,31 +1569,39 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 	// 5. Prompt user if tool is missing
 	if lspCmd == "" && toolName != "" {
 		if m.toolPrompt != nil && !m.toolPrompt.Open {
+			bestInstallCmd, fallbackCmds := plugin.ResolveSmartInstallCommand(installCmd, toolName, m.pluginMgr)
 			m.toolPrompt.OpenForTool(
 				toolName,
 				pluginName,
-				installCmd,
+				bestInstallCmd,
 				ext,
 				func() {
 					if m.terminal != nil {
 						m.terminal.Open = true
-						m.terminal.Execute(installCmd)
+						m.terminal.Execute(bestInstallCmd)
 					}
-					parts := strings.Fields(installCmd)
-					if len(parts) > 0 {
-						bin := parts[0]
-						if m.pluginMgr != nil {
-							if found, ok := m.pluginMgr.FindToolPath(bin, ""); ok {
-								bin = found
+					go func() {
+						runCmd := func(cmdStr string) error {
+							parts := strings.Fields(cmdStr)
+							if len(parts) == 0 {
+								return fmt.Errorf("empty command")
 							}
+							bin := parts[0]
+							if m.pluginMgr != nil {
+								if found, ok := m.pluginMgr.FindToolPath(bin, ""); ok {
+									bin = found
+								}
+							}
+							return exec.Command(bin, parts[1:]...).Run()
 						}
-						go func() {
-							_ = exec.Command(bin, parts[1:]...).Run()
-							time.Sleep(500 * time.Millisecond)
-							m.EnsureLSPForFile(filePath)
-						}()
-					}
-					m.toasts.Info("INSTALL", fmt.Sprintf("Installing %s via %s", toolName, installCmd))
+						err := runCmd(bestInstallCmd)
+						if err != nil && len(fallbackCmds) > 0 {
+							_ = runCmd(fallbackCmds[0])
+						}
+						time.Sleep(500 * time.Millisecond)
+						m.EnsureLSPForFile(filePath)
+					}()
+					m.toasts.Info("INSTALL", fmt.Sprintf("Installing %s via %s", toolName, bestInstallCmd))
 				},
 				func(cp string) {
 					if m.settings != nil {
@@ -1589,10 +1630,15 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 		return
 	}
 
-	if m.lspClient == nil {
+	if m.lspClient == nil || m.lspCurrentCmd != lspCmd {
+		if m.lspClient != nil {
+			_ = m.lspClient.Close()
+			m.lspClient = nil
+		}
 		client, err := lsp.StartClient(lspCmd, lspArgs, m)
 		if err == nil {
 			m.lspClient = client
+			m.lspCurrentCmd = lspCmd
 			rootURI := "file:///" + filepath.ToSlash(m.workspaceDir)
 			_ = client.Initialize(rootURI)
 		}
@@ -1712,9 +1758,18 @@ func (m *AppModel) extractCompletionSymbols() []string {
 		ext = strings.ToLower(filepath.Ext(doc.FilePath))
 	}
 
-	// 1. Language standard library and built-ins
+	// 1. In plain text mode or when the language plugin is disabled:
+	// ONLY provide active buffer words (zero language-specific builtins, keywords, or stdlib).
+	if m.pluginMgr != nil && (ext == "" || !m.pluginMgr.IsExtensionActive(ext)) {
+		for _, w := range m.extractBufferWords() {
+			add(w)
+		}
+		return symbols
+	}
+
+	// 2. Language standard library and built-ins (only when language plugin is active)
 	switch ext {
-	case ".go", "":
+	case ".go":
 		goBuiltins := []string{
 			"fmt.Println", "fmt.Printf", "fmt.Sprintf", "fmt.Errorf",
 			"os.Open", "os.Create", "os.ReadFile", "os.WriteFile", "os.Stat", "os.MkdirAll", "os.Exit",
@@ -1748,10 +1803,11 @@ func (m *AppModel) extractCompletionSymbols() []string {
 		}
 	}
 
-	// 2. Active buffer words
+	// 3. Active buffer words
 	for _, w := range m.extractBufferWords() {
 		add(w)
 	}
+
 
 	// 3. Scan declarations from other project files
 	for i, relPath := range m.allProjectFiles {
@@ -1910,6 +1966,26 @@ func normalizeURI(u string) string {
 	return strings.ToLower(cleaned)
 }
 
+// cleanDiagnosticMessage sanitizes diagnostic strings by removing \r, taking the first line before \n,
+// and stripping non-printable control characters to prevent terminal scroll corruption.
+func cleanDiagnosticMessage(msg string) string {
+	msg = strings.ReplaceAll(msg, "\r\n", "\n")
+	msg = strings.ReplaceAll(msg, "\r", "\n")
+	if idx := strings.Index(msg, "\n"); idx != -1 {
+		msg = msg[:idx]
+	}
+	msg = strings.TrimSpace(msg)
+	var sb strings.Builder
+	for _, r := range msg {
+		if r < 32 || r == 127 || (r >= 0x80 && r <= 0x9f) {
+			sb.WriteRune(' ')
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+	return strings.Join(strings.Fields(sb.String()), " ")
+}
+
 // OnDiagnostics receives asynchronous diagnostic reports from the LSP client.
 func (m *AppModel) OnDiagnostics(uri string, diags []lsp.Diagnostic) {
 	normIncoming := normalizeURI(uri)
@@ -1924,7 +2000,7 @@ func (m *AppModel) OnDiagnostics(uri string, diags []lsp.Diagnostic) {
 	fileDiagDetails := make(map[int][]lsp.Diagnostic)
 	for _, d := range diags {
 		line := d.Range.Start.Line
-		fileDiags[line] = d.Message
+		fileDiags[line] = cleanDiagnosticMessage(d.Message)
 		fileDiagDetails[line] = append(fileDiagDetails[line], d)
 	}
 
@@ -2020,13 +2096,13 @@ func (m *AppModel) getDiagnosticAtCursor() (string, bool) {
 	if m.docDiagnostics != nil {
 		if fileMap, ok := m.docDiagnostics[normDoc]; ok {
 			if msg, ok2 := fileMap[cursorLine]; ok2 {
-				return msg, true
+				return cleanDiagnosticMessage(msg), true
 			}
 		}
 	}
 
 	if msg, ok := m.diagnostics[cursorLine]; ok {
-		return msg, true
+		return cleanDiagnosticMessage(msg), true
 	}
 	return "", false
 }
@@ -5328,6 +5404,76 @@ func (m *AppModel) updateTooltip(x, y int) {
 	m.tooltipText = ""
 }
 
+// getToolchainLabel returns the language or toolchain label for the given document.
+func (m *AppModel) getToolchainLabel(doc *core.Document) string {
+	if doc == nil || doc.FilePath == "" {
+		return "Plain Text"
+	}
+
+	ext := strings.ToLower(filepath.Ext(doc.FilePath))
+	if m.pluginMgr != nil && !m.pluginMgr.IsExtensionActive(ext) {
+		return "Plain Text"
+	}
+
+	switch ext {
+	case ".go":
+		if m.sdkManager != nil {
+			return m.sdkManager.GoVersionShort()
+		}
+		return "Go"
+	case ".py", ".pyw", ".pyi":
+		ws := m.workspaceDir
+		hasVenv := false
+
+		if ws != "" {
+			for _, vName := range []string{".venv", "venv", "env"} {
+				if fi, err := os.Stat(filepath.Join(ws, vName)); err == nil && fi.IsDir() {
+					hasVenv = true
+					break
+				}
+			}
+		}
+		if !hasVenv && os.Getenv("VIRTUAL_ENV") != "" {
+			hasVenv = true
+		}
+		if hasVenv {
+			return "Python (.venv)"
+		}
+		return "Python"
+	case ".rs":
+		return "Rust"
+	case ".ts", ".tsx":
+		return "TypeScript"
+	case ".js", ".jsx", ".mjs", ".cjs":
+		return "JavaScript"
+	case ".c", ".h":
+		return "C"
+	case ".cpp", ".cc", ".cxx", ".hpp", ".hxx":
+		return "C++"
+	case ".json", ".jsonc":
+		return "JSON"
+	case ".yaml", ".yml":
+		return "YAML"
+	case ".toml":
+		return "TOML"
+	case ".md", ".markdown":
+		return "Markdown"
+	case ".sql":
+		return "SQL"
+	case ".proto":
+		return "Protobuf"
+	case ".log":
+		return "Log"
+	case ".env":
+		return "Env"
+	default:
+		if ext != "" {
+			return strings.ToUpper(strings.TrimPrefix(ext, "."))
+		}
+		return "Plain Text"
+	}
+}
+
 func splitModeTitle(sm *SplitManager) string {
 	if sm == nil {
 		return i18n.T("split.mode_single")
@@ -5545,17 +5691,35 @@ func (m *AppModel) checkHoverDocTrigger(now time.Time) {
 
 	// 2. Fallback: Local AST / comments or Image preview
 	if !foundLSP {
-		sig, docs, thumb, src := ExtractLocalSymbolDocumentation(doc, word, m.workspaceDir)
-		if sig != "" || len(docs) > 0 || thumb != nil {
-			m.hoverDoc.Signature = sig
-			m.hoverDoc.DocLines = docs
-			m.hoverDoc.Thumbnail = thumb
-			m.hoverDoc.Source = src
+		ext := strings.ToLower(filepath.Ext(doc.FilePath))
+		isLanguageInactive := ext != "" && m.pluginMgr != nil && !m.pluginMgr.IsExtensionActive(ext)
+		if !isLanguageInactive {
+			sig, docs, thumb, src := ExtractLocalSymbolDocumentation(doc, word, m.workspaceDir)
+			if sig != "" || len(docs) > 0 || thumb != nil {
+				m.hoverDoc.Signature = sig
+				m.hoverDoc.DocLines = docs
+				m.hoverDoc.Thumbnail = thumb
+				m.hoverDoc.Source = src
+			} else {
+				m.hoverDoc.Dismiss()
+				return
+			}
 		} else {
-			m.hoverDoc.Dismiss()
-			return
+			// Plain text or disabled language plugin: only image previews are supported
+			sig, docs, thumb, src := ExtractLocalSymbolDocumentation(doc, word, m.workspaceDir)
+			if thumb != nil {
+				m.hoverDoc.Signature = sig
+				m.hoverDoc.DocLines = docs
+				m.hoverDoc.Thumbnail = thumb
+				m.hoverDoc.Source = src
+			} else {
+				m.hoverDoc.Dismiss()
+				return
+			}
 		}
 	}
+
+
 
 	m.hoverDoc.Open = true
 	m.hoverDoc.TriggerTime = time.Time{}
@@ -6435,13 +6599,12 @@ func (m *AppModel) triggerCompletionPopup() {
 		m.popupItems = symbols
 		m.popupDoc = "Project & standard library completions"
 	} else {
-		m.popupItems = []string{
-			"func", "return", "package", "import", "type", "struct", "interface",
-			"if", "else", "switch", "case", "default", "for", "range", "nil", "true", "false",
-		}
-		m.popupDoc = "Language keywords"
+		m.popupVisible = false
+		m.popupItems = nil
+		return
 	}
 }
+
 
 // wordPrefixUnderCursor returns the identifier prefix immediately preceding the active cursor.
 func (m *AppModel) wordPrefixUnderCursor() string {
@@ -7678,9 +7841,9 @@ func (m *AppModel) View(f *tea.Frame) {
 	}
 	leftStatus := fmt.Sprintf(" %s |%s %s | %s", modeStr, gitBadge, filename, cursorInfo)
 	if diagMsg, ok := m.getDiagnosticAtCursor(); ok && m.statusMessage == "" {
-		leftStatus = fmt.Sprintf("%s | [ERR] %s", leftStatus, diagMsg)
+		leftStatus = fmt.Sprintf("%s | [ERR] %s", leftStatus, cleanDiagnosticMessage(diagMsg))
 	} else if m.statusMessage != "" {
-		leftStatus = fmt.Sprintf(" %s", m.statusMessage)
+		leftStatus = fmt.Sprintf(" %s", cleanDiagnosticMessage(m.statusMessage))
 	}
 
 	lspStatus := i18n.T("status.lsp_off")
@@ -7688,15 +7851,13 @@ func (m *AppModel) View(f *tea.Frame) {
 		lspStatus = i18n.T("status.lsp_active")
 	}
 	splitTitle := splitModeTitle(m.splits)
-	goVer := "Go"
-	if m.sdkManager != nil {
-		goVer = m.sdkManager.GoVersionShort()
-	}
+	langTitle := m.getToolchainLabel(doc)
 	probStatus := ""
 	if m.problemsPanel != nil && (m.problemsPanel.ErrorCount() > 0 || m.problemsPanel.WarningCount() > 0) {
 		probStatus = fmt.Sprintf("%d ✕ %d ▲ | ", m.problemsPanel.ErrorCount(), m.problemsPanel.WarningCount())
 	}
-	rightStatus := fmt.Sprintf("%s%s | %s | %s | UTF-8 ", probStatus, goVer, lspStatus, splitTitle)
+	rightStatus := fmt.Sprintf("%s%s | %s | %s | UTF-8 ", probStatus, langTitle, lspStatus, splitTitle)
+
 	gap := w - len([]rune(leftStatus)) - len([]rune(rightStatus))
 	if gap < 0 {
 		gap = 0
@@ -7708,6 +7869,9 @@ func (m *AppModel) View(f *tea.Frame) {
 		ch := ' '
 		if x < len(statusRunes) {
 			ch = statusRunes[x]
+		}
+		if ch < 32 || ch == 127 || (ch >= 0x80 && ch <= 0x9f) {
+			ch = ' '
 		}
 		buf.SetRune(x, statusBarY, ch, statusFg, statusBg, cell.AttrNone)
 	}

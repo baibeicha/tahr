@@ -16,6 +16,7 @@ import (
 )
 
 func TestSplashScreen_RenderingAndSkip(t *testing.T) {
+	i18n.SetLocale("en")
 	splash := NewSplashScreenState()
 	if !splash.Active || splash.Done {
 		t.Fatalf("Expected splash active and not done on initialization")
@@ -69,6 +70,7 @@ func TestSplashScreen_RenderingAndSkip(t *testing.T) {
 }
 
 func TestCrashRecoveryDialog_NoBracketsAndKeyHandling(t *testing.T) {
+	i18n.SetLocale("en")
 	dlg := NewCrashRecoveryDialog()
 	dlg.Open = true
 	dlg.Payload = &crash.CrashReportPayload{
@@ -159,6 +161,7 @@ func TestCrashRecoveryDialog_NoBracketsAndKeyHandling(t *testing.T) {
 }
 
 func TestBugReportModal_NoBracketsAndScreenshotValidation(t *testing.T) {
+	i18n.SetLocale("en")
 	modal := NewBugReportModal()
 	modal.OpenModal("0.1.0-alpha", []string{"go", "git"})
 

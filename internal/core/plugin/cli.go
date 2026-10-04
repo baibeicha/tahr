@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // RunCLI handles 'tahr plugin' subcommands.
@@ -125,6 +126,48 @@ func RunCLI(args []string) error {
 		}
 		return nil
 
+	case "enable":
+		if len(subargs) < 1 {
+			return fmt.Errorf("usage: tahr plugin enable <plugin-id>")
+		}
+		mgr, err := NewManager("")
+		if err != nil {
+			return err
+		}
+		defer mgr.Close()
+		targetID := subargs[0]
+		if !strings.HasPrefix(targetID, "tahr-") && mgr.Installed()[targetID] == nil {
+			if mgr.Installed()["tahr-"+targetID] != nil {
+				targetID = "tahr-" + targetID
+			}
+		}
+		if err := mgr.EnablePlugin(targetID); err != nil {
+			return fmt.Errorf("failed to enable plugin %s: %w", targetID, err)
+		}
+		fmt.Printf("Plugin enabled: %s\n", targetID)
+		return nil
+
+	case "disable":
+		if len(subargs) < 1 {
+			return fmt.Errorf("usage: tahr plugin disable <plugin-id>")
+		}
+		mgr, err := NewManager("")
+		if err != nil {
+			return err
+		}
+		defer mgr.Close()
+		targetID := subargs[0]
+		if !strings.HasPrefix(targetID, "tahr-") && mgr.Installed()[targetID] == nil {
+			if mgr.Installed()["tahr-"+targetID] != nil {
+				targetID = "tahr-" + targetID
+			}
+		}
+		if err := mgr.DisablePlugin(targetID); err != nil {
+			return fmt.Errorf("failed to disable plugin %s: %w", targetID, err)
+		}
+		fmt.Printf("Plugin disabled: %s\n", targetID)
+		return nil
+
 	case "help", "--help", "-h":
 		PrintUsage()
 		return nil
@@ -134,6 +177,7 @@ func RunCLI(args []string) error {
 		return fmt.Errorf("unknown plugin command: %s", subcmd)
 	}
 }
+
 
 // InitPlugin scaffolds a new plugin project.
 func InitPlugin(name, lang string) error {
@@ -203,4 +247,7 @@ func PrintUsage() {
 	fmt.Println("  install <archive.tahr>    Install a plugin package")
 	fmt.Println("  link <dir>                Link a development directory for hot-reload")
 	fmt.Println("  list                      List all installed plugins")
+	fmt.Println("  enable <plugin-id>        Enable an installed plugin")
+	fmt.Println("  disable <plugin-id>       Disable an installed plugin")
 }
+

@@ -392,3 +392,111 @@ func TestApp_DisabledLanguagePlugin_SuppressesLSPAndRendersPlainText(t *testing.
 	pane.Bounds = buffer.NewRect(0, 1, 80, 22)
 	app.renderPane(buf, pane, doc, true, false)
 }
+
+func TestDisabledLanguagePlugin_UniversalRule(t *testing.T) {
+	tempConfigDir := t.TempDir()
+	origConfigDir := os.Getenv("TAHR_CONFIG_DIR")
+	defer func() {
+		_ = os.Setenv("TAHR_CONFIG_DIR", origConfigDir)
+	}()
+	_ = os.Setenv("TAHR_CONFIG_DIR", tempConfigDir)
+
+	mgr, err := plugin.NewManager(tempConfigDir)
+	if err != nil {
+		t.Fatalf("failed to create manager: %v", err)
+	}
+	defer mgr.Close()
+
+	// Install Go and Python plugins declaratively
+	goManifest := plugin.Manifest{
+		ID:   "tahr-go",
+		Name: "Go Language Support",
+		Languages: []plugin.LanguageConfig{
+			{ID: "go", Extensions: []string{".go"}},
+		},
+		LSP: &plugin.LSPConfig{ServerName: "gopls", Command: "gopls"},
+	}
+	pyManifest := plugin.Manifest{
+		ID:   "tahr-python",
+		Name: "Python Language Support",
+		Languages: []plugin.LanguageConfig{
+			{ID: "python", Extensions: []string{".py"}},
+		},
+		LSP: &plugin.LSPConfig{ServerName: "pyright", Command: "pyright-langserver"},
+	}
+	_, _ = mgr.InstallDeclarative(goManifest)
+	_, _ = mgr.InstallDeclarative(pyManifest)
+
+	eng := core.NewEngine()
+	app := NewAppModel(eng)
+	app.SetPluginManager(mgr)
+
+	// Create test files
+	goFile := filepath.Join(tempConfigDir, "main.go")
+	_ = os.WriteFile(goFile, []byte("hello world example test\n"), 0644)
+	docGo, _ := eng.Open(goFile)
+
+
+	// Initially enabled:
+	if !mgr.IsExtensionActive(".go") {
+		t.Fatalf("expected .go to be active initially")
+	}
+
+	// Disable Go plugin
+	if err := mgr.DisablePlugin("tahr-go"); err != nil {
+		t.Fatalf("failed to disable tahr-go: %v", err)
+	}
+
+	// Verify manager status
+	if mgr.IsExtensionActive(".go") {
+		t.Errorf("expected .go to be inactive after disabling tahr-go")
+	}
+	if mgr.GetLanguageConfig(".go") != nil {
+		t.Errorf("expected nil LanguageConfig for .go")
+	}
+	if mgr.GetLSPForExt(".go") != nil {
+		t.Errorf("expected nil LSP for .go")
+	}
+	if mgr.GetDAPForExt(".go") != nil {
+		t.Errorf("expected nil DAP for .go")
+	}
+
+	// Ensure LSP does not start
+	app.EnsureLSPForFile(goFile)
+	if app.lspClient != nil {
+		t.Errorf("expected no LSP client for disabled language")
+	}
+
+	// Completions should not have Go keywords
+	symbols := app.extractCompletionSymbols()
+	for _, s := range symbols {
+		if s == "fmt.Println" || s == "func" {
+			t.Errorf("unexpected Go symbol in plain text completion: %s", s)
+		}
+	}
+
+	// Rendering pane should have NO spans (plain text)
+	buf := buffer.NewBuffer(80, 24)
+	app.width = 80
+	app.height = 24
+	pane := app.splits.ActivePane()
+	pane.Bounds = buffer.NewRect(0, 1, 80, 22)
+	app.renderPane(buf, pane, docGo, true, false)
+
+	// Verify rendering full view without panic
+	frame := &tea.Frame{Buffer: buf}
+	app.View(frame)
+
+
+
+	// Re-enable and verify it returns
+	if err := mgr.EnablePlugin("tahr-go"); err != nil {
+		t.Fatalf("failed to enable tahr-go: %v", err)
+	}
+	if !mgr.IsExtensionActive(".go") {
+		t.Errorf("expected .go to be active after enabling")
+	}
+}
+
+
+

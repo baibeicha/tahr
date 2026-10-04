@@ -1882,11 +1882,13 @@ func (st *SettingsState) openToolActionForField(f Field) {
 		resolvedPath, ready = st.pluginMgr.FindToolPath(cmd, custom)
 	}
 
+	bestCmd, _ := plugin.ResolveSmartInstallCommand(installCmd, cmd, st.pluginMgr)
+
 	st.ToolAction = ToolActionState{
 		Open:        true,
 		ToolName:    cmd,
 		PluginName:  pluginName,
-		InstallCmd:  installCmd,
+		InstallCmd:  bestCmd,
 		CurrentPath: resolvedPath,
 		Ready:       ready,
 		InputMode:   false,
@@ -1898,34 +1900,45 @@ func (st *SettingsState) triggerToolInstall() {
 	if st.ToolAction.InstallCmd == "" {
 		return
 	}
-	cmdStr := st.ToolAction.InstallCmd
+	rawCmd := st.ToolAction.InstallCmd
 	toolName := st.ToolAction.ToolName
+
+	bestCmd, fallbacks := plugin.ResolveSmartInstallCommand(rawCmd, toolName, st.pluginMgr)
 	if st.OnToolInstallStarted != nil {
-		st.OnToolInstallStarted(toolName, cmdStr)
+		st.OnToolInstallStarted(toolName, bestCmd)
 	}
 	go func() {
-		parts := strings.Fields(cmdStr)
-		if len(parts) == 0 {
-			return
-		}
-		bin := parts[0]
-		if bin == "go" && st.Current.GoSDKPath != "" {
-			bin = st.Current.GoSDKPath
-		} else if st.pluginMgr != nil {
-			if found, ok := st.pluginMgr.FindToolPath(bin, ""); ok {
-				bin = found
+		executeCmd := func(cmdStr string) (bool, string) {
+			parts := strings.Fields(cmdStr)
+			if len(parts) == 0 {
+				return false, "empty command"
 			}
-		}
-		cmd := exec.Command(bin, parts[1:]...)
-		out, err := cmd.CombinedOutput()
-		success := (err == nil)
-		errMsg := ""
-		if err != nil {
-			errMsg = strings.TrimSpace(string(out))
-			if errMsg == "" {
-				errMsg = err.Error()
+			bin := parts[0]
+			if bin == "go" && st.Current.GoSDKPath != "" {
+				bin = st.Current.GoSDKPath
+			} else if st.pluginMgr != nil {
+				if found, ok := st.pluginMgr.FindToolPath(bin, ""); ok {
+					bin = found
+				}
 			}
-		} else {
+			cmd := exec.Command(bin, parts[1:]...)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				errMsg := strings.TrimSpace(string(out))
+				if errMsg == "" {
+					errMsg = err.Error()
+				}
+				return false, errMsg
+			}
+			return true, ""
+		}
+
+		success, errMsg := executeCmd(bestCmd)
+		if !success && len(fallbacks) > 0 {
+			success, errMsg = executeCmd(fallbacks[0])
+		}
+
+		if success {
 			if st.pluginMgr != nil {
 				if found, ok := st.pluginMgr.FindToolPath(toolName, ""); ok {
 					if st.Current.CustomToolPaths == nil {
@@ -1936,6 +1949,7 @@ func (st *SettingsState) triggerToolInstall() {
 				}
 			}
 		}
+
 		if st.OnToolInstallFinished != nil {
 			st.OnToolInstallFinished(toolName, success, errMsg)
 		}
