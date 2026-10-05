@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Interactive .ipynb notebook editor and execution engine supporting code cells, markdown cells, rich MIME outputs, and kernel management",
+  "toolchain": {
+    "name": "Jupyter"
+  },
   "languages": [
     {
       "id": "jupyter",
+      "name": "Jupyter",
       "extensions": [
         ".ipynb"
       ]

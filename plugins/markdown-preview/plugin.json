@@ -7,9 +7,13 @@
   "capabilities": [
     "fs:read"
   ],
+  "toolchain": {
+    "name": "Markdown"
+  },
   "languages": [
     {
       "id": "markdown",
+      "name": "Markdown",
       "extensions": [
         ".md",
         ".markdown",

@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Unified database client for PostgreSQL and MySQL with interactive schema explorer, DataGrid query viewer, and connection manager",
+  "toolchain": {
+    "name": "SQL"
+  },
   "languages": [
     {
       "id": "sql",
+      "name": "SQL",
       "extensions": [
         ".sql",
         ".ddl",

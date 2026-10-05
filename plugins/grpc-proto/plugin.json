@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Protocol Buffers syntax highlighting, buf format/generate automation, and interactive gRPC RPC invocation via Server Reflection",
+  "toolchain": {
+    "name": "Protobuf"
+  },
   "languages": [
     {
       "id": "proto",
+      "name": "Protobuf",
       "extensions": [
         ".proto"
       ],

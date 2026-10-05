@@ -8,9 +8,13 @@
     "fs:read",
     "process:exec"
   ],
+  "toolchain": {
+    "name": "TypeScript / JavaScript"
+  },
   "languages": [
     {
       "id": "typescript",
+      "name": "TypeScript / JavaScript",
       "extensions": [
         ".ts",
         ".tsx",

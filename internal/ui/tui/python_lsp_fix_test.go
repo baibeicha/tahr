@@ -69,6 +69,43 @@ func TestToolchainLabel_PythonAndVirtualenv(t *testing.T) {
 	if labelRs != "Rust" {
 		t.Fatalf("expected 'Rust', got %q", labelRs)
 	}
+
+	// 5. TypeScript / JavaScript document
+	tsDoc := core.NewDocument("doc4", filepath.Join(tempDir, "app.ts"), buffer.NewBuffer())
+	labelTs := app.getToolchainLabel(tsDoc)
+	if labelTs != "TypeScript / JavaScript" {
+		t.Fatalf("expected 'TypeScript / JavaScript', got %q", labelTs)
+	}
+
+	// 6. C/C++ document
+	cDoc := core.NewDocument("doc5", filepath.Join(tempDir, "main.cpp"), buffer.NewBuffer())
+	labelC := app.getToolchainLabel(cDoc)
+	if labelC != "C/C++" {
+		t.Fatalf("expected 'C/C++', got %q", labelC)
+	}
+
+	// 7. Plain text document
+	txtDoc := core.NewDocument("doc6", filepath.Join(tempDir, "notes.txt"), buffer.NewBuffer())
+	labelTxt := app.getToolchainLabel(txtDoc)
+	if labelTxt != "Plain Text" {
+		t.Fatalf("expected 'Plain Text', got %q", labelTxt)
+	}
+
+	// 8. Disabling python plugin should fall back to 'Plain Text'
+	if app.pluginMgr != nil {
+		_ = app.pluginMgr.DisablePlugin("tahr-python")
+		labelDisabled := app.getToolchainLabel(pyDoc)
+		if labelDisabled != "Plain Text" {
+			t.Fatalf("expected 'Plain Text' when plugin is disabled, got %q", labelDisabled)
+		}
+
+		// Re-enabling returns toolchain label
+		_ = app.pluginMgr.EnablePlugin("tahr-python")
+		labelReenabled := app.getToolchainLabel(pyDoc)
+		if labelReenabled != "Python (.venv)" {
+			t.Fatalf("expected 'Python (.venv)' after re-enabling, got %q", labelReenabled)
+		}
+	}
 }
 
 func TestOnDiagnostics_SanitizationAndStatusBarSafety(t *testing.T) {

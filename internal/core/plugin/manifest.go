@@ -6,20 +6,31 @@ import (
 	"os"
 )
 
+// ToolchainConfig describes how the plugin provides its toolchain name, environment, and version in the status bar.
+type ToolchainConfig struct {
+	Name        string   `json:"name,omitempty"`        // Display name: e.g. "Python", "Rust", "Go", "TypeScript"
+	EnvMarkers  []string `json:"env_markers,omitempty"`  // Workspace folder markers: e.g. [".venv", "venv", "env"]
+	EnvVariable string   `json:"env_variable,omitempty"` // Environment variable to check: e.g. "VIRTUAL_ENV"
+	EnvSuffix   string   `json:"env_suffix,omitempty"`   // Suffix when env marker is found: e.g. " (.venv)"
+	DynamicSDK  string   `json:"dynamic_sdk,omitempty"`  // Identifier for dynamic SDK query: e.g. "go"
+}
+
 // LanguageConfig describes language support configurations.
 type LanguageConfig struct {
-	ID           string   `json:"id"`
-	Extensions   []string `json:"extensions"`
-	Filenames    []string `json:"filenames,omitempty"`
-	Grammar      string   `json:"grammar,omitempty"`
-	Highlights   string   `json:"highlights,omitempty"`
-	Indents      string   `json:"indents,omitempty"`
-	CommentToken string   `json:"comment_token,omitempty"`
-	BuildCmd     string   `json:"build_cmd,omitempty"`
-	BuildArgs    []string `json:"build_args,omitempty"`
-	RunCmd       string   `json:"run_cmd,omitempty"`
-	RunArgs      []string `json:"run_args,omitempty"`
-	InstallCmd   string   `json:"install_cmd,omitempty"`
+	ID           string           `json:"id"`
+	Name         string           `json:"name,omitempty"`
+	Extensions   []string         `json:"extensions"`
+	Filenames    []string         `json:"filenames,omitempty"`
+	Grammar      string           `json:"grammar,omitempty"`
+	Highlights   string           `json:"highlights,omitempty"`
+	Indents      string           `json:"indents,omitempty"`
+	CommentToken string           `json:"comment_token,omitempty"`
+	BuildCmd     string           `json:"build_cmd,omitempty"`
+	BuildArgs    []string         `json:"build_args,omitempty"`
+	RunCmd       string           `json:"run_cmd,omitempty"`
+	RunArgs      []string         `json:"run_args,omitempty"`
+	InstallCmd   string           `json:"install_cmd,omitempty"`
+	Toolchain    *ToolchainConfig `json:"toolchain,omitempty"`
 }
 
 // LSPConfig describes language server launch parameters.
@@ -116,6 +127,7 @@ type Manifest struct {
 	SDKAutodetect    *SDKAutodetectConfig           `json:"sdk_autodetect,omitempty"`
 	Settings         map[string]PluginSettingSchema `json:"settings,omitempty"`
 	Localizations    []LocalizationConfig           `json:"localizations,omitempty"`
+	Toolchain        *ToolchainConfig               `json:"toolchain,omitempty"`
 	WASMEntry        string                         `json:"wasm_entry,omitempty"`
 }
 

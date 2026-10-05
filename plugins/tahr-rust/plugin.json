@@ -8,9 +8,13 @@
     "fs:read",
     "process:exec"
   ],
+  "toolchain": {
+    "name": "Rust"
+  },
   "languages": [
     {
       "id": "rust",
+      "name": "Rust",
       "extensions": [
         ".rs"
       ],

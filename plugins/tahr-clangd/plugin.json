@@ -8,9 +8,13 @@
     "fs:read",
     "process:exec"
   ],
+  "toolchain": {
+    "name": "C/C++"
+  },
   "languages": [
     {
       "id": "c_cpp",
+      "name": "C/C++",
       "extensions": [
         ".c",
         ".h",

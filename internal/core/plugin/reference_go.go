@@ -18,9 +18,14 @@ func ReferenceGoPluginManifest() Manifest {
 		Author:      "Tahr Team",
 		Description: "Language Server (gopls), Delve debugger, launch templates and SDK autodetection",
 		Capabilities: []string{"fs:read", "process:exec"},
+		Toolchain: &ToolchainConfig{
+			Name:       "Go",
+			DynamicSDK: "go",
+		},
 		Languages: []LanguageConfig{
 			{
 				ID:           "go",
+				Name:         "Go",
 				Extensions:   []string{".go"},
 				Filenames:    []string{"go.mod", "go.sum", "go.work"},
 				CommentToken: "//",

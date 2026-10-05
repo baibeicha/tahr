@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Zero-CGO SQLite database inspector with table schemas, paginated DataGrid viewer, column sorting, and custom SQL query execution",
+  "toolchain": {
+    "name": "SQLite"
+  },
   "languages": [
     {
       "id": "sqlite",
+      "name": "SQLite",
       "extensions": [
         ".db",
         ".sqlite",

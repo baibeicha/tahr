@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Protects sensitive credentials in .env files using Tahr's Virtual Text Conceal engine to mask secret tokens with dots and reveal them on hover",
+  "toolchain": {
+    "name": "Env"
+  },
   "languages": [
     {
       "id": "dotenv",
+      "name": "Env",
       "extensions": [
         ".env",
         ".env.local",

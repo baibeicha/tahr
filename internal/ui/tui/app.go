@@ -734,6 +734,15 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		m.crashDialog.CheckAndOpen()
 	}
 
+	if m.pluginMgr != nil {
+		m.pluginMgr.SetDynamicSDKProvider(func(sdkID string) string {
+			if sdkID == "go" && m.sdkManager != nil {
+				return m.sdkManager.GoVersionShort()
+			}
+			return ""
+		})
+	}
+
 	if m.settings != nil {
 		m.settings.OnColorApplied = func(key, hexVal string) {
 			m.applyCurrentSettings()
@@ -1880,6 +1889,12 @@ func (m *AppModel) SetPluginManager(mgr *plugin.Manager) {
 		m.settings.SetPluginManager(mgr)
 	}
 	if mgr != nil {
+		mgr.SetDynamicSDKProvider(func(sdkID string) string {
+			if sdkID == "go" && m.sdkManager != nil {
+				return m.sdkManager.GoVersionShort()
+			}
+			return ""
+		})
 		mgr.AddLifecycleListener(func(pluginID string, enabled bool) {
 			m.onPluginLifecycleChanged(pluginID, enabled)
 		})
@@ -5405,73 +5420,22 @@ func (m *AppModel) updateTooltip(x, y int) {
 }
 
 // getToolchainLabel returns the language or toolchain label for the given document.
+// The label and its environment/SDK properties are declared dynamically by installed plugins.
 func (m *AppModel) getToolchainLabel(doc *core.Document) string {
 	if doc == nil || doc.FilePath == "" {
 		return "Plain Text"
 	}
 
 	ext := strings.ToLower(filepath.Ext(doc.FilePath))
-	if m.pluginMgr != nil && !m.pluginMgr.IsExtensionActive(ext) {
-		return "Plain Text"
+	baseName := filepath.Base(doc.FilePath)
+
+	if m.pluginMgr != nil {
+		if label, ok := m.pluginMgr.GetToolchainLabel(ext, baseName, m.workspaceDir); ok && label != "" {
+			return label
+		}
 	}
 
-	switch ext {
-	case ".go":
-		if m.sdkManager != nil {
-			return m.sdkManager.GoVersionShort()
-		}
-		return "Go"
-	case ".py", ".pyw", ".pyi":
-		ws := m.workspaceDir
-		hasVenv := false
-
-		if ws != "" {
-			for _, vName := range []string{".venv", "venv", "env"} {
-				if fi, err := os.Stat(filepath.Join(ws, vName)); err == nil && fi.IsDir() {
-					hasVenv = true
-					break
-				}
-			}
-		}
-		if !hasVenv && os.Getenv("VIRTUAL_ENV") != "" {
-			hasVenv = true
-		}
-		if hasVenv {
-			return "Python (.venv)"
-		}
-		return "Python"
-	case ".rs":
-		return "Rust"
-	case ".ts", ".tsx":
-		return "TypeScript"
-	case ".js", ".jsx", ".mjs", ".cjs":
-		return "JavaScript"
-	case ".c", ".h":
-		return "C"
-	case ".cpp", ".cc", ".cxx", ".hpp", ".hxx":
-		return "C++"
-	case ".json", ".jsonc":
-		return "JSON"
-	case ".yaml", ".yml":
-		return "YAML"
-	case ".toml":
-		return "TOML"
-	case ".md", ".markdown":
-		return "Markdown"
-	case ".sql":
-		return "SQL"
-	case ".proto":
-		return "Protobuf"
-	case ".log":
-		return "Log"
-	case ".env":
-		return "Env"
-	default:
-		if ext != "" {
-			return strings.ToUpper(strings.TrimPrefix(ext, "."))
-		}
-		return "Plain Text"
-	}
+	return "Plain Text"
 }
 
 func splitModeTitle(sm *SplitManager) string {

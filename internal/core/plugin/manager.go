@@ -51,6 +51,9 @@ type PluginState struct {
 // LifecycleListener is invoked whenever a plugin is enabled or disabled.
 type LifecycleListener func(pluginID string, enabled bool)
 
+// DynamicSDKProvider resolves dynamic SDK versions by identifier (e.g. "go").
+type DynamicSDKProvider func(sdkID string) string
+
 // Manager coordinates plugin discovery, installation, and registration.
 type Manager struct {
 	mu                sync.RWMutex
@@ -64,6 +67,9 @@ type Manager struct {
 	workspaceRoot     string
 	installed         map[string]*Manifest
 	languages         map[string]*LanguageConfig // ext -> config
+	filenameLanguages map[string]*LanguageConfig // filename (lower) -> config
+	languageOwners    map[*LanguageConfig]*Manifest
+	dynamicSDK        DynamicSDKProvider
 	host              *WASMHost
 	listeners         []LifecycleListener
 }
@@ -98,9 +104,11 @@ func NewManager(pluginsDir string) (*Manager, error) {
 		stateFile:    stateFile,
 		state:        PluginState{Enabled: make(map[string]bool)},
 		repositories: make([]PluginRepository, 0),
-		installed:    make(map[string]*Manifest),
-		languages:    make(map[string]*LanguageConfig),
-		host:         host,
+		installed:         make(map[string]*Manifest),
+		languages:         make(map[string]*LanguageConfig),
+		filenameLanguages: make(map[string]*LanguageConfig),
+		languageOwners:    make(map[*LanguageConfig]*Manifest),
+		host:              host,
 	}
 
 	_ = m.LoadRepositories()
@@ -530,12 +538,15 @@ func (m *Manager) notifyLifecycle(pluginID string, enabled bool) {
 
 func (m *Manager) rebuildActiveLanguagesLocked() {
 	m.languages = make(map[string]*LanguageConfig)
+	m.filenameLanguages = make(map[string]*LanguageConfig)
+	m.languageOwners = make(map[*LanguageConfig]*Manifest)
 	for _, inst := range m.installed {
 		if !m.isEnabledLocked(inst.ID) {
 			continue
 		}
 		for i := range inst.Languages {
 			lang := &inst.Languages[i]
+			m.languageOwners[lang] = inst
 			for _, ext := range lang.Extensions {
 				normExt := strings.ToLower(ext)
 				if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
@@ -545,8 +556,126 @@ func (m *Manager) rebuildActiveLanguagesLocked() {
 				}
 				m.languages[normExt] = lang
 			}
+			for _, fn := range lang.Filenames {
+				normFn := strings.ToLower(fn)
+				m.filenameLanguages[normFn] = lang
+			}
 		}
 	}
+}
+
+// SetDynamicSDKProvider registers a callback to resolve runtime SDK versions (e.g. for Go).
+func (m *Manager) SetDynamicSDKProvider(provider DynamicSDKProvider) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.dynamicSDK = provider
+}
+
+// GetLanguageConfigForFile returns the language configuration for a given filename or extension.
+func (m *Manager) GetLanguageConfigForFile(filename string) *LanguageConfig {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	ext := strings.ToLower(filepath.Ext(filename))
+	if ext != "" {
+		if primaryID, ok := CanonicalLanguagePlugins[ext]; ok {
+			if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+				return nil
+			}
+		}
+		if lang := m.languages[ext]; lang != nil {
+			return lang
+		}
+	}
+	base := strings.ToLower(filepath.Base(filename))
+	return m.filenameLanguages[base]
+}
+
+// GetToolchainLabel resolves the status bar toolchain display label based on the active plugin manifest.
+// It returns the label and true if an enabled language plugin claims this file; otherwise ("", false).
+func (m *Manager) GetToolchainLabel(ext, filename, workspaceDir string) (string, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	normExt := strings.ToLower(ext)
+	normFn := strings.ToLower(filename)
+
+	var lang *LanguageConfig
+	if normExt != "" {
+		if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
+			if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
+				return "", false
+			}
+		}
+		lang = m.languages[normExt]
+	}
+
+	if lang == nil && normFn != "" {
+		lang = m.filenameLanguages[normFn]
+	}
+
+	if lang == nil {
+		return "", false
+	}
+
+	owner := m.languageOwners[lang]
+	if owner == nil || !m.isEnabledLocked(owner.ID) {
+		return "", false
+	}
+
+	// Toolchain configuration priority:
+	// 1. Language-level Toolchain
+	// 2. Manifest-level Toolchain
+	var tc *ToolchainConfig
+	if lang.Toolchain != nil {
+		tc = lang.Toolchain
+	} else if owner.Toolchain != nil {
+		tc = owner.Toolchain
+	}
+
+	label := ""
+	if tc != nil && tc.Name != "" {
+		label = tc.Name
+	}
+	if label == "" && lang.Name != "" {
+		label = lang.Name
+	}
+	if label == "" && lang.ID != "" {
+		label = strings.ToUpper(lang.ID[:1]) + lang.ID[1:]
+	}
+	if label == "" {
+		label = "Plain Text"
+	}
+
+	// Dynamic SDK resolution (e.g. Go version)
+	if tc != nil && tc.DynamicSDK != "" && m.dynamicSDK != nil {
+		if dyn := m.dynamicSDK(tc.DynamicSDK); dyn != "" && dyn != "Go: Not Found" {
+			label = dyn
+		}
+	}
+
+	// Virtual environment or environment marker checks
+	if tc != nil && tc.EnvSuffix != "" {
+		hasEnv := false
+		if workspaceDir != "" && len(tc.EnvMarkers) > 0 {
+			for _, marker := range tc.EnvMarkers {
+				p := filepath.Join(workspaceDir, marker)
+				if _, err := os.Stat(p); err == nil {
+					hasEnv = true
+					break
+				}
+			}
+		}
+		if !hasEnv && tc.EnvVariable != "" {
+			if os.Getenv(tc.EnvVariable) != "" {
+				hasEnv = true
+			}
+		}
+		if hasEnv {
+			label += tc.EnvSuffix
+		}
+	}
+
+	return label, true
 }
 
 // EnablePlugin loads and activates an installed plugin from disk.
@@ -690,25 +819,42 @@ func (m *Manager) SeedDefaultPlugins() {
 		}
 	}
 
-	// 3. Ensure tahr-ru is seeded if available in any candidate dir
-	// 3. Ensure standard plugins (tahr-ru, tahr-python, tahr-rust, tahr-ts, tahr-clangd) are seeded if available in any candidate dir
+	// 3. Ensure standard plugins (tahr-ru, tahr-python, tahr-rust, tahr-ts, tahr-clangd) are seeded and updated if available in any candidate dir
 	autoSeedPlugins := []string{"tahr-ru", "tahr-python", "tahr-rust", "tahr-ts", "tahr-clangd"}
 	for _, pid := range autoSeedPlugins {
 		targetDir := filepath.Join(m.pluginsDir, pid)
-		if _, err := os.Stat(filepath.Join(targetDir, "plugin.json")); os.IsNotExist(err) {
-			for _, cd := range m.candidatePluginDirs() {
-				if cd == m.pluginsDir {
-					continue
+		var sourceDir string
+		for _, cd := range m.candidatePluginDirs() {
+			if cd == m.pluginsDir {
+				continue
+			}
+			candDir := filepath.Join(cd, pid)
+			if fi, err := os.Stat(filepath.Join(candDir, "plugin.json")); err == nil && !fi.IsDir() {
+				sourceDir = candDir
+				break
+			}
+		}
+
+		targetManifestPath := filepath.Join(targetDir, "plugin.json")
+		if _, err := os.Stat(targetManifestPath); os.IsNotExist(err) {
+			if sourceDir != "" {
+				_ = copyDir(sourceDir, targetDir)
+			} else {
+				for _, cd := range m.candidatePluginDirs() {
+					candArchive := filepath.Join(cd, pid+".tahr")
+					if fi, err := os.Stat(candArchive); err == nil && !fi.IsDir() {
+						_, _ = UnpackArchive(candArchive, targetDir)
+						break
+					}
 				}
-				candDir := filepath.Join(cd, pid)
-				if fi, err := os.Stat(filepath.Join(candDir, "plugin.json")); err == nil && !fi.IsDir() {
-					_ = copyDir(candDir, targetDir)
-					break
-				}
-				candArchive := filepath.Join(cd, pid+".tahr")
-				if fi, err := os.Stat(candArchive); err == nil && !fi.IsDir() {
-					_, _ = UnpackArchive(candArchive, targetDir)
-					break
+			}
+		} else if sourceDir != "" {
+			// Update target if source manifest has toolchain configuration but target does not
+			srcM, errSrc := LoadManifest(filepath.Join(sourceDir, "plugin.json"))
+			dstM, errDst := LoadManifest(targetManifestPath)
+			if errSrc == nil && errDst == nil {
+				if srcM.Toolchain != nil && dstM.Toolchain == nil {
+					_ = copyDir(sourceDir, targetDir)
 				}
 			}
 		}

@@ -8,9 +8,20 @@
     "fs:read",
     "process:exec"
   ],
+  "toolchain": {
+    "name": "Python",
+    "env_markers": [
+      ".venv",
+      "venv",
+      "env"
+    ],
+    "env_variable": "VIRTUAL_ENV",
+    "env_suffix": " (.venv)"
+  },
   "languages": [
     {
       "id": "python",
+      "name": "Python",
       "extensions": [
         ".py",
         ".pyw",

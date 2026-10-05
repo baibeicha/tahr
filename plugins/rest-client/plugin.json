@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Execute HTTP and REST requests directly from .http and .rest files with RFC 7230 syntax, environment variables, and live split view response rendering",
+  "toolchain": {
+    "name": "HTTP"
+  },
   "languages": [
     {
       "id": "http",
+      "name": "HTTP",
       "extensions": [
         ".http",
         ".rest"

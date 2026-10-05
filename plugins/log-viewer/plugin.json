@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "High-performance log inspector with chunked memory-mapped reader, regex pattern filters, severity highlighting, and real-time tailing",
+  "toolchain": {
+    "name": "Log"
+  },
   "languages": [
     {
       "id": "log",
+      "name": "Log",
       "extensions": [
         ".log",
         ".out",

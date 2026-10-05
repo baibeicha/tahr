@@ -10,6 +10,7 @@
   "languages": [
     {
       "id": "json",
+      "name": "JSON",
       "extensions": [
         ".json",
         ".jsonc"
@@ -24,6 +25,7 @@
     },
     {
       "id": "yaml",
+      "name": "YAML",
       "extensions": [
         ".yaml",
         ".yml"
@@ -37,6 +39,7 @@
     },
     {
       "id": "toml",
+      "name": "TOML",
       "extensions": [
         ".toml"
       ],

@@ -8,9 +8,14 @@
     "fs:read",
     "process:exec"
   ],
+  "toolchain": {
+    "name": "Go",
+    "dynamic_sdk": "go"
+  },
   "languages": [
     {
       "id": "go",
+      "name": "Go",
       "extensions": [
         ".go"
       ],

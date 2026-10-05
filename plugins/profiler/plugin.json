@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Tahr Team",
   "description": "Go pprof CPU and memory profile visualizer featuring interactive hierarchical Flamegraphs, call tree analysis, and top hotspots breakdown",
+  "toolchain": {
+    "name": "pprof"
+  },
   "languages": [
     {
       "id": "pprof",
+      "name": "pprof",
       "extensions": [
         ".pprof",
         ".prof"
