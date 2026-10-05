@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -24,6 +25,7 @@ import (
 	"github.com/sahilm/fuzzy"
 
 	"tahr/internal/core"
+	"tahr/internal/core/ai"
 	corebuf "tahr/internal/core/buffer"
 	"tahr/internal/core/clipboard"
 	"tahr/internal/core/crash"
@@ -462,6 +464,11 @@ type AppModel struct {
 	ghostPrefix       string
 	popupScrollOffset int
 
+	// AI Inline Shadow Coder
+	aiEngine        *ai.Engine
+	aiCancel        context.CancelFunc
+	aiDebounceTimer *time.Timer
+	aiMu            sync.Mutex
 
 	// Animations
 	sidebarAnimWidth   float64
@@ -584,6 +591,13 @@ type termTickMsg struct{}
 
 type lspDiagnosticsMsg struct {
 	URI string
+}
+
+type aiCompletionMsg struct {
+	docID      string
+	cursorLine int
+	cursorCol  int
+	completion string
 }
 
 // ProgramSender allows background goroutines (such as LSP handlers) to dispatch events to the TEA event loop.
@@ -786,6 +800,12 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		})
 	}
 
+	aiCfg := m.getAIConfig()
+	m.aiEngine = ai.NewEngine(aiCfg, cwd)
+	if aiCfg.Enabled {
+		go func() { _ = m.aiEngine.Start() }()
+	}
+
 	if m.settings != nil {
 		m.settings.OnColorApplied = func(key, hexVal string) {
 			m.applyCurrentSettings()
@@ -795,6 +815,10 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		}
 		m.settings.OnSettingsChanged = func() {
 			m.applyCurrentSettings()
+			if m.aiEngine != nil {
+				aiCfg := m.getAIConfig()
+				m.aiEngine.UpdateConfig(aiCfg)
+			}
 		}
 		m.settings.OnToolInstallStarted = func(toolName, cmd string) {
 			m.toasts.Info("INSTALL", fmt.Sprintf("Installing %s via '%s'...", toolName, cmd))
@@ -1358,6 +1382,9 @@ func (m *AppModel) SetWorkspaceDir(dir string) {
 		m.workspaceDir = abs
 	} else {
 		m.workspaceDir = dir
+	}
+	if m.aiEngine != nil {
+		m.aiEngine.SetWorkspaceDir(m.workspaceDir)
 	}
 	m.refreshProjectTree()
 	m.allProjectFiles = ScanWorkspaceFiles(m.workspaceDir, 2500)
@@ -1941,10 +1968,30 @@ func (m *AppModel) SetPluginManager(mgr *plugin.Manager) {
 			m.onPluginLifecycleChanged(pluginID, enabled)
 		})
 	}
+	if m.aiEngine != nil {
+		aiCfg := m.getAIConfig()
+		m.aiEngine.UpdateConfig(aiCfg)
+		if aiCfg.Enabled {
+			go func() { _ = m.aiEngine.Start() }()
+		}
+	}
 	m.applyCurrentSettings()
 }
 
 func (m *AppModel) onPluginLifecycleChanged(pluginID string, enabled bool) {
+	if pluginID == "ai-completion" {
+		if m.aiEngine != nil {
+			aiCfg := m.getAIConfig()
+			aiCfg.Enabled = enabled
+			m.aiEngine.UpdateConfig(aiCfg)
+			if enabled {
+				go func() { _ = m.aiEngine.Start() }()
+			} else {
+				m.aiEngine.Stop()
+				m.dismissGhostText()
+			}
+		}
+	}
 	if !enabled {
 		// A plugin was disabled: if active document's language is no longer active,
 		// terminate running LSP, clear diagnostics and revert to plain text.
@@ -1979,6 +2026,9 @@ func (m *AppModel) onPluginLifecycleChanged(pluginID string, enabled bool) {
 
 // Close safely stops background workers, sidecars, watchers, and language servers.
 func (m *AppModel) Close() {
+	if m.aiEngine != nil {
+		m.aiEngine.Stop()
+	}
 	if m.gitWatcher != nil {
 		m.gitWatcher.Stop()
 	}
@@ -2255,6 +2305,16 @@ func (m *AppModel) onTextMutation() tea.Cmd {
 // Update handles state changes via incoming messages.
 func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case aiCompletionMsg:
+		doc := m.eng.ActiveDocument()
+		if doc != nil && doc.ID == msg.docID {
+			sel := doc.Buffer.PrimarySelection()
+			if sel.Head.Line == msg.cursorLine && sel.Head.Column == msg.cursorCol {
+				m.ghostText = msg.completion
+			}
+		}
+		return m, nil
+
 	case toastTickMsg:
 		if m.toasts != nil {
 			m.toasts.Tick(time.Now())
@@ -3399,6 +3459,10 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 
 	// Alt+Right / Alt+Left / Alt+Enter / Alt+\: Next / Prev split pane / Quick Fix / AI Completion
 	if k.HasAlt() && !k.HasCtrl() {
+		if k.Rune == '\\' || k.BaseKey == '\\' {
+			m.triggerAICompletion(true)
+			return m, nil
+		}
 		if k.Type == input.KeyEnter {
 			m.triggerQuickFix()
 			return m, nil
@@ -3923,13 +3987,23 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		m.ghostText = ""
 
 	case input.KeyRight:
+		if k.HasCtrl() && m.ghostText != "" {
+			word := ai.NextWordFromGhostText(m.ghostText)
+			if word != "" {
+				_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: word})
+				m.ghostText = m.ghostText[len(word):]
+				m.notifyLSPChange()
+				m.ensureCursorVisible()
+				return m, nil
+			}
+		}
 		cmd := core.CmdCursorRight
 		if k.HasShift() {
 			cmd = core.CmdSelectRight
 		}
 		_ = m.eng.Dispatch(core.Command{ID: cmd})
 		m.popupVisible = false
-		m.ghostText = ""
+		m.dismissGhostText()
 
 	case input.KeyUp:
 		if k.HasCtrl() {
@@ -4028,7 +4102,7 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 	case input.KeyTab:
 		if m.ghostText != "" {
 			_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: m.ghostText})
-			m.ghostText = ""
+			m.dismissGhostText()
 			m.notifyLSPChange()
 			m.ensureCursorVisible()
 			return m, nil
@@ -4041,7 +4115,7 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		_ = m.eng.Dispatch(core.Command{ID: core.CmdDedent})
 		m.notifyLSPChange()
 		m.popupVisible = false
-		m.ghostText = ""
+		m.dismissGhostText()
 
 	case input.KeyEsc:
 		if m.popupVisible {
@@ -4053,7 +4127,7 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		_ = m.eng.Dispatch(core.Command{ID: core.CmdClearSelections})
-		m.ghostText = ""
+		m.dismissGhostText()
 
 	case input.KeySpace:
 		// CRITICAL FIX: Space bar insertion
@@ -6747,36 +6821,212 @@ func (m *AppModel) insertCompletion(item string) {
 	m.notifyLSPChange()
 }
 
-// updateGhostText calculates the inline faint prediction for the word being typed.
+// updateGhostText calculates the inline faint prediction for the word being typed or AI shadow completion.
 func (m *AppModel) updateGhostText() {
 	prefix := m.wordPrefixUnderCursor()
-	if len(prefix) < 2 {
-		m.ghostText = ""
-		m.ghostPrefix = ""
-		return
-	}
-
-	candidates := m.extractCompletionSymbols()
-	for _, c := range candidates {
-		cand := c
-		if idx := strings.Index(cand, " - "); idx != -1 {
-			cand = cand[:idx]
-		}
-		cand = strings.TrimSpace(cand)
-		matchTarget := cand
-		if strings.Contains(cand, ".") {
-			parts := strings.Split(cand, ".")
-			matchTarget = parts[len(parts)-1]
-		}
-		if strings.HasPrefix(strings.ToLower(matchTarget), strings.ToLower(prefix)) && len(matchTarget) > len(prefix) {
-			m.ghostText = matchTarget[len(prefix):]
-			m.ghostPrefix = prefix
-			return
+	if len(prefix) >= 2 {
+		candidates := m.extractCompletionSymbols()
+		for _, c := range candidates {
+			cand := c
+			if idx := strings.Index(cand, " - "); idx != -1 {
+				cand = cand[:idx]
+			}
+			cand = strings.TrimSpace(cand)
+			matchTarget := cand
+			if strings.Contains(cand, ".") {
+				parts := strings.Split(cand, ".")
+				matchTarget = parts[len(parts)-1]
+			}
+			if strings.HasPrefix(strings.ToLower(matchTarget), strings.ToLower(prefix)) && len(matchTarget) > len(prefix) {
+				m.ghostText = matchTarget[len(prefix):]
+				m.ghostPrefix = prefix
+				m.cancelPendingAI()
+				return
+			}
 		}
 	}
 
 	m.ghostText = ""
 	m.ghostPrefix = ""
+
+	// If no local match, trigger debounced AI shadow completion
+	m.triggerAICompletion(false /* multiline */)
+}
+
+// cancelPendingAI aborts active debounce timers and in-flight completion requests.
+func (m *AppModel) cancelPendingAI() {
+	m.aiMu.Lock()
+	defer m.aiMu.Unlock()
+	if m.aiCancel != nil {
+		m.aiCancel()
+		m.aiCancel = nil
+	}
+	if m.aiDebounceTimer != nil {
+		m.aiDebounceTimer.Stop()
+		m.aiDebounceTimer = nil
+	}
+}
+
+// dismissGhostText clears ghost text and cancels running AI completion requests.
+func (m *AppModel) dismissGhostText() {
+	m.ghostText = ""
+	m.ghostPrefix = ""
+	m.cancelPendingAI()
+}
+
+// triggerAICompletion starts debounced AI completion in background.
+func (m *AppModel) triggerAICompletion(multiline bool) {
+	if m.aiEngine == nil {
+		return
+	}
+	cfg := m.aiEngine.Config()
+	if !cfg.Enabled {
+		return
+	}
+
+	m.cancelPendingAI()
+
+	delay := time.Duration(cfg.DebounceMs) * time.Millisecond
+	if delay <= 0 {
+		delay = 150 * time.Millisecond
+	}
+	if multiline {
+		delay = 10 * time.Millisecond
+	}
+
+	m.aiMu.Lock()
+	m.aiDebounceTimer = time.AfterFunc(delay, func() {
+		m.requestAICompletion(multiline)
+	})
+	m.aiMu.Unlock()
+}
+
+// requestAICompletion fetches completion from AI engine and dispatches message to TEA event loop.
+func (m *AppModel) requestAICompletion(multiline bool) {
+	if m.aiEngine == nil || m.program == nil {
+		return
+	}
+	prefix, suffix, curLine, curCol, docID := m.getCursorPrefixAndSuffix()
+	if docID == "" || (prefix == "" && suffix == "") {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	m.aiMu.Lock()
+	m.aiCancel = cancel
+	m.aiMu.Unlock()
+
+	defer func() {
+		m.aiMu.Lock()
+		m.aiCancel = nil
+		m.aiMu.Unlock()
+	}()
+
+	completion, err := m.aiEngine.RequestCompletion(ctx, prefix, suffix, multiline)
+	if err != nil || completion == "" {
+		return
+	}
+
+	m.program.Send(aiCompletionMsg{
+		docID:      docID,
+		cursorLine: curLine,
+		cursorCol:  curCol,
+		completion: completion,
+	})
+}
+
+// getCursorPrefixAndSuffix extracts the text before and after the cursor for FIM prompting.
+func (m *AppModel) getCursorPrefixAndSuffix() (prefix, suffix string, line, col int, docID string) {
+	doc := m.eng.ActiveDocument()
+	if doc == nil || doc.Buffer == nil {
+		return "", "", 0, 0, ""
+	}
+	sels := doc.Buffer.GetSelections()
+	if len(sels) == 0 {
+		return "", "", 0, 0, doc.ID
+	}
+	curLine, curCol := sels[0].Head.Line, sels[0].Head.Column
+
+	text, err := doc.Buffer.GetText()
+	if err != nil {
+		return "", "", curLine, curCol, doc.ID
+	}
+	offset, err := doc.Buffer.ByteOffsetForLine(curLine)
+	if err != nil {
+		return "", "", curLine, curCol, doc.ID
+	}
+	lineBytes, _ := doc.Buffer.GetLine(curLine)
+	lineRunes := []rune(string(lineBytes))
+	colBytes := 0
+	for i := 0; i < curCol && i < len(lineRunes); i++ {
+		colBytes += len(string(lineRunes[i]))
+	}
+	cursorByteOffset := offset + colBytes
+	if cursorByteOffset < 0 {
+		cursorByteOffset = 0
+	}
+	if cursorByteOffset > len(text) {
+		cursorByteOffset = len(text)
+	}
+
+	prefix = string(text[:cursorByteOffset])
+	suffix = string(text[cursorByteOffset:])
+	return prefix, suffix, curLine, curCol, doc.ID
+}
+
+// getAIConfig builds an ai.Config merged with user settings and active plugin status.
+func (m *AppModel) getAIConfig() ai.Config {
+	cfg := ai.DefaultConfig()
+	if m.pluginMgr != nil {
+		cfg.Enabled = m.pluginMgr.IsEnabled("ai-completion")
+	}
+	if m.settings != nil && m.settings.Current.PluginSettings != nil {
+		if pSettings, ok := m.settings.Current.PluginSettings["ai-completion"]; ok {
+			if v, ok := pSettings["provider"].(string); ok && v != "" {
+				cfg.Provider = v
+			}
+			if v, ok := pSettings["endpoint"].(string); ok && v != "" {
+				cfg.Endpoint = v
+			}
+			if v, ok := pSettings["port"]; ok {
+				switch val := v.(type) {
+				case float64:
+					cfg.Port = int(val)
+				case int:
+					cfg.Port = val
+				}
+			}
+			if v, ok := pSettings["model"].(string); ok && v != "" {
+				cfg.ModelName = v
+			}
+			if v, ok := pSettings["model_path"].(string); ok && v != "" {
+				cfg.ModelPath = v
+			}
+			if v, ok := pSettings["llama_server_path"].(string); ok && v != "" {
+				cfg.LlamaServerPath = v
+			}
+			if v, ok := pSettings["api_key"].(string); ok {
+				cfg.APIKey = v
+			}
+			if v, ok := pSettings["debounce_ms"]; ok {
+				switch val := v.(type) {
+				case float64:
+					cfg.DebounceMs = int(val)
+				case int:
+					cfg.DebounceMs = val
+				}
+			}
+			if v, ok := pSettings["max_tokens"]; ok {
+				switch val := v.(type) {
+				case float64:
+					cfg.MaxTokens = int(val)
+				case int:
+					cfg.MaxTokens = val
+				}
+			}
+		}
+	}
+	return cfg
 }
 
 // extractBufferWords extracts identifiers from the active document for contextual completion.
@@ -8928,10 +9178,31 @@ func (m *AppModel) renderPane(buf *buffer.Buffer, pane *SplitPane, doc *core.Doc
 		// Inline Ghost Text: if active cursor is on this row and ghost text exists
 		if isActivePane && cursorVisCol >= 0 && m.ghostText != "" && !m.sidebarFocused {
 			ghostRunes := []rune(m.ghostText)
-			for gi, gr := range ghostRunes {
-				gcol := cursorVisCol + 1 + gi
-				if gcol < textWidth {
-					buf.SetRune(bx+gutterWidth+gcol, screenY, gr, toColor(m.theme.Comment), textBg, cell.AttrDim)
+			cursorStyle := "block"
+			if m.settings != nil && m.settings.Current.CursorStyle != "" {
+				cursorStyle = strings.ToLower(m.settings.Current.CursorStyle)
+			}
+			if cursorStyle == "bar" {
+				for gi, gr := range ghostRunes {
+					gcol := cursorVisCol + 1 + gi
+					if gcol < textWidth {
+						buf.SetRune(bx+gutterWidth+gcol, screenY, gr, toColor(m.theme.Comment), textBg, cell.AttrDim)
+					}
+				}
+			} else {
+				for gi, gr := range ghostRunes {
+					gcol := cursorVisCol + gi
+					if gcol < textWidth {
+						if gi == 0 {
+							if cursorStyle == "underline" {
+								buf.SetRune(bx+gutterWidth+gcol, screenY, gr, toColor(m.theme.Comment), textBg, cell.AttrDim|cell.AttrUnderline)
+							} else {
+								buf.SetRune(bx+gutterWidth+gcol, screenY, gr, toColor(m.theme.Background), toColor(m.theme.Foreground), cell.AttrNone)
+							}
+						} else {
+							buf.SetRune(bx+gutterWidth+gcol, screenY, gr, toColor(m.theme.Comment), textBg, cell.AttrDim)
+						}
+					}
 				}
 			}
 		}

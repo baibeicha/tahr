@@ -106,6 +106,7 @@ func runTUI(projectDir string, files []string, themeName string) error {
 
 	// Initialize TUI App Model
 	app := tui.NewAppModel(eng)
+	defer app.Close()
 	app.SetWorkspaceDir(workspaceRoot)
 	app.SetSidebarOpen(true)
 	app.EnableSplashScreen()

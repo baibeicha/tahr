@@ -22,3 +22,9 @@ Thumbs.db
 *.test
 *.out
 tmp/
+
+# AI models & local inference binaries
+*.gguf
+plugins/ai-completion/bin/
+plugins/ai-completion/models/*.gguf
+
