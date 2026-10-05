@@ -2,6 +2,7 @@
   "id": "tahr-rust",
   "name": "Rust Language Support",
   "version": "1.0.0",
+  "type": "language",
   "author": "Tahr Team",
   "description": "Rust language support with rust-analyzer LSP, Cargo integration, project templates and lldb-dap debugging",
   "capabilities": [

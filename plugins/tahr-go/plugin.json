@@ -2,6 +2,7 @@
   "id": "tahr-go",
   "name": "Go Language Support",
   "version": "1.0.0",
+  "type": "language",
   "author": "Tahr Team",
   "description": "Language Server (gopls), Delve debugger, launch templates and SDK autodetection",
   "capabilities": [

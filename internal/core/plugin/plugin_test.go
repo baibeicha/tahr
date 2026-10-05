@@ -756,6 +756,153 @@ func TestPluginDisable_SuppressesLSPAndDAPAndLanguages(t *testing.T) {
 	}
 }
 
+func TestMultiProviderLanguageResolution(t *testing.T) {
+	tempDir := t.TempDir()
+	mgr, err := NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("failed to create manager: %v", err)
+	}
+	defer mgr.Close()
+
+	// 1. Built-in provider (TierBuiltin)
+	builtinGo := Manifest{
+		ID:         "tahr-go",
+		Name:       "Official Go Plugin",
+		Version:    "1.0.0",
+		Type:       "language",
+		SourceTier: TierBuiltin,
+		Languages: []LanguageConfig{
+			{ID: "go", Extensions: []string{".go"}},
+		},
+		LSP: &LSPConfig{ServerName: "gopls-builtin", Command: "gopls"},
+	}
+	if _, err := mgr.InstallDeclarative(builtinGo); err != nil {
+		t.Fatalf("install builtinGo: %v", err)
+	}
+
+	if p := mgr.GetActiveProviderForExt(".go"); p == nil || p.ID != "tahr-go" {
+		t.Fatalf("expected tahr-go to be active, got %+v", p)
+	}
+	if lspCfg := mgr.GetLSPForExt(".go"); lspCfg == nil || lspCfg.ServerName != "gopls-builtin" {
+		t.Fatalf("expected gopls-builtin, got %+v", lspCfg)
+	}
+
+	// 2. Custom project provider (TierProject)
+	projectGo := Manifest{
+		ID:         "my-project-go",
+		Name:       "Project Custom Go",
+		Version:    "1.0.0",
+		Type:       "language",
+		SourceTier: TierProject,
+		Languages: []LanguageConfig{
+			{ID: "go", Extensions: []string{".go"}},
+		},
+		LSP: &LSPConfig{ServerName: "custom-gopls-project", Command: "my-gopls"},
+	}
+	if _, err := mgr.InstallDeclarative(projectGo); err != nil {
+		t.Fatalf("install projectGo: %v", err)
+	}
+
+	// Project tier (4) must cleanly override builtin tier (1) without manual preference
+	if p := mgr.GetActiveProviderForExt(".go"); p == nil || p.ID != "my-project-go" {
+		t.Fatalf("expected my-project-go to override builtin, got %+v", p)
+	}
+	if lspCfg := mgr.GetLSPForExt(".go"); lspCfg == nil || lspCfg.ServerName != "custom-gopls-project" {
+		t.Fatalf("expected custom-gopls-project, got %+v", lspCfg)
+	}
+
+	// 3. Configure preferred provider explicitly via Settings
+	mgr.SetPreferredProviders(map[string]string{
+		"go": "tahr-go",
+	})
+	if p := mgr.GetActiveProviderForExt(".go"); p == nil || p.ID != "tahr-go" {
+		t.Fatalf("expected user preferred provider tahr-go to override project tier, got %+v", p)
+	}
+
+	// 4. Disable preferred provider: should gracefully fall back to project provider
+	if err := mgr.DisablePlugin("tahr-go"); err != nil {
+		t.Fatalf("disable tahr-go: %v", err)
+	}
+	if p := mgr.GetActiveProviderForExt(".go"); p == nil || p.ID != "my-project-go" {
+		t.Fatalf("expected fallback to my-project-go when tahr-go disabled, got %+v", p)
+	}
+
+	// 5. Disable all providers: must enter 100% Plain Text Mode
+	if err := mgr.DisablePlugin("my-project-go"); err != nil {
+		t.Fatalf("disable my-project-go: %v", err)
+	}
+	if mgr.IsExtensionActive(".go") {
+		t.Errorf("expected .go to be inactive when all providers disabled")
+	}
+	if mgr.GetLanguageConfig(".go") != nil {
+		t.Errorf("expected nil language config for .go")
+	}
+	if mgr.GetLSPForExt(".go") != nil {
+		t.Errorf("expected nil LSP config for .go")
+	}
+	if p := mgr.GetActiveProviderForExt(".go"); p != nil {
+		t.Errorf("expected nil active provider, got %+v", p)
+	}
+
+	// 6. Test completely custom 3rd-party language (e.g. Zig)
+	zigPlugin := Manifest{
+		ID:         "custom-zig",
+		Name:       "Zig Language Support",
+		Version:    "0.1.0",
+		Type:       "language",
+		SourceTier: TierUser,
+		Languages: []LanguageConfig{
+			{ID: "zig", Extensions: []string{".zig"}},
+		},
+		LSP: &LSPConfig{ServerName: "zls", Command: "zls"},
+	}
+	if _, err := mgr.InstallDeclarative(zigPlugin); err != nil {
+		t.Fatalf("install zigPlugin: %v", err)
+	}
+	if !mgr.IsExtensionActive(".zig") {
+		t.Errorf("expected custom language .zig to be active")
+	}
+	if lspCfg := mgr.GetLSPForExt(".zig"); lspCfg == nil || lspCfg.ServerName != "zls" {
+		t.Errorf("expected zls LSP config, got %+v", lspCfg)
+	}
+}
+
+func TestToolPluginDoesNotProvideLanguage(t *testing.T) {
+	tempDir := t.TempDir()
+	mgr, err := NewManager(tempDir)
+	if err != nil {
+		t.Fatalf("failed to create manager: %v", err)
+	}
+	defer mgr.Close()
+
+	// Auxiliary tool targeting Go, NOT a language provider
+	toolManifest := Manifest{
+		ID:              "go-generator",
+		Name:            "Go Code Generator",
+		Version:         "1.0.0",
+		Type:            "tool",
+		TargetLanguages: []string{"go"},
+		SourceTier:      TierUser,
+	}
+	if _, err := mgr.InstallDeclarative(toolManifest); err != nil {
+		t.Fatalf("install toolManifest: %v", err)
+	}
+
+	// Tool plugin should never make .go active
+	if toolManifest.IsLanguageProvider() {
+		t.Errorf("expected tool manifest not to be a language provider")
+	}
+	if !toolManifest.TargetsLanguage("go") {
+		t.Errorf("expected tool manifest to target go")
+	}
+	if mgr.IsExtensionActive(".go") {
+		t.Errorf("expected .go to remain inactive when only tool plugin is installed")
+	}
+	if mgr.GetActiveProviderForExt(".go") != nil {
+		t.Errorf("expected no active language provider for .go")
+	}
+}
+
 
 
 

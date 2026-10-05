@@ -2,6 +2,7 @@
   "id": "tahr-clangd",
   "name": "C / C++ Language Support",
   "version": "1.0.0",
+  "type": "language",
   "author": "Tahr Team",
   "description": "C and C++ language support with clangd LSP, CMake/Makefile integration, and lldb-dap debugging",
   "capabilities": [

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ToolchainConfig describes how the plugin provides its toolchain name, environment, and version in the status bar.
@@ -109,6 +110,14 @@ type LocalizationConfig struct {
 	File   string `json:"file"`   // path relative to plugin root, e.g. "locales/ru.json"
 }
 
+// Source tier constants for plugin precedence hierarchy.
+const (
+	TierBuiltin = 1 // Bundled / distribution packages
+	TierUser    = 2 // User global directory (~/.config/tahr/plugins)
+	TierLink    = 3 // Developer directory link (tahr plugin link)
+	TierProject = 4 // Workspace project directory (<workspace>/.tahr/plugins)
+)
+
 // Manifest represents the declarative metadata of a .tahr extension.
 type Manifest struct {
 	ID               string                         `json:"id"`
@@ -117,7 +126,9 @@ type Manifest struct {
 	Author           string                         `json:"author,omitempty"`
 	Description      string                         `json:"description,omitempty"`
 	Category         string                         `json:"category,omitempty"`
-	Capabilities     []string                       `json:"capabilities,omitempty"` // e.g. "fs:read", "process:exec"
+	Type             string                         `json:"type,omitempty"`             // "language", "tool", "theme", "i18n"
+	TargetLanguages  []string                       `json:"target_languages,omitempty"` // For auxiliary tools targeting languages (e.g. "go")
+	Capabilities     []string                       `json:"capabilities,omitempty"`     // e.g. "fs:read", "process:exec"
 	Languages        []LanguageConfig               `json:"languages,omitempty"`
 	Themes           []ThemeConfig                  `json:"themes,omitempty"`
 	LSP              *LSPConfig                     `json:"lsp,omitempty"`
@@ -129,6 +140,39 @@ type Manifest struct {
 	Localizations    []LocalizationConfig           `json:"localizations,omitempty"`
 	Toolchain        *ToolchainConfig               `json:"toolchain,omitempty"`
 	WASMEntry        string                         `json:"wasm_entry,omitempty"`
+
+	SourceTier       int                            `json:"-"` // Precedence tier: TierBuiltin, TierUser, TierLink, TierProject
+}
+
+// IsLanguageProvider reports whether this plugin contributes primary language support.
+func (m *Manifest) IsLanguageProvider() bool {
+	if m == nil {
+		return false
+	}
+	if strings.EqualFold(m.Type, "language") {
+		return true
+	}
+	// Implicit: if type is unspecified, treat as language provider if it declares languages.
+	return m.Type == "" && len(m.Languages) > 0
+}
+
+// TargetsLanguage checks if this plugin provides or targets the given language ID.
+func (m *Manifest) TargetsLanguage(langID string) bool {
+	if m == nil || langID == "" {
+		return false
+	}
+	normID := strings.ToLower(langID)
+	for _, l := range m.Languages {
+		if strings.ToLower(l.ID) == normID {
+			return true
+		}
+	}
+	for _, tl := range m.TargetLanguages {
+		if strings.ToLower(tl) == normID {
+			return true
+		}
+	}
+	return false
 }
 
 // LoadManifest reads and parses a plugin.json file.

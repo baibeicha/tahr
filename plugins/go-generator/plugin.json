@@ -2,6 +2,10 @@
   "id": "go-generator",
   "name": "Go Code & Tag Generator",
   "version": "1.0.0",
+  "type": "tool",
+  "target_languages": [
+    "go"
+  ],
   "author": "Tahr Team",
   "description": "Productivity code generator for Go developers: struct tags (json, db, yaml, validate), constructor generation (New...), and interface method stubs (impl)",
   "commands": [

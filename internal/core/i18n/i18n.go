@@ -310,7 +310,7 @@ var defaultEnglishCatalog = map[string]string{
 	"settings.title":               " Settings ",
 	"settings.saved":               "Settings saved",
 	"settings.hint.actions":        " Tab: Switch | Enter: Edit/Rebind | Ctrl+S: Save | Ctrl+R: Reset | Esc: Close ",
-	"settings.hint.press_key":      "[Press new key...]",
+	"settings.hint.press_key":      "Press new key...",
 
 	// Settings Categories
 	"settings.cat.editor":          "Editor & Cursor",
@@ -506,17 +506,17 @@ var defaultEnglishCatalog = map[string]string{
 	// Toolchains & SDKs
 	"settings.tool.go_sdk_path":    "Go SDK Path",
 	"settings.tool.auto_detected":  "(auto-detected)",
-	"settings.tool.ready":          "[✓] Ready",
-	"settings.tool.missing":        "[!] Missing",
+	"settings.tool.ready":          "Ready",
+	"settings.tool.missing":        "Missing",
 	"settings.tool.val_missing":    "%s (Missing)",
-	"settings.tool.lbl_compiler":   "[%s] Compiler: %s",
-	"settings.tool.lbl_lsp":        "[%s] LSP: %s",
-	"settings.tool.lbl_dap":        "[%s] DAP: %s",
+	"settings.tool.lbl_compiler":   "%s: Compiler: %s",
+	"settings.tool.lbl_lsp":        "%s: LSP: %s",
+	"settings.tool.lbl_dap":        "%s: DAP: %s",
 	"settings.tool.none_label":     "Language Toolchains",
 	"settings.tool.none_val":       "No language plugins currently enabled",
 
 	// Plugins Settings
-	"settings.plugin.open_market_lbl": "Extension Browser",
+	"settings.plugin.open_market_lbl": "Extensions Marketplace",
 	"settings.plugin.open_market_val": "Open Full Marketplace (Ctrl+Shift+X)",
 	"settings.plugin.registry_url_lbl": "Primary Registry URL",
 	"settings.plugin.repo_lbl":     "Repo: %s",
@@ -525,6 +525,9 @@ var defaultEnglishCatalog = map[string]string{
 	"settings.plugin.plugin_lbl":   "Plugin: %s (v%s)",
 	"settings.plugin.status_enabled": "Enabled (Enter: Disable)",
 	"settings.plugin.status_disabled": "Disabled (Enter: Enable)",
+	"settings.plugin.config_section": "Settings",
+	"settings.plugin.installed_summary": "Installed: %d active / %d total",
+	"settings.plugin.manage_in_market": "Open Marketplace (Ctrl+Shift+X)",
 
 	// Option Values
 	"settings.val.opt.absolute":    "Absolute",

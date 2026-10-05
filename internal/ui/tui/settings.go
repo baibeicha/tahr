@@ -13,6 +13,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"github.com/mattn/go-runewidth"
 	"tahr/internal/core/i18n"
 	"tahr/internal/core/keymaps"
 	"tahr/internal/core/plugin"
@@ -56,15 +57,16 @@ type Settings struct {
 	CustomColors map[string]string `json:"custom_colors"`
 
 	// Toolchains
-	GoSDKPath       string            `json:"go_sdk_path"`
-	GoplsPath       string            `json:"gopls_path"`
-	GoBuildFlags    string            `json:"go_build_flags"`
-	PythonPath      string            `json:"python_path"`
-	PythonVenv      string            `json:"python_venv"`
-	PyrightPath     string            `json:"pyright_path"`
-	CargoPath       string            `json:"cargo_path"`
-	RustAnalyzer    string            `json:"rust_analyzer"`
-	CustomToolPaths map[string]string `json:"custom_tool_paths,omitempty"`
+	PreferredLanguageProviders map[string]string `json:"preferred_language_providers,omitempty"`
+	GoSDKPath                  string            `json:"go_sdk_path"`
+	GoplsPath                  string            `json:"gopls_path"`
+	GoBuildFlags               string            `json:"go_build_flags"`
+	PythonPath                 string            `json:"python_path"`
+	PythonVenv                 string            `json:"python_venv"`
+	PyrightPath                string            `json:"pyright_path"`
+	CargoPath                  string            `json:"cargo_path"`
+	RustAnalyzer               string            `json:"rust_analyzer"`
+	CustomToolPaths            map[string]string `json:"custom_tool_paths,omitempty"`
 
 	// Marketplace / Repositories
 	RegistryURL    string                           `json:"registry_url"`
@@ -145,19 +147,20 @@ func DefaultSettings() Settings {
 		KeymapProfile: string(keymaps.ProfileVSCode),
 		VimMode:       false,
 		Keybindings:   DefaultKeybindings(),
-		CustomColors:  make(map[string]string),
-		GoSDKPath:     "",
-		GoplsPath:     "",
-		GoBuildFlags:  "-v",
-		PythonPath:    "python",
-		PythonVenv:    "",
-		PyrightPath:   "pyright-langserver",
-		CargoPath:       "cargo",
-		RustAnalyzer:    "rust-analyzer",
-		CustomToolPaths: make(map[string]string),
-		RegistryURL:     "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/registry.json",
-		Repositories:    plugin.DefaultRepositories(),
-		Plugins:         DefaultMarketplaceCatalog(),
+		CustomColors:              make(map[string]string),
+		PreferredLanguageProviders: make(map[string]string),
+		GoSDKPath:                  "",
+		GoplsPath:                  "",
+		GoBuildFlags:               "-v",
+		PythonPath:                 "python",
+		PythonVenv:                 "",
+		PyrightPath:                "pyright-langserver",
+		CargoPath:                  "cargo",
+		RustAnalyzer:               "rust-analyzer",
+		CustomToolPaths:            make(map[string]string),
+		RegistryURL:                "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/registry.json",
+		Repositories:               plugin.DefaultRepositories(),
+		Plugins:                    DefaultMarketplaceCatalog(),
 	}
 }
 
@@ -189,6 +192,9 @@ func LoadSettings() Settings {
 	var s Settings
 	if err := json.Unmarshal(data, &s); err != nil {
 		return DefaultSettings()
+	}
+	if s.PreferredLanguageProviders == nil {
+		s.PreferredLanguageProviders = make(map[string]string)
 	}
 	if s.Language == "" {
 		s.Language = "en"
@@ -255,6 +261,10 @@ func (st *SettingsState) Save() error {
 	if st == nil {
 		return nil
 	}
+	st.InvalidateFields()
+	if st.pluginMgr != nil {
+		st.pluginMgr.SetPreferredProviders(st.Current.PreferredLanguageProviders)
+	}
 	return SaveSettings(st.Current)
 }
 
@@ -293,6 +303,59 @@ type SettingsState struct {
 	OnToolInstallFinished    func(toolName string, success bool, err string)
 	pluginMgr                *plugin.Manager
 	OpenMarketplaceRequested bool
+
+	// Field caching to eliminate rendering lag in toolchains & plugins
+	cachedFields      []Field
+	cachedCatIdx      int
+	cachedFieldsValid bool
+}
+
+// InvalidateFields clears the cached category fields forcing a fresh query.
+func (st *SettingsState) InvalidateFields() {
+	if st != nil {
+		st.cachedFieldsValid = false
+		st.cachedFields = nil
+	}
+}
+
+// getGeometry computes dynamic responsive modal dimensions and positions based on screen size.
+func (st *SettingsState) getGeometry(w, h int) (modalW, modalH, startX, startY, catW int) {
+	modalW = int(float64(w) * 0.85)
+	if modalW < 84 {
+		modalW = 84
+	}
+	if modalW > w-4 {
+		modalW = w - 4
+	}
+	if modalW < 40 {
+		modalW = w
+	}
+
+	modalH = int(float64(h) * 0.82)
+	if modalH < 22 {
+		modalH = 22
+	}
+	if modalH > h-4 {
+		modalH = h - 4
+	}
+	if modalH < 10 {
+		modalH = h
+	}
+
+	startX = (w - modalW) / 2
+	startY = (h - modalH) / 2
+	if startY < 1 {
+		startY = 1
+	}
+
+	catW = 28
+	if catW > modalW/3 {
+		catW = modalW / 3
+	}
+	if catW < 20 {
+		catW = 20
+	}
+	return
 }
 
 // SetPluginManager binds the active plugin manager to settings for live querying.
@@ -300,7 +363,11 @@ func (st *SettingsState) SetPluginManager(mgr *plugin.Manager) {
 	if st == nil {
 		return
 	}
+	st.InvalidateFields()
 	st.pluginMgr = mgr
+	if mgr != nil && len(st.Current.PreferredLanguageProviders) > 0 {
+		mgr.SetPreferredProviders(st.Current.PreferredLanguageProviders)
+	}
 	if st.Current.Language != "" {
 		i18n.SetLocale(st.Current.Language)
 	}
@@ -381,6 +448,10 @@ func formatAutoSave(val string) string {
 }
 
 func (st *SettingsState) getCategoryFields(catIdx int) []Field {
+	if st.cachedFieldsValid && st.cachedCatIdx == catIdx {
+		return st.cachedFields
+	}
+	var fields []Field
 	switch catIdx {
 	case 0: // Editor & Cursor
 		wrapStr := i18n.T("settings.val.disabled")
@@ -399,7 +470,7 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		if !st.Current.ShowMinimap {
 			minimapStr = i18n.T("settings.val.disabled")
 		}
-		return []Field{
+		fields = []Field{
 			{"tab_size", i18n.T("settings.field.tab_size"), fmt.Sprintf(i18n.T("settings.val.n_spaces"), st.Current.TabSize)},
 			{"use_spaces", i18n.T("settings.field.use_spaces"), spacesStr},
 			{"line_numbers", i18n.T("settings.field.line_numbers"), formatLineNumbers(st.Current.LineNumbers)},
@@ -435,7 +506,7 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		} else if st.Current.FileIconStyle == "minimal" {
 			iconsStr = i18n.T("settings.val.icons_minimal")
 		}
-		return []Field{
+		fields = []Field{
 			{"language", i18n.T("settings.field.language"), currentLangName},
 			{"theme", i18n.T("settings.field.theme"), themeStr},
 			{"tree_position", i18n.T("settings.field.tree_position"), dockStr},
@@ -445,7 +516,7 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 
 	case 2: // Split Panes (1-6)
 		splitStr := fmt.Sprintf(i18n.T("settings.val.n_panes"), st.Current.DefaultSplit)
-		return []Field{
+		fields = []Field{
 			{"default_split", i18n.T("settings.field.default_split"), splitStr},
 			{"split_cycle", i18n.T("settings.field.split_cycle"), st.Current.Keybindings["split_cycle"]},
 			{"split_next", i18n.T("settings.field.split_next"), st.Current.Keybindings["split_next"]},
@@ -453,7 +524,6 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 		}
 
 	case 3: // Keyboard & Shortcuts
-		var fields []Field
 		keys := []struct {
 			id    string
 			label string
@@ -515,10 +585,8 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			}
 			fields = append(fields, Field{Key: k.id, Label: k.label, Value: val})
 		}
-		return fields
 
 	case 4: // Color Palette (HEX)
-		var fields []Field
 		colorKeys := []struct {
 			id    string
 			label string
@@ -549,10 +617,8 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			}
 			fields = append(fields, Field{Key: c.id, Label: c.label, Value: hexVal})
 		}
-		return fields
 
 	case 5: // Toolchains & SDKs (dynamically discovered from plugins)
-		var fields []Field
 		fields = append(fields, Field{
 			Key:   "go_sdk_path",
 			Label: i18n.T("settings.tool.go_sdk_path"),
@@ -594,6 +660,53 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			Value: defaultStr(st.Current.RustAnalyzer, i18n.T("settings.tool.auto_detected")),
 		})
 		if st.pluginMgr != nil {
+			// 0. Language Providers (display active and allow preference cycling if multiple)
+			langSet := make(map[string]bool)
+			for _, p := range st.pluginMgr.InstalledPlugins() {
+				if p.IsLanguageProvider() {
+					for _, l := range p.Languages {
+						if l.ID != "" {
+							langSet[strings.ToLower(l.ID)] = true
+						}
+					}
+				}
+			}
+			var langIDs []string
+			for lID := range langSet {
+				langIDs = append(langIDs, lID)
+			}
+			sort.Strings(langIDs)
+			for _, lID := range langIDs {
+				providers := st.pluginMgr.GetProvidersForLang(lID)
+				if len(providers) == 0 {
+					continue
+				}
+				active := st.pluginMgr.GetActiveProviderForLang(lID)
+				activeName := "None (Disabled)"
+				if active != nil {
+					activeName = active.Name
+					if activeName == "" {
+						activeName = active.ID
+					}
+				}
+				pref := ""
+				if st.Current.PreferredLanguageProviders != nil {
+					pref = st.Current.PreferredLanguageProviders[lID]
+				}
+				valStr := activeName
+				if pref != "" {
+					valStr += fmt.Sprintf(" (Preferred: %s)", pref)
+				} else if len(providers) > 1 {
+					valStr += " (Auto)"
+				}
+				langTitle := strings.ToUpper(lID[:1]) + lID[1:]
+				fields = append(fields, Field{
+					Key:   "lang_provider:" + lID,
+					Label: fmt.Sprintf("Language: %s Provider", langTitle),
+					Value: valStr,
+				})
+			}
+
 			plugins := st.pluginMgr.InstalledPlugins()
 			sort.Slice(plugins, func(i, j int) bool {
 				return plugins[i].ID < plugins[j].ID
@@ -683,12 +796,18 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 				Field{Key: "tool:none", Label: i18n.T("settings.tool.none_label"), Value: i18n.T("settings.tool.none_val")},
 			)
 		}
-		return fields
 
 	case 6: // Plugins & Marketplace
-		var fields []Field
-		fields = append(fields, Field{Key: "open_marketplace", Label: i18n.T("settings.plugin.open_market_lbl"), Value: i18n.T("settings.plugin.open_market_val")})
-		fields = append(fields, Field{Key: "registry_url", Label: i18n.T("settings.plugin.registry_url_lbl"), Value: st.Current.RegistryURL})
+		fields = append(fields, Field{
+			Key:   "open_marketplace",
+			Label: i18n.T("settings.plugin.open_market_lbl"),
+			Value: i18n.T("settings.plugin.open_market_val"),
+		})
+		fields = append(fields, Field{
+			Key:   "registry_url",
+			Label: i18n.T("settings.plugin.registry_url_lbl"),
+			Value: st.Current.RegistryURL,
+		})
 
 		// Repositories from live manager or settings
 		var repos []plugin.PluginRepository
@@ -710,47 +829,80 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			fields = append(fields, Field{Key: "repo_" + r.ID, Label: label, Value: val})
 		}
 
-		// Installed plugins from live manager
+		// Configurable plugin settings (clean list only for plugins with schemas!)
 		if st.pluginMgr != nil {
-			installed := st.pluginMgr.Installed()
-			for _, p := range installed {
-				pStatus := i18n.T("settings.plugin.status_enabled")
-				if !st.pluginMgr.IsEnabled(p.ID) {
-					pStatus = i18n.T("settings.plugin.status_disabled")
-				}
-				label := fmt.Sprintf(i18n.T("settings.plugin.plugin_lbl"), p.Name, p.Version)
-				fields = append(fields, Field{Key: "plugin_" + p.ID, Label: label, Value: pStatus})
+			installed := st.pluginMgr.InstalledPlugins()
+			sort.Slice(installed, func(i, j int) bool {
+				return installed[i].Name < installed[j].Name
+			})
 
-				if len(p.Settings) > 0 && st.pluginMgr.IsEnabled(p.ID) {
-					for sKey, sSchema := range p.Settings {
-						cfgVal := fmt.Sprintf("%v", sSchema.Default)
-						if st.Current.PluginSettings != nil && st.Current.PluginSettings[p.ID] != nil {
-							if custom, ok := st.Current.PluginSettings[p.ID][sKey]; ok {
-								cfgVal = fmt.Sprintf("%v", custom)
-							}
+			for _, p := range installed {
+				if len(p.Settings) == 0 {
+					continue
+				}
+				if !st.pluginMgr.IsEnabled(p.ID) {
+					continue
+				}
+
+				fields = append(fields, Field{
+					Key:   "header_" + p.ID,
+					Label: fmt.Sprintf("── %s: %s ──", p.Name, i18n.T("settings.plugin.config_section")),
+					Value: "",
+				})
+
+				var sKeys []string
+				for k := range p.Settings {
+					sKeys = append(sKeys, k)
+				}
+				sort.Strings(sKeys)
+
+				for _, sKey := range sKeys {
+					sSchema := p.Settings[sKey]
+					cfgVal := fmt.Sprintf("%v", sSchema.Default)
+					if st.Current.PluginSettings != nil && st.Current.PluginSettings[p.ID] != nil {
+						if custom, ok := st.Current.PluginSettings[p.ID][sKey]; ok {
+							cfgVal = fmt.Sprintf("%v", custom)
 						}
-						sLabel := fmt.Sprintf("  • %s: %s", sKey, sSchema.Description)
-						fields = append(fields, Field{Key: fmt.Sprintf("psetting_%s_%s", p.ID, sKey), Label: sLabel, Value: cfgVal})
 					}
+
+					label := sKey
+					if sSchema.Description != "" {
+						label = fmt.Sprintf("%s (%s)", sKey, sSchema.Description)
+					}
+					displayVal := cfgVal
+					if sSchema.Type == "bool" {
+						if cfgVal == "true" {
+							displayVal = i18n.T("settings.val.enabled")
+						} else {
+							displayVal = i18n.T("settings.val.disabled")
+						}
+					}
+					fields = append(fields, Field{
+						Key:   fmt.Sprintf("psetting_%s_%s", p.ID, sKey),
+						Label: label,
+						Value: displayVal,
+					})
 				}
 			}
-		} else {
-			for _, p := range st.Current.Plugins {
-				status := i18n.T("settings.plugin.install")
-				if p.Installed {
-					if p.Enabled {
-						status = i18n.T("settings.plugin.status_enabled")
-					} else {
-						status = i18n.T("settings.plugin.status_disabled")
-					}
+
+			activeCount := 0
+			for _, p := range installed {
+				if st.pluginMgr.IsEnabled(p.ID) {
+					activeCount++
 				}
-				label := fmt.Sprintf(i18n.T("settings.plugin.plugin_lbl"), p.Name, p.Version)
-				fields = append(fields, Field{Key: "plugin_" + p.ID, Label: label, Value: status})
 			}
+			fields = append(fields, Field{
+				Key:   "plugin_summary",
+				Label: fmt.Sprintf(i18n.T("settings.plugin.installed_summary"), activeCount, len(installed)),
+				Value: i18n.T("settings.plugin.manage_in_market"),
+			})
 		}
-		return fields
 	}
-	return nil
+
+	st.cachedFields = fields
+	st.cachedCatIdx = catIdx
+	st.cachedFieldsValid = true
+	return fields
 }
 
 // Render draws the settings dialog onto the goatui buffer.
@@ -772,21 +924,7 @@ func (st *SettingsState) Render(buf *buffer.Buffer, w, h int, themeBg, themeFg, 
 		return
 	}
 
-	modalW := 84
-	if modalW > w-4 {
-		modalW = w - 4
-	}
-	modalH := 20
-	if modalH > h-4 {
-		modalH = h - 4
-	}
-	startX := (w - modalW) / 2
-	startY := (h - modalH) / 2
-	if startY < 1 {
-		startY = 1
-	}
-
-	catW := 24
+	modalW, modalH, startX, startY, catW := st.getGeometry(w, h)
 
 	// 1. Outer box
 	for y := 0; y < modalH; y++ {
@@ -844,9 +982,15 @@ func (st *SettingsState) Render(buf *buffer.Buffer, w, h int, themeBg, themeFg, 
 			buf.SetRune(startX+x, rowY, ' ', cFg, cBg, attr)
 		}
 		catRunes := []rune(cat)
-		for i, r := range catRunes {
-			if 2+i < catW {
-				buf.SetRune(startX+2+i, rowY, r, cFg, cBg, attr)
+		col := 0
+		for _, r := range catRunes {
+			rw := runewidth.RuneWidth(r)
+			if 2+col+rw < catW {
+				buf.SetRune(startX+2+col, rowY, r, cFg, cBg, attr)
+				for extra := 1; extra < rw; extra++ {
+					buf.SetRune(startX+2+col+extra, rowY, ' ', cFg, cBg, attr)
+				}
+				col += rw
 			}
 		}
 	}
@@ -889,58 +1033,96 @@ func (st *SettingsState) Render(buf *buffer.Buffer, w, h int, themeBg, themeFg, 
 			buf.SetRune(formStartX+col, rowY, ' ', fFg, fBg, attr)
 		}
 
-		if st.CategoryIdx == 4 {
-			// Color category with TrueColor swatch: ███ #1e1e2e (no brackets)
-			labelRunes := []rune(f.Label)
-			for i, r := range labelRunes {
-				if i < 22 {
-					buf.SetRune(formStartX+i, rowY, r, fFg, fBg, attr)
+		labelColW := int(float64(formW) * 0.42)
+		if labelColW < 24 {
+			labelColW = 24
+		}
+		if labelColW > 45 {
+			labelColW = 45
+		}
+
+		if f.Value == "" {
+			col := 0
+			for _, r := range []rune(f.Label) {
+				rw := runewidth.RuneWidth(r)
+				if col+rw > formW-1 {
+					break
 				}
+				buf.SetRune(formStartX+col, rowY, r, accentFg, fBg, cell.AttrBold)
+				for extra := 1; extra < rw; extra++ {
+					buf.SetRune(formStartX+col+extra, rowY, ' ', accentFg, fBg, cell.AttrBold)
+				}
+				col += rw
 			}
-			if formW > 23 {
-				buf.SetRune(formStartX+23, rowY, ':', fFg, fBg, attr)
+			continue
+		}
+
+		col := 0
+		maxLabelEnd := labelColW - 2
+		for _, r := range []rune(f.Label) {
+			rw := runewidth.RuneWidth(r)
+			if col+rw > maxLabelEnd {
+				break
 			}
-			swatchX := formStartX + 25
+			buf.SetRune(formStartX+col, rowY, r, fFg, fBg, attr)
+			for extra := 1; extra < rw; extra++ {
+				buf.SetRune(formStartX+col+extra, rowY, ' ', fFg, fBg, attr)
+			}
+			col += rw
+		}
+		if formW > labelColW {
+			buf.SetRune(formStartX+labelColW-1, rowY, ':', fFg, fBg, attr)
+		}
+
+		valStartX := formStartX + labelColW + 1
+		maxValW := formStartX + formW - valStartX
+
+		if st.CategoryIdx == 4 {
+			// Color category with TrueColor swatch: ███ #1e1e2e
 			swatchColor, ok := HexToRGBColor(f.Value)
 			if !ok {
 				swatchColor = fFg
 			}
 			swatchRunes := []rune("███")
 			for i, r := range swatchRunes {
-				buf.SetRune(swatchX+i, rowY, r, swatchColor, fBg, cell.AttrNone)
-			}
-			valX := swatchX + len(swatchRunes) + 1
-			for i, r := range []rune(f.Value) {
-				if valX+i < formStartX+formW {
-					buf.SetRune(valX+i, rowY, r, fFg, fBg, attr)
+				if valStartX+i < formStartX+formW {
+					buf.SetRune(valStartX+i, rowY, r, swatchColor, fBg, cell.AttrNone)
 				}
+			}
+			valX := valStartX + len(swatchRunes) + 1
+			vCol := 0
+			for _, r := range []rune(f.Value) {
+				rw := runewidth.RuneWidth(r)
+				if valX+vCol+rw > formStartX+formW {
+					break
+				}
+				buf.SetRune(valX+vCol, rowY, r, fFg, fBg, attr)
+				for extra := 1; extra < rw; extra++ {
+					buf.SetRune(valX+vCol+extra, rowY, ' ', fFg, fBg, attr)
+				}
+				vCol += rw
 			}
 			continue
 		}
 
-		labelRunes := []rune(f.Label)
-		for i, r := range labelRunes {
-			if i < 22 {
-				buf.SetRune(formStartX+i, rowY, r, fFg, fBg, attr)
-			}
-		}
-		if formW > 23 {
-			buf.SetRune(formStartX+23, rowY, ':', fFg, fBg, attr)
-		}
-
-		valStartX := formStartX + 25
 		valText := f.Value
 		if isCurrentField && st.RebindingKey {
 			valText = i18n.T("settings.hint.press_key")
 		} else if isCurrentField && st.EditingText {
-			valText = fmt.Sprintf("[%s_]", st.InputBuffer)
+			valText = fmt.Sprintf("%s_", st.InputBuffer)
 		}
 
-		valRunes := []rune(valText)
-		for i, r := range valRunes {
-			if valStartX+i < formStartX+formW {
-				buf.SetRune(valStartX+i, rowY, r, fFg, fBg, attr)
+		vCol := 0
+		for _, r := range []rune(valText) {
+			rw := runewidth.RuneWidth(r)
+			if vCol+rw > maxValW {
+				break
 			}
+			buf.SetRune(valStartX+vCol, rowY, r, fFg, fBg, attr)
+			for extra := 1; extra < rw; extra++ {
+				buf.SetRune(valStartX+vCol+extra, rowY, ' ', fFg, fBg, attr)
+			}
+			vCol += rw
 		}
 	}
 
@@ -970,13 +1152,30 @@ func (st *SettingsState) isTextField() bool {
 		return false
 	}
 	if st.CategoryIdx == 5 {
-		if strings.HasPrefix(f.Key, "tool:") {
+		if strings.HasPrefix(f.Key, "tool:") || strings.HasPrefix(f.Key, "lang_provider:") {
 			return false
 		}
 		return true
 	}
-	if st.CategoryIdx == 6 && (f.Key == "registry_url" || strings.HasPrefix(f.Key, "repo_")) {
-		return true
+	if st.CategoryIdx == 6 {
+		if f.Key == "registry_url" || strings.HasPrefix(f.Key, "repo_") {
+			return true
+		}
+		if strings.HasPrefix(f.Key, "psetting_") {
+			parts := strings.SplitN(strings.TrimPrefix(f.Key, "psetting_"), "_", 2)
+			if len(parts) == 2 && st.pluginMgr != nil {
+				p := st.pluginMgr.Installed()[parts[0]]
+				if p != nil {
+					if schema, ok := p.Settings[parts[1]]; ok {
+						if schema.Type == "bool" {
+							return false
+						}
+					}
+				}
+			}
+			return true
+		}
+		return false
 	}
 	return false
 }
@@ -1025,6 +1224,25 @@ func (st *SettingsState) getCurrentFieldValue() string {
 			for _, r := range st.Current.Repositories {
 				if r.ID == repoID {
 					return r.URL
+				}
+			}
+		}
+		if strings.HasPrefix(f.Key, "psetting_") {
+			parts := strings.SplitN(strings.TrimPrefix(f.Key, "psetting_"), "_", 2)
+			if len(parts) == 2 {
+				pID := parts[0]
+				sKey := parts[1]
+				if st.Current.PluginSettings != nil && st.Current.PluginSettings[pID] != nil {
+					if v, ok := st.Current.PluginSettings[pID][sKey]; ok {
+						return fmt.Sprintf("%v", v)
+					}
+				}
+				if st.pluginMgr != nil {
+					if p := st.pluginMgr.Installed()[pID]; p != nil {
+						if s, ok := p.Settings[sKey]; ok {
+							return fmt.Sprintf("%v", s.Default)
+						}
+					}
 				}
 			}
 		}
@@ -1083,6 +1301,22 @@ func (st *SettingsState) setCurrentFieldValue(val string) {
 				}
 			}
 			_ = st.Save()
+		}
+		if strings.HasPrefix(f.Key, "psetting_") {
+			parts := strings.SplitN(strings.TrimPrefix(f.Key, "psetting_"), "_", 2)
+			if len(parts) == 2 {
+				pID := parts[0]
+				sKey := parts[1]
+				if st.Current.PluginSettings == nil {
+					st.Current.PluginSettings = make(map[string]map[string]any)
+				}
+				if st.Current.PluginSettings[pID] == nil {
+					st.Current.PluginSettings[pID] = make(map[string]any)
+				}
+				st.Current.PluginSettings[pID][sKey] = val
+				st.InvalidateFields()
+				_ = st.Save()
+			}
 		}
 	}
 	_ = st.Save()
@@ -1235,9 +1469,46 @@ func (st *SettingsState) cycleCurrentField() {
 			st.Current.DefaultSplit = 1
 		}
 	default:
+		if strings.HasPrefix(f.Key, "lang_provider:") {
+			langID := strings.TrimPrefix(f.Key, "lang_provider:")
+			if st.pluginMgr != nil {
+				providers := st.pluginMgr.GetProvidersForLang(langID)
+				if len(providers) > 1 {
+					options := []string{""}
+					for _, p := range providers {
+						options = append(options, p.ID)
+					}
+					currentPref := ""
+					if st.Current.PreferredLanguageProviders != nil {
+						currentPref = st.Current.PreferredLanguageProviders[langID]
+					}
+					nextIdx := 0
+					for idx, opt := range options {
+						if opt == currentPref {
+							nextIdx = (idx + 1) % len(options)
+							break
+						}
+					}
+					if st.Current.PreferredLanguageProviders == nil {
+						st.Current.PreferredLanguageProviders = make(map[string]string)
+					}
+					if options[nextIdx] == "" {
+						delete(st.Current.PreferredLanguageProviders, langID)
+					} else {
+						st.Current.PreferredLanguageProviders[langID] = options[nextIdx]
+					}
+					_ = st.Save()
+					if st.OnSettingsChanged != nil {
+						st.OnSettingsChanged()
+					}
+					return
+				}
+			}
+		}
+
 		// Check if it's a plugin action in Category 6
 		if st.CategoryIdx == 6 {
-			if f.Key == "open_marketplace" {
+			if f.Key == "open_marketplace" || f.Key == "plugin_summary" {
 				st.OpenMarketplaceRequested = true
 				return
 			}
@@ -1246,6 +1517,7 @@ func (st *SettingsState) cycleCurrentField() {
 				if st.pluginMgr != nil {
 					_ = st.pluginMgr.ToggleRepository(repoID)
 				}
+				st.InvalidateFields()
 				_ = st.Save()
 				if st.OnSettingsChanged != nil {
 					st.OnSettingsChanged()
@@ -1257,23 +1529,36 @@ func (st *SettingsState) cycleCurrentField() {
 				if len(parts) == 2 {
 					pID := parts[0]
 					sKey := parts[1]
-					if st.Current.PluginSettings == nil {
-						st.Current.PluginSettings = make(map[string]map[string]any)
+					var isBool bool
+					if st.pluginMgr != nil {
+						if p := st.pluginMgr.Installed()[pID]; p != nil {
+							if schema, ok := p.Settings[sKey]; ok {
+								isBool = schema.Type == "bool"
+							}
+						}
 					}
-					if st.Current.PluginSettings[pID] == nil {
-						st.Current.PluginSettings[pID] = make(map[string]any)
-					}
-					currVal := st.Current.PluginSettings[pID][sKey]
-					if bVal, ok := currVal.(bool); ok {
+					if isBool {
+						if st.Current.PluginSettings == nil {
+							st.Current.PluginSettings = make(map[string]map[string]any)
+						}
+						if st.Current.PluginSettings[pID] == nil {
+							st.Current.PluginSettings[pID] = make(map[string]any)
+						}
+						currVal := st.Current.PluginSettings[pID][sKey]
+						bVal := false
+						if b, ok := currVal.(bool); ok {
+							bVal = b
+						} else if s, ok := currVal.(string); ok {
+							bVal = strings.ToLower(s) == "true"
+						}
 						st.Current.PluginSettings[pID][sKey] = !bVal
-					} else {
-						st.Current.PluginSettings[pID][sKey] = fmt.Sprint(currVal) != "true"
+						st.InvalidateFields()
+						_ = st.Save()
+						if st.OnSettingsChanged != nil {
+							st.OnSettingsChanged()
+						}
+						return
 					}
-					_ = st.Save()
-					if st.OnSettingsChanged != nil {
-						st.OnSettingsChanged()
-					}
-					return
 				}
 			}
 			if strings.HasPrefix(f.Key, "plugin_") {
@@ -1284,40 +1569,12 @@ func (st *SettingsState) cycleCurrentField() {
 					} else {
 						_ = st.pluginMgr.EnablePlugin(pluginID)
 					}
+					st.InvalidateFields()
 					_ = st.Save()
 					if st.OnSettingsChanged != nil {
 						st.OnSettingsChanged()
 					}
 					return
-				}
-				for i := range st.Current.Plugins {
-					p := &st.Current.Plugins[i]
-					if p.ID == pluginID {
-						if !p.Installed {
-							p.Installed = true
-							p.Enabled = true
-						} else {
-							p.Enabled = !p.Enabled
-						}
-						break
-					}
-				}
-				_ = st.Save()
-				if st.OnSettingsChanged != nil {
-					st.OnSettingsChanged()
-				}
-				return
-			}
-			for i := range st.Current.Plugins {
-				p := &st.Current.Plugins[i]
-				if p.ID == f.Key {
-					if !p.Installed {
-						p.Installed = true
-						p.Enabled = true
-					} else {
-						p.Enabled = !p.Enabled
-					}
-					break
 				}
 			}
 		}
@@ -1515,6 +1772,7 @@ func (st *SettingsState) HandleKey(k input.Key) (bool, bool) { // (handled, shou
 		if !st.FocusRight {
 			if st.CategoryIdx > 0 {
 				st.CategoryIdx--
+				st.InvalidateFields()
 				st.FieldIdx = 0
 			}
 		} else {
@@ -1528,6 +1786,7 @@ func (st *SettingsState) HandleKey(k input.Key) (bool, bool) { // (handled, shou
 		if !st.FocusRight {
 			if st.CategoryIdx+1 < len(st.getCategories()) {
 				st.CategoryIdx++
+				st.InvalidateFields()
 				st.FieldIdx = 0
 			}
 		} else {
@@ -2146,19 +2405,7 @@ func (st *SettingsState) HandleClick(mouseX, mouseY, w, h int) (handled bool, sh
 		return st.HandleToolActionClick(mouseX, mouseY, w, h), false
 	}
 
-	modalW := 84
-	if modalW > w-4 {
-		modalW = w - 4
-	}
-	modalH := 20
-	if modalH > h-4 {
-		modalH = h - 4
-	}
-	startX := (w - modalW) / 2
-	startY := (h - modalH) / 2
-	if startY < 1 {
-		startY = 1
-	}
+	modalW, modalH, startX, startY, catW := st.getGeometry(w, h)
 
 	// Click outside -> close settings
 	if mouseX < startX || mouseX >= startX+modalW || mouseY < startY || mouseY >= startY+modalH {
@@ -2166,7 +2413,6 @@ func (st *SettingsState) HandleClick(mouseX, mouseY, w, h int) (handled bool, sh
 		return true, true
 	}
 
-	catW := 24
 	divX := startX + catW
 
 	// Click on left category list
@@ -2175,6 +2421,7 @@ func (st *SettingsState) HandleClick(mouseX, mouseY, w, h int) (handled bool, sh
 			rowY := startY + 2 + idx
 			if mouseY == rowY {
 				st.CategoryIdx = idx
+				st.InvalidateFields()
 				st.FieldIdx = 0
 				st.FocusRight = false
 				return true, false

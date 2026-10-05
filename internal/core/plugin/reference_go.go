@@ -15,8 +15,10 @@ func ReferenceGoPluginManifest() Manifest {
 		ID:          "tahr-go",
 		Name:        "Go Language Support",
 		Version:     "1.0.0",
+		Type:        "language",
 		Author:      "Tahr Team",
 		Description: "Language Server (gopls), Delve debugger, launch templates and SDK autodetection",
+		SourceTier:  TierBuiltin,
 		Capabilities: []string{"fs:read", "process:exec"},
 		Toolchain: &ToolchainConfig{
 			Name:       "Go",

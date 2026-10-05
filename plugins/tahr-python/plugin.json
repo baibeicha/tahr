@@ -2,6 +2,7 @@
   "id": "tahr-python",
   "name": "Python Language Support",
   "version": "1.0.0",
+  "type": "language",
   "author": "Tahr Team",
   "description": "Python language support with Pyright LSP, debugpy DAP debugger, pytest integration, virtualenv autodetection",
   "capabilities": [

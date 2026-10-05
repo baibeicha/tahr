@@ -56,22 +56,31 @@ type DynamicSDKProvider func(sdkID string) string
 
 // Manager coordinates plugin discovery, installation, and registration.
 type Manager struct {
-	mu                sync.RWMutex
-	pluginsDir        string
-	projectPluginsDir string
-	isDefaultDir      bool
-	reposFile         string
-	stateFile         string
-	state             PluginState
-	repositories      []PluginRepository
-	workspaceRoot     string
-	installed         map[string]*Manifest
-	languages         map[string]*LanguageConfig // ext -> config
-	filenameLanguages map[string]*LanguageConfig // filename (lower) -> config
-	languageOwners    map[*LanguageConfig]*Manifest
-	dynamicSDK        DynamicSDKProvider
-	host              *WASMHost
-	listeners         []LifecycleListener
+	mu                 sync.RWMutex
+	pluginsDir         string
+	projectPluginsDir  string
+	isDefaultDir       bool
+	reposFile          string
+	stateFile          string
+	state              PluginState
+	repositories       []PluginRepository
+	workspaceRoot      string
+	installed          map[string]*Manifest
+	languages          map[string]*LanguageConfig // ext -> config
+	filenameLanguages  map[string]*LanguageConfig // filename (lower) -> config
+	languageOwners     map[*LanguageConfig]*Manifest
+	preferredProviders map[string]string // langID or ext -> pluginID
+	dynamicSDK         DynamicSDKProvider
+	toolCacheMu        sync.RWMutex
+	toolPathCache      map[string]toolCacheEntry
+	host               *WASMHost
+	listeners          []LifecycleListener
+}
+
+type toolCacheEntry struct {
+	path      string
+	ok        bool
+	expiresAt time.Time
 }
 
 // NewManager creates a plugin manager rooted at pluginsDir.
@@ -98,17 +107,19 @@ func NewManager(pluginsDir string) (*Manager, error) {
 	host, _ := NewWASMHost()
 
 	m := &Manager{
-		pluginsDir:   pluginsDir,
-		isDefaultDir: isDefaultDir,
-		reposFile:    reposFile,
-		stateFile:    stateFile,
-		state:        PluginState{Enabled: make(map[string]bool)},
-		repositories: make([]PluginRepository, 0),
-		installed:         make(map[string]*Manifest),
-		languages:         make(map[string]*LanguageConfig),
-		filenameLanguages: make(map[string]*LanguageConfig),
-		languageOwners:    make(map[*LanguageConfig]*Manifest),
-		host:              host,
+		pluginsDir:         pluginsDir,
+		isDefaultDir:       isDefaultDir,
+		reposFile:          reposFile,
+		stateFile:          stateFile,
+		state:              PluginState{Enabled: make(map[string]bool)},
+		repositories:       make([]PluginRepository, 0),
+		installed:          make(map[string]*Manifest),
+		languages:          make(map[string]*LanguageConfig),
+		filenameLanguages:  make(map[string]*LanguageConfig),
+		languageOwners:     make(map[*LanguageConfig]*Manifest),
+		preferredProviders: make(map[string]string),
+		toolPathCache:      make(map[string]toolCacheEntry),
+		host:               host,
 	}
 
 	_ = m.LoadRepositories()
@@ -204,32 +215,63 @@ func (m *Manager) SetProjectDir(projectDir string) {
 	_ = m.Discover()
 }
 
-// candidatePluginDirs returns all potential directories where plugins or plugin archives may be located.
-func (m *Manager) candidatePluginDirs() []string {
-	dirs := []string{m.pluginsDir}
+type scanDirInfo struct {
+	dir  string
+	tier int
+}
+
+func (m *Manager) getScanDirsLocked() []scanDirInfo {
+	var list []scanDirInfo
+	seen := make(map[string]bool)
+
+	add := func(dir string, tier int) {
+		if dir == "" {
+			return
+		}
+		abs, err := filepath.Abs(dir)
+		if err != nil {
+			abs = dir
+		}
+		if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
+			if !seen[abs] {
+				seen[abs] = true
+				list = append(list, scanDirInfo{dir: abs, tier: tier})
+			}
+		}
+	}
+
+	// 1. Project-level plugins: highest directory tier (TierProject = 4)
 	if m.projectPluginsDir != "" {
-		dirs = append(dirs, m.projectPluginsDir)
+		add(m.projectPluginsDir, TierProject)
 	}
+
+	// 2. User-level plugins: TierUser = 2 (subdirs may be TierLink = 3 if symlink)
+	if m.pluginsDir != "" {
+		add(m.pluginsDir, TierUser)
+	}
+
 	if !m.isDefaultDir {
-		return dirs
+		return list
 	}
+
+	// 3. Builtin / distribution / executable plugins: TierBuiltin = 1
 	if home, err := os.UserHomeDir(); err == nil && os.Getenv("TAHR_CONFIG_DIR") == "" {
 		altDir := filepath.Join(home, ".tahr", "plugins")
 		if altDir != m.pluginsDir && altDir != m.projectPluginsDir {
-			dirs = append(dirs, altDir)
+			add(altDir, TierBuiltin)
 		}
 	}
 	if execPath, err := os.Executable(); err == nil {
 		execDir := filepath.Dir(execPath)
-		dirs = append(dirs, filepath.Join(execDir, "plugins"))
-		dirs = append(dirs, filepath.Join(execDir, "..", "plugins"))
+		add(filepath.Join(execDir, "plugins"), TierBuiltin)
+		add(filepath.Join(execDir, "..", "plugins"), TierBuiltin)
 	}
 	if cwd, err := os.Getwd(); err == nil {
 		cur := cwd
 		for i := 0; i < 5; i++ {
 			p := filepath.Join(cur, "plugins")
 			if fi, err := os.Stat(p); err == nil && fi.IsDir() {
-				dirs = append(dirs, p)
+				add(p, TierBuiltin)
 				break
 			}
 			parent := filepath.Dir(cur)
@@ -240,48 +282,51 @@ func (m *Manager) candidatePluginDirs() []string {
 		}
 	}
 
-	seen := make(map[string]bool)
-	var result []string
-	for _, d := range dirs {
-		if d == "" {
-			continue
-		}
-		abs, err := filepath.Abs(d)
-		if err != nil {
-			abs = d
-		}
-		if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
-			if !seen[abs] {
-				seen[abs] = true
-				result = append(result, abs)
-			}
-		}
-	}
-	return result
+	return list
 }
 
-// Discover scans pluginsDir and loads all installed manifests.
+// candidatePluginDirs returns all potential directories where plugins or plugin archives may be located.
+func (m *Manager) candidatePluginDirs() []string {
+	scanDirs := m.getScanDirsLocked()
+	res := make([]string, 0, len(scanDirs))
+	for _, s := range scanDirs {
+		res = append(res, s.dir)
+	}
+	return res
+}
+
+// Discover scans candidate directories and loads all installed manifests with proper source tiers.
 func (m *Manager) Discover() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	dirsToScan := m.candidatePluginDirs()
+	scanDirs := m.getScanDirsLocked()
 
-	for _, pDir := range dirsToScan {
-		entries, err := os.ReadDir(pDir)
+	for _, s := range scanDirs {
+		entries, err := os.ReadDir(s.dir)
 		if err != nil {
 			continue
 		}
 
 		for _, e := range entries {
 			if e.IsDir() {
-				manifestPath := filepath.Join(pDir, e.Name(), "plugin.json")
+				manifestPath := filepath.Join(s.dir, e.Name(), "plugin.json")
 				manifest, err := LoadManifest(manifestPath)
 				if err != nil {
 					continue
 				}
 
-				if _, exists := m.installed[manifest.ID]; !exists {
+				tier := s.tier
+				if s.tier == TierUser {
+					entryPath := filepath.Join(s.dir, e.Name())
+					if fi, err := os.Lstat(entryPath); err == nil && (fi.Mode()&os.ModeSymlink != 0) {
+						tier = TierLink
+					}
+				}
+				manifest.SourceTier = tier
+
+				existing, exists := m.installed[manifest.ID]
+				if !exists || manifest.SourceTier > existing.SourceTier {
 					m.installed[manifest.ID] = manifest
 					if m.state.Enabled == nil {
 						m.state.Enabled = make(map[string]bool)
@@ -293,31 +338,27 @@ func (m *Manager) Discover() error {
 						_ = m.saveStateLocked()
 					}
 					if enabled {
-						for i := range manifest.Languages {
-							lang := &manifest.Languages[i]
-							for _, ext := range lang.Extensions {
-								m.languages[ext] = lang
-							}
-						}
-						m.registerLocalizationsLocked(manifest, filepath.Join(pDir, e.Name()))
+						m.registerLocalizationsLocked(manifest, filepath.Join(s.dir, e.Name()))
 					}
 
-					// Ensure plugin is also deployed to user pluginsDir for persistence
-					if pDir != m.pluginsDir && m.pluginsDir != "" {
+					// Auto-deploy builtin/candidate to user pluginsDir for persistence (only if not project dir)
+					if s.tier == TierBuiltin && m.pluginsDir != "" && s.dir != m.pluginsDir {
 						destDir := filepath.Join(m.pluginsDir, manifest.ID)
 						if _, err := os.Stat(destDir); os.IsNotExist(err) {
-							_ = copyDir(filepath.Join(pDir, e.Name()), destDir)
+							_ = copyDir(filepath.Join(s.dir, e.Name()), destDir)
 						}
 					}
 				}
 			} else if strings.HasSuffix(e.Name(), ".tahr") {
 				pluginID := strings.TrimSuffix(e.Name(), ".tahr")
-				if _, exists := m.installed[pluginID]; !exists {
-					targetDir := filepath.Join(m.pluginsDir, pluginID)
-					archivePath := filepath.Join(pDir, e.Name())
-					if _, err := os.Stat(filepath.Join(targetDir, "plugin.json")); os.IsNotExist(err) {
-						manifest, err := UnpackArchive(archivePath, targetDir)
-						if err == nil && manifest != nil {
+				archivePath := filepath.Join(s.dir, e.Name())
+				targetDir := filepath.Join(m.pluginsDir, pluginID)
+				if _, err := os.Stat(filepath.Join(targetDir, "plugin.json")); os.IsNotExist(err) {
+					manifest, err := UnpackArchive(archivePath, targetDir)
+					if err == nil && manifest != nil {
+						manifest.SourceTier = s.tier
+						existing, exists := m.installed[manifest.ID]
+						if !exists || manifest.SourceTier > existing.SourceTier {
 							m.installed[manifest.ID] = manifest
 							if m.state.Enabled == nil {
 								m.state.Enabled = make(map[string]bool)
@@ -329,12 +370,6 @@ func (m *Manager) Discover() error {
 								_ = m.saveStateLocked()
 							}
 							if enabled {
-								for i := range manifest.Languages {
-									lang := &manifest.Languages[i]
-									for _, ext := range lang.Extensions {
-										m.languages[ext] = lang
-									}
-								}
 								m.registerLocalizationsLocked(manifest, targetDir)
 							}
 						}
@@ -376,14 +411,10 @@ func (m *Manager) Install(archivePath string) (*Manifest, error) {
 		}
 	}
 
+	manifest.SourceTier = TierUser
 	m.mu.Lock()
 	m.installed[manifest.ID] = manifest
-	for i := range manifest.Languages {
-		lang := &manifest.Languages[i]
-		for _, ext := range lang.Extensions {
-			m.languages[ext] = lang
-		}
-	}
+	m.rebuildActiveLanguagesLocked()
 	m.registerLocalizationsLocked(manifest, destDir)
 	m.mu.Unlock()
 
@@ -408,48 +439,37 @@ func (m *Manager) Link(sourceDir string) (*Manifest, error) {
 		}
 	}
 
+	manifest.SourceTier = TierLink
 	m.mu.Lock()
 	m.installed[manifest.ID] = manifest
-	for i := range manifest.Languages {
-		lang := &manifest.Languages[i]
-		for _, ext := range lang.Extensions {
-			m.languages[ext] = lang
-		}
-	}
+	m.rebuildActiveLanguagesLocked()
 	m.registerLocalizationsLocked(manifest, destDir)
 	m.mu.Unlock()
 
 	return manifest, nil
 }
 
-// CanonicalLanguagePlugins maps file extensions and language IDs to their canonical plugin ID.
-var CanonicalLanguagePlugins = map[string]string{
-	".go":        "tahr-go",
-	"go":         "tahr-go",
-	".py":        "tahr-python",
-	".pyw":       "tahr-python",
-	".pyi":       "tahr-python",
-	"python":     "tahr-python",
-	".rs":        "tahr-rust",
-	"rust":       "tahr-rust",
-	".ts":        "tahr-ts",
-	".tsx":       "tahr-ts",
-	".js":        "tahr-ts",
-	".jsx":       "tahr-ts",
-	".mjs":       "tahr-ts",
-	".cjs":       "tahr-ts",
-	"typescript": "tahr-ts",
-	"javascript": "tahr-ts",
-	".c":         "tahr-clangd",
-	".h":         "tahr-clangd",
-	".cpp":       "tahr-clangd",
-	".cc":        "tahr-clangd",
-	".cxx":       "tahr-clangd",
-	".hpp":       "tahr-clangd",
-	".hxx":       "tahr-clangd",
-	"c":          "tahr-clangd",
-	"cpp":        "tahr-clangd",
-	"c_cpp":      "tahr-clangd",
+// SetPreferredProviders configures preferred plugin IDs for languages or extensions.
+// Keys can be language IDs (e.g. "go", "python") or file extensions (e.g. ".go", ".py").
+func (m *Manager) SetPreferredProviders(prefs map[string]string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.preferredProviders = make(map[string]string, len(prefs))
+	for k, v := range prefs {
+		m.preferredProviders[strings.ToLower(strings.TrimSpace(k))] = strings.TrimSpace(v)
+	}
+	m.rebuildActiveLanguagesLocked()
+}
+
+// GetPreferredProviders returns a copy of configured preferred language providers.
+func (m *Manager) GetPreferredProviders() map[string]string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	res := make(map[string]string, len(m.preferredProviders))
+	for k, v := range m.preferredProviders {
+		res[k] = v
+	}
+	return res
 }
 
 // GetLanguageConfig returns the configuration associated with file extension.
@@ -457,11 +477,6 @@ func (m *Manager) GetLanguageConfig(ext string) *LanguageConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	normExt := strings.ToLower(ext)
-	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
-		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-			return nil
-		}
-	}
 	return m.languages[normExt]
 }
 
@@ -504,16 +519,11 @@ func (m *Manager) IsEnabled(id string) bool {
 	return m.isEnabledLocked(id)
 }
 
-// IsExtensionActive returns true if an enabled plugin provides support for this file extension.
+// IsExtensionActive returns true if an enabled language plugin provides support for this file extension.
 func (m *Manager) IsExtensionActive(ext string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	normExt := strings.ToLower(ext)
-	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
-		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-			return false
-		}
-	}
 	return m.languages[normExt] != nil
 }
 
@@ -536,29 +546,99 @@ func (m *Manager) notifyLifecycle(pluginID string, enabled bool) {
 	}
 }
 
+// isBetterProvider compares two language providers to determine precedence.
+// Order: User Preferred Provider > Source Tier (Project > Link > User > Builtin) > Higher Version > Plugin ID.
+func (m *Manager) isBetterProvider(candInst *Manifest, candLang *LanguageConfig, curInst *Manifest, curLang *LanguageConfig, key string) bool {
+	normKey := strings.ToLower(key)
+	candLangID := ""
+	if candLang != nil {
+		candLangID = strings.ToLower(candLang.ID)
+	}
+	curLangID := ""
+	if curLang != nil {
+		curLangID = strings.ToLower(curLang.ID)
+	}
+
+	// 1. User Preferred Provider has highest precedence
+	prefKey := m.preferredProviders[normKey]
+	prefCandLang := m.preferredProviders[candLangID]
+	prefCurLang := m.preferredProviders[curLangID]
+
+	candIsPreferred := (prefKey != "" && candInst.ID == prefKey) || (prefCandLang != "" && candInst.ID == prefCandLang)
+	curIsPreferred := (prefKey != "" && curInst.ID == prefKey) || (prefCurLang != "" && curInst.ID == prefCurLang)
+
+	if candIsPreferred && !curIsPreferred {
+		return true
+	}
+	if !candIsPreferred && curIsPreferred {
+		return false
+	}
+
+	// 2. Source Tier precedence: Project (4) > Link (3) > User (2) > Builtin (1)
+	candTier := candInst.SourceTier
+	if candTier == 0 {
+		candTier = TierUser
+	}
+	curTier := curInst.SourceTier
+	if curTier == 0 {
+		curTier = TierUser
+	}
+
+	if candTier > curTier {
+		return true
+	}
+	if candTier < curTier {
+		return false
+	}
+
+	// 3. Higher version or deterministic tie-breaker
+	if candInst.Version != curInst.Version {
+		return candInst.Version > curInst.Version
+	}
+	return candInst.ID > curInst.ID
+}
+
 func (m *Manager) rebuildActiveLanguagesLocked() {
 	m.languages = make(map[string]*LanguageConfig)
 	m.filenameLanguages = make(map[string]*LanguageConfig)
 	m.languageOwners = make(map[*LanguageConfig]*Manifest)
+
 	for _, inst := range m.installed {
 		if !m.isEnabledLocked(inst.ID) {
 			continue
 		}
+		if !inst.IsLanguageProvider() {
+			continue
+		}
 		for i := range inst.Languages {
 			lang := &inst.Languages[i]
-			m.languageOwners[lang] = inst
 			for _, ext := range lang.Extensions {
 				normExt := strings.ToLower(ext)
-				if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
-					if inst.ID != primaryID && m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-						continue
+				curLang := m.languages[normExt]
+				if curLang == nil {
+					m.languages[normExt] = lang
+					m.languageOwners[lang] = inst
+				} else {
+					curOwner := m.languageOwners[curLang]
+					if curOwner == nil || m.isBetterProvider(inst, lang, curOwner, curLang, normExt) {
+						m.languages[normExt] = lang
+						m.languageOwners[lang] = inst
 					}
 				}
-				m.languages[normExt] = lang
 			}
 			for _, fn := range lang.Filenames {
 				normFn := strings.ToLower(fn)
-				m.filenameLanguages[normFn] = lang
+				curLang := m.filenameLanguages[normFn]
+				if curLang == nil {
+					m.filenameLanguages[normFn] = lang
+					m.languageOwners[lang] = inst
+				} else {
+					curOwner := m.languageOwners[curLang]
+					if curOwner == nil || m.isBetterProvider(inst, lang, curOwner, curLang, normFn) {
+						m.filenameLanguages[normFn] = lang
+						m.languageOwners[lang] = inst
+					}
+				}
 			}
 		}
 	}
@@ -577,11 +657,6 @@ func (m *Manager) GetLanguageConfigForFile(filename string) *LanguageConfig {
 	defer m.mu.RUnlock()
 	ext := strings.ToLower(filepath.Ext(filename))
 	if ext != "" {
-		if primaryID, ok := CanonicalLanguagePlugins[ext]; ok {
-			if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-				return nil
-			}
-		}
 		if lang := m.languages[ext]; lang != nil {
 			return lang
 		}
@@ -601,11 +676,6 @@ func (m *Manager) GetToolchainLabel(ext, filename, workspaceDir string) (string,
 
 	var lang *LanguageConfig
 	if normExt != "" {
-		if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
-			if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-				return "", false
-			}
-		}
 		lang = m.languages[normExt]
 	}
 
@@ -676,6 +746,80 @@ func (m *Manager) GetToolchainLabel(ext, filename, workspaceDir string) (string,
 	}
 
 	return label, true
+}
+
+// GetProvidersForExt returns all installed plugins that support the given file extension.
+func (m *Manager) GetProvidersForExt(ext string) []*Manifest {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	normExt := strings.ToLower(ext)
+	var res []*Manifest
+	for _, inst := range m.installed {
+		if !inst.IsLanguageProvider() {
+			continue
+		}
+		for _, l := range inst.Languages {
+			for _, e := range l.Extensions {
+				if strings.ToLower(e) == normExt {
+					res = append(res, inst)
+					break
+				}
+			}
+		}
+	}
+	return res
+}
+
+// GetProvidersForLang returns all installed plugins that support the given language ID.
+func (m *Manager) GetProvidersForLang(langID string) []*Manifest {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	normID := strings.ToLower(langID)
+	var res []*Manifest
+	for _, inst := range m.installed {
+		if !inst.IsLanguageProvider() {
+			continue
+		}
+		for _, l := range inst.Languages {
+			if strings.ToLower(l.ID) == normID {
+				res = append(res, inst)
+				break
+			}
+		}
+	}
+	return res
+}
+
+// GetActiveProviderForExt returns the active manifest providing language support for the extension.
+func (m *Manager) GetActiveProviderForExt(ext string) *Manifest {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	normExt := strings.ToLower(ext)
+	lang := m.languages[normExt]
+	if lang == nil {
+		return nil
+	}
+	owner := m.languageOwners[lang]
+	if owner == nil || !m.isEnabledLocked(owner.ID) {
+		return nil
+	}
+	return owner
+}
+
+// GetActiveProviderForLang returns the active manifest providing language support for the language ID.
+func (m *Manager) GetActiveProviderForLang(langID string) *Manifest {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	normID := strings.ToLower(langID)
+	for _, lang := range m.languages {
+		if strings.ToLower(lang.ID) == normID {
+			owner := m.languageOwners[lang]
+			if owner != nil && m.isEnabledLocked(owner.ID) {
+				return owner
+			}
+		}
+	}
+	return nil
 }
 
 // EnablePlugin loads and activates an installed plugin from disk.
@@ -903,10 +1047,49 @@ func fileWithExtensions(baseDir, toolName string) []string {
 	return []string{filepath.Join(baseDir, toolName)}
 }
 
+// ClearToolPathCache invalidates cached toolpaths.
+func (m *Manager) ClearToolPathCache() {
+	if m == nil {
+		return
+	}
+	m.toolCacheMu.Lock()
+	m.toolPathCache = make(map[string]toolCacheEntry)
+	m.toolCacheMu.Unlock()
+}
+
 // FindToolPath resolves the absolute or executable path of a tool binary.
-// It checks in order: customPath -> direct LookPath -> workspace venvs -> VIRTUAL_ENV ->
-// npm global -> Python user/system scripts -> GOPATH/GOROOT -> Cargo -> known SDK dirs -> aliases.
+// Results are cached in memory for high performance.
 func (m *Manager) FindToolPath(toolName string, customPath string) (string, bool) {
+	if toolName == "" && customPath == "" {
+		return "", false
+	}
+	cacheKey := toolName + "\x00" + customPath
+	if m != nil {
+		m.toolCacheMu.RLock()
+		if entry, found := m.toolPathCache[cacheKey]; found && time.Now().Before(entry.expiresAt) {
+			m.toolCacheMu.RUnlock()
+			return entry.path, entry.ok
+		}
+		m.toolCacheMu.RUnlock()
+	}
+
+	p, ok := m.findToolPathUncached(toolName, customPath)
+	if m != nil {
+		m.toolCacheMu.Lock()
+		if m.toolPathCache == nil {
+			m.toolPathCache = make(map[string]toolCacheEntry)
+		}
+		m.toolPathCache[cacheKey] = toolCacheEntry{
+			path:      p,
+			ok:        ok,
+			expiresAt: time.Now().Add(30 * time.Second),
+		}
+		m.toolCacheMu.Unlock()
+	}
+	return p, ok
+}
+
+func (m *Manager) findToolPathUncached(toolName string, customPath string) (string, bool) {
 	if customPath != "" {
 		if fi, err := os.Stat(customPath); err == nil {
 			if !fi.IsDir() {
@@ -1302,6 +1485,9 @@ func (m *Manager) InstallDeclarative(manifest Manifest) (*Manifest, error) {
 		return nil, fmt.Errorf("write plugin manifest %s: %w", manifestFile, err)
 	}
 
+	if manifest.SourceTier == 0 {
+		manifest.SourceTier = TierUser
+	}
 	m.mu.Lock()
 	m.installed[manifest.ID] = &manifest
 	if m.state.Enabled == nil {
@@ -1335,54 +1521,36 @@ func (m *Manager) InstalledThemes() map[string]ThemeConfig {
 	return res
 }
 
-// GetLSPForExt returns LSP launch parameters configured for the given file extension.
+// GetLSPForExt returns LSP launch parameters configured by the active provider for the given file extension.
 func (m *Manager) GetLSPForExt(ext string) *LSPConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	normExt := strings.ToLower(ext)
-	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
-		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-			return nil
-		}
+	lang := m.languages[normExt]
+	if lang == nil {
+		return nil
 	}
-	for _, p := range m.installed {
-		if !m.isEnabledLocked(p.ID) {
-			continue
-		}
-		for _, l := range p.Languages {
-			for _, e := range l.Extensions {
-				if strings.ToLower(e) == normExt && p.LSP != nil {
-					return p.LSP
-				}
-			}
-		}
+	owner := m.languageOwners[lang]
+	if owner == nil || !m.isEnabledLocked(owner.ID) {
+		return nil
 	}
-	return nil
+	return owner.LSP
 }
 
-// GetDAPForExt returns DAP launch parameters configured for the given file extension.
+// GetDAPForExt returns DAP launch parameters configured by the active provider for the given file extension.
 func (m *Manager) GetDAPForExt(ext string) *DAPConfig {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	normExt := strings.ToLower(ext)
-	if primaryID, ok := CanonicalLanguagePlugins[normExt]; ok {
-		if m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-			return nil
-		}
+	lang := m.languages[normExt]
+	if lang == nil {
+		return nil
 	}
-	for _, p := range m.installed {
-		if !m.isEnabledLocked(p.ID) {
-			continue
-		}
-		for _, l := range p.Languages {
-			for _, e := range l.Extensions {
-				if strings.ToLower(e) == normExt && p.DAP != nil {
-					return p.DAP
-				}
-			}
-		}
+	owner := m.languageOwners[lang]
+	if owner == nil || !m.isEnabledLocked(owner.ID) {
+		return nil
 	}
-	return nil
+	return owner.DAP
 }
 
 
@@ -1644,7 +1812,7 @@ func (m *Manager) GetProjectTemplates() []ProjectTemplate {
 	return res
 }
 
-// GetSupportedLaunchTypes returns all execution/profile types supported by installed plugins + "shell".
+// GetSupportedLaunchTypes returns all execution/profile types supported by installed active plugins + "shell".
 func (m *Manager) GetSupportedLaunchTypes() []string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -1653,31 +1821,19 @@ func (m *Manager) GetSupportedLaunchTypes() []string {
 	typeSet["shell"] = true
 
 	for _, inst := range m.installed {
-		if m.state.Enabled != nil {
-			if enabled, ok := m.state.Enabled[inst.ID]; ok && !enabled {
-				continue
-			}
+		if !m.isEnabledLocked(inst.ID) {
+			continue
 		}
-		for _, lang := range inst.Languages {
-			if lang.ID != "" {
-				lID := strings.ToLower(lang.ID)
-				if primaryID, ok := CanonicalLanguagePlugins[lID]; ok {
-					if inst.ID != primaryID && m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-						continue
-					}
+		if inst.IsLanguageProvider() {
+			for _, lang := range inst.Languages {
+				if lang.ID != "" {
+					typeSet[strings.ToLower(lang.ID)] = true
 				}
-				typeSet[lID] = true
 			}
 		}
 		for _, tmpl := range inst.LaunchTemplates {
 			if tmpl.Type != "" {
-				tID := strings.ToLower(tmpl.Type)
-				if primaryID, ok := CanonicalLanguagePlugins[tID]; ok {
-					if inst.ID != primaryID && m.installed[primaryID] != nil && !m.isEnabledLocked(primaryID) {
-						continue
-					}
-				}
-				typeSet[tID] = true
+				typeSet[strings.ToLower(tmpl.Type)] = true
 			}
 		}
 	}
@@ -1688,8 +1844,24 @@ func (m *Manager) GetSupportedLaunchTypes() []string {
 			res = append(res, t)
 		}
 	}
+	sort.Strings(res)
 	res = append(res, "shell")
 	return res
+}
+
+// IsLaunchTypeSupported checks whether a given launch type can be executed.
+func (m *Manager) IsLaunchTypeSupported(launchType string) bool {
+	norm := strings.ToLower(strings.TrimSpace(launchType))
+	if norm == "" || norm == "shell" {
+		return true
+	}
+	types := m.GetSupportedLaunchTypes()
+	for _, t := range types {
+		if strings.EqualFold(t, norm) {
+			return true
+		}
+	}
+	return false
 }
 
 // GetBuiltinManifest returns declarative manifest definitions for built-in plugins.

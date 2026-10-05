@@ -74,7 +74,7 @@ func RunCLI(args []string) error {
 			if err := PackDirectory(pDir, destArchive); err != nil {
 				return fmt.Errorf("failed to pack %s: %w", m.ID, err)
 			}
-			fmt.Printf("✔ Packed %s -> %s\n", m.ID, destArchive)
+			fmt.Printf("[OK] Packed %s -> %s\n", m.ID, destArchive)
 			count++
 		}
 		fmt.Printf("Packed %d plugins successfully\n", count)

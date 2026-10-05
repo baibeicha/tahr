@@ -2,6 +2,7 @@
   "id": "tahr-ts",
   "name": "TypeScript & JavaScript Support",
   "version": "1.0.0",
+  "type": "language",
   "author": "Tahr Team",
   "description": "TypeScript and JavaScript language support with typescript-language-server LSP, Node/Bun/Deno autodetection, and project templates",
   "capabilities": [

@@ -462,6 +462,7 @@ type AppModel struct {
 	ghostPrefix       string
 	popupScrollOffset int
 
+
 	// Animations
 	sidebarAnimWidth   float64
 	sidebarTargetWidth float64
@@ -501,9 +502,10 @@ type AppModel struct {
 	profileDropdownSel  int
 
 	// Terminal tab hitboxes & double click detection
-	termTabHitboxes  []termTabHitbox
-	lastTabClickTime time.Time
-	lastTabClickIdx  int
+	termTabHitboxes       []termTabHitbox
+	termHeaderBtnHitboxes []termHeaderBtnHitbox
+	lastTabClickTime      time.Time
+	lastTabClickIdx       int
 
 	// Integrated Terminal Drawer
 	terminal        *TerminalDrawer
@@ -619,6 +621,44 @@ type termTabHitbox struct {
 	isSplit     bool
 }
 
+type termHeaderBtnHitbox struct {
+	id   string
+	minX int
+	maxX int
+}
+
+func (m *AppModel) computeTermHeaderBtnHitboxes(w int) []termHeaderBtnHitbox {
+	type termBtnDef struct {
+		id   string
+		text string
+	}
+	rButtons := []termBtnDef{
+		{"close", "✕"},
+		{"kill", i18n.T("term.kill")},
+		{"clear", i18n.T("term.clear")},
+		{"down", "▼"},
+		{"up", "▲"},
+	}
+
+	var hitboxes []termHeaderBtnHitbox
+	curRightX := w - 2
+
+	for _, b := range rButtons {
+		btnW := runewidth.StringWidth(b.text)
+		btnStartX := curRightX - btnW
+		if btnStartX < 10 {
+			break
+		}
+		hitboxes = append(hitboxes, termHeaderBtnHitbox{
+			id:   b.id,
+			minX: btnStartX,
+			maxX: btnStartX + btnW - 1,
+		})
+		curRightX = btnStartX - 1 // 1 column spacing between buttons
+	}
+	return hitboxes
+}
+
 // NewAppModel instantiates a new Tahr TUI Model.
 func NewAppModel(eng *core.Engine) *AppModel {
 	if eng == nil {
@@ -638,6 +678,9 @@ func NewAppModel(eng *core.Engine) *AppModel {
 	settingsState := NewSettingsState()
 	if pm != nil && settingsState != nil {
 		settingsState.SetPluginManager(pm)
+		if len(settingsState.Current.PreferredLanguageProviders) > 0 {
+			pm.SetPreferredProviders(settingsState.Current.PreferredLanguageProviders)
+		}
 	}
 
 	launchCfg, _ := launch.Load(cwd)
@@ -889,15 +932,13 @@ func (m *AppModel) openLaunchConfigModal() {
 
 func (m *AppModel) runProfile(p launch.Profile) {
 	pType := strings.ToLower(p.Type)
-	if m.pluginMgr != nil {
-		if primaryPlugin, ok := plugin.CanonicalLanguagePlugins[pType]; ok {
-			if m.pluginMgr.Installed()[primaryPlugin] != nil && !m.pluginMgr.IsEnabled(primaryPlugin) {
-				m.statusMessage = fmt.Sprintf("Cannot run: plugin '%s' is disabled", primaryPlugin)
-				if m.toasts != nil {
-					m.toasts.Error("RUN", fmt.Sprintf("Plugin '%s' is disabled", primaryPlugin))
-				}
-				return
+	if m.pluginMgr != nil && pType != "shell" {
+		if !m.pluginMgr.IsLaunchTypeSupported(pType) {
+			m.statusMessage = fmt.Sprintf("Cannot run: launch type '%s' is disabled or unsupported", p.Type)
+			if m.toasts != nil {
+				m.toasts.Error("RUN", fmt.Sprintf("Launch type '%s' is disabled or unsupported", p.Type))
 			}
+			return
 		}
 	}
 
@@ -1016,15 +1057,13 @@ func (m *AppModel) runProfile(p launch.Profile) {
 
 func (m *AppModel) debugProfile(p launch.Profile) {
 	pType := strings.ToLower(p.Type)
-	if m.pluginMgr != nil {
-		if primaryPlugin, ok := plugin.CanonicalLanguagePlugins[pType]; ok {
-			if m.pluginMgr.Installed()[primaryPlugin] != nil && !m.pluginMgr.IsEnabled(primaryPlugin) {
-				m.statusMessage = fmt.Sprintf("Cannot debug: plugin '%s' is disabled", primaryPlugin)
-				if m.toasts != nil {
-					m.toasts.Error("DEBUG", fmt.Sprintf("Plugin '%s' is disabled", primaryPlugin))
-				}
-				return
+	if m.pluginMgr != nil && pType != "shell" {
+		if !m.pluginMgr.IsLaunchTypeSupported(pType) {
+			m.statusMessage = fmt.Sprintf("Cannot debug: launch type '%s' is disabled or unsupported", p.Type)
+			if m.toasts != nil {
+				m.toasts.Error("DEBUG", fmt.Sprintf("Launch type '%s' is disabled or unsupported", p.Type))
 			}
+			return
 		}
 	}
 
@@ -1087,6 +1126,9 @@ func (m *AppModel) debugProfile(p launch.Profile) {
 func (m *AppModel) applyCurrentSettings() {
 	if m.settings == nil {
 		return
+	}
+	if m.pluginMgr != nil {
+		m.pluginMgr.SetPreferredProviders(m.settings.Current.PreferredLanguageProviders)
 	}
 	var th ui.Theme
 	appliedTheme := false
@@ -1932,6 +1974,19 @@ func (m *AppModel) onPluginLifecycleChanged(pluginID string, enabled bool) {
 	}
 	if m.launchModal != nil && m.pluginMgr != nil {
 		m.launchModal.SetSupportedTypes(m.pluginMgr.GetSupportedLaunchTypes())
+	}
+}
+
+// Close safely stops background workers, sidecars, watchers, and language servers.
+func (m *AppModel) Close() {
+	if m.gitWatcher != nil {
+		m.gitWatcher.Stop()
+	}
+	if m.lspClient != nil {
+		_ = m.lspClient.Close()
+	}
+	if m.dapSession != nil {
+		_ = m.dapSession.Stop()
 	}
 }
 
@@ -3342,7 +3397,7 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Alt+Right / Alt+Left / Alt+Enter: Next / Prev split pane / Quick Fix
+	// Alt+Right / Alt+Left / Alt+Enter / Alt+\: Next / Prev split pane / Quick Fix / AI Completion
 	if k.HasAlt() && !k.HasCtrl() {
 		if k.Type == input.KeyEnter {
 			m.triggerQuickFix()
@@ -4008,13 +4063,18 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		m.updateGhostText()
 
 	case input.KeyRune:
-		_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: string(k.Rune)})
+		typedStr := string(k.Rune)
+		_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: typedStr})
 		m.notifyLSPChange()
 		if k.Rune == '.' {
 			m.triggerCompletionPopup()
 		} else {
 			m.popupVisible = false
-			m.updateGhostText()
+			if m.ghostText != "" && strings.HasPrefix(m.ghostText, typedStr) {
+				m.ghostText = m.ghostText[len(typedStr):]
+			} else {
+				m.updateGhostText()
+			}
 		}
 	}
 
@@ -4535,29 +4595,46 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				}
 				// Left click
 				if msg.Button == input.MouseLeft {
-					if msg.X >= m.width-4 && msg.X < m.width { // ✕
-						m.terminal.Open = false
-						m.terminalFocused = false
-						return m, nil
+					if len(m.termHeaderBtnHitboxes) == 0 {
+						m.termHeaderBtnHitboxes = m.computeTermHeaderBtnHitboxes(m.width)
 					}
-					if msg.X >= m.width-9 && msg.X < m.width-4 { // Kill
-						m.terminal.Kill()
-						m.toasts.Warn("TERMINAL", "Process terminated")
-						return m, nil
+					handledBtn := false
+					for _, hb := range m.termHeaderBtnHitboxes {
+						if msg.X >= hb.minX && msg.X <= hb.maxX {
+							handledBtn = true
+							switch hb.id {
+							case "close":
+								m.terminal.Open = false
+								m.terminalFocused = false
+								return m, nil
+							case "kill":
+								m.terminal.Kill()
+								m.toasts.Warn("TERMINAL", "Process terminated")
+								return m, nil
+							case "clear":
+								m.terminal.Clear()
+								m.toasts.Info("TERMINAL", "Output cleared")
+								return m, nil
+							case "down":
+								m.terminal.Height = max(4, m.terminal.Height-3)
+								return m, nil
+							case "up":
+								maxH := max(4, m.height-6)
+								m.terminal.Height = min(maxH, m.terminal.Height+3)
+								return m, nil
+							}
+						}
 					}
-					if msg.X >= m.width-15 && msg.X < m.width-9 { // Clear
-						m.terminal.Clear()
-						m.toasts.Info("TERMINAL", "Output cleared")
-						return m, nil
-					}
-					if msg.X >= m.width-17 && msg.X < m.width-15 { // ▼ (decrease height)
-						m.terminal.Height = max(4, m.terminal.Height-3)
-						return m, nil
-					}
-					if msg.X >= m.width-22 && msg.X < m.width-17 { // ▲ (increase height)
-						maxH := max(4, m.height-6)
-						m.terminal.Height = min(maxH, m.terminal.Height+3)
-						return m, nil
+					if !handledBtn {
+						if msg.X >= m.width-22 && msg.X <= m.width-17 {
+							maxH := max(4, m.height-6)
+							m.terminal.Height = min(maxH, m.terminal.Height+3)
+							return m, nil
+						}
+						if msg.X >= m.width-17 && msg.X <= m.width-15 {
+							m.terminal.Height = max(4, m.terminal.Height-3)
+							return m, nil
+						}
 					}
 
 					now := time.Now()
@@ -7575,8 +7652,61 @@ func (m *AppModel) View(f *tea.Frame) {
 
 		box := m.BoxChars()
 		m.termTabHitboxes = nil
+		m.termHeaderBtnHitboxes = nil
 
-		maxTabsW := w - 20
+		// Top-right buttons laid out dynamically right-to-left
+		btnBg := termBg
+		btnFg := toColor(m.theme.Foreground)
+
+		type termBtnDef struct {
+			id   string
+			text string
+		}
+		rButtons := []termBtnDef{
+			{"close", "✕"},
+			{"kill", i18n.T("term.kill")},
+			{"clear", i18n.T("term.clear")},
+			{"down", "▼"},
+			{"up", "▲"},
+		}
+
+		type placedHeaderBtn struct {
+			id     string
+			text   string
+			startX int
+			width  int
+		}
+		var placedBtns []placedHeaderBtn
+		curRightX := w - 2
+
+		for _, b := range rButtons {
+			btnW := runewidth.StringWidth(b.text)
+			btnStartX := curRightX - btnW
+			if btnStartX < 10 {
+				break
+			}
+			placedBtns = append(placedBtns, placedHeaderBtn{
+				id:     b.id,
+				text:   b.text,
+				startX: btnStartX,
+				width:  btnW,
+			})
+			m.termHeaderBtnHitboxes = append(m.termHeaderBtnHitboxes, termHeaderBtnHitbox{
+				id:   b.id,
+				minX: btnStartX,
+				maxX: btnStartX + btnW - 1,
+			})
+			curRightX = btnStartX - 1 // 1 column spacing between buttons
+		}
+
+		btnZoneStart := curRightX + 1
+		if btnZoneStart < 0 {
+			btnZoneStart = 0
+		}
+		maxTabsW := btnZoneStart - 2
+		if maxTabsW < 10 {
+			maxTabsW = 10
+		}
 
 		prefix := fmt.Sprintf("%c── %s  %s  ", box.TopLeft, i18n.T("term.title"), focusStatus)
 		pRunes := []rune(prefix)
@@ -7673,37 +7803,24 @@ func (m *AppModel) View(f *tea.Frame) {
 			})
 		}
 
-		// Top-right buttons with dense styling directly on terminal background without rectangular background
-		btnBg := termBg
-		btnFg := toColor(m.theme.Foreground)
-		type headerBtn struct {
-			offset int
-			text   string
-			fg     cell.Color
-			bg     cell.Color
-		}
-		rButtons := []headerBtn{
-			{-18, "▲", btnFg, btnBg},
-			{-16, "▼", btnFg, btnBg},
-			{-14, i18n.T("term.clear"), btnFg, btnBg},
-			{-8, i18n.T("term.kill"), btnFg, btnBg},
-			{-3, "✕", btnFg, btnBg},
-		}
-
 		// Clear spaces for the button zone so box.Horiz doesn't collide
-		btnZoneStart := w - 19
 		for x := btnZoneStart; x < w-1; x++ {
 			if x >= 0 {
 				buf.SetRune(x, termTop, ' ', borderFg, termBg, cell.AttrNone)
 			}
 		}
-		// Draw buttons
-		for _, b := range rButtons {
-			bx := w + b.offset
-			for j, r := range b.text {
-				if bx+j >= 0 && bx+j < w-1 {
-					buf.SetRune(bx+j, termTop, r, b.fg, b.bg, cell.AttrBold)
+		// Draw placed buttons
+		for _, pb := range placedBtns {
+			col := 0
+			for _, r := range []rune(pb.text) {
+				rw := runewidth.RuneWidth(r)
+				if pb.startX+col+rw < w {
+					buf.SetRune(pb.startX+col, termTop, r, btnFg, btnBg, cell.AttrBold)
+					for extra := 1; extra < rw; extra++ {
+						buf.SetRune(pb.startX+col+extra, termTop, ' ', btnFg, btnBg, cell.AttrBold)
+					}
 				}
+				col += rw
 			}
 		}
 		// Draw top-right frame corner with correct border color
@@ -7818,28 +7935,128 @@ func (m *AppModel) View(f *tea.Frame) {
 	langTitle := m.getToolchainLabel(doc)
 	probStatus := ""
 	if m.problemsPanel != nil && (m.problemsPanel.ErrorCount() > 0 || m.problemsPanel.WarningCount() > 0) {
-		probStatus = fmt.Sprintf("%d ✕ %d ▲ | ", m.problemsPanel.ErrorCount(), m.problemsPanel.WarningCount())
+		probStatus = fmt.Sprintf("%d ✕ %d ▲", m.problemsPanel.ErrorCount(), m.problemsPanel.WarningCount())
 	}
-	rightStatus := fmt.Sprintf("%s%s | %s | %s | UTF-8 ", probStatus, langTitle, lspStatus, splitTitle)
 
-	gap := w - len([]rune(leftStatus)) - len([]rune(rightStatus))
-	if gap < 0 {
-		gap = 0
+	parts := []string{}
+	if probStatus != "" {
+		parts = append(parts, probStatus)
 	}
-	statusLine := leftStatus + strings.Repeat(" ", gap) + rightStatus
-	statusRunes := []rune(statusLine)
+	if langTitle != "" {
+		parts = append(parts, langTitle)
+	}
+	if lspStatus != "" {
+		parts = append(parts, lspStatus)
+	}
+	if splitTitle != "" {
+		parts = append(parts, splitTitle)
+	}
+	parts = append(parts, "UTF-8")
 
-	for x := 0; x < w-1; x++ {
-		ch := ' '
-		if x < len(statusRunes) {
-			ch = statusRunes[x]
+	buildRight := func(p []string) string {
+		if len(p) == 0 {
+			return " UTF-8 "
 		}
-		if ch < 32 || ch == 127 || (ch >= 0x80 && ch <= 0x9f) {
-			ch = ' '
-		}
-		buf.SetRune(x, statusBarY, ch, statusFg, statusBg, cell.AttrNone)
+		return " " + strings.Join(p, " | ") + " "
 	}
-	buf.SetRune(w-1, statusBarY, ' ', statusFg, statusBg, cell.AttrNone)
+
+	rightStatus := buildRight(parts)
+	leftW := runewidth.StringWidth(leftStatus)
+
+	for len(parts) > 1 && leftW+runewidth.StringWidth(rightStatus) >= w {
+		dropped := false
+		for i, seg := range parts {
+			if seg == splitTitle {
+				parts = append(parts[:i], parts[i+1:]...)
+				dropped = true
+				break
+			}
+		}
+		if dropped {
+			rightStatus = buildRight(parts)
+			continue
+		}
+		for i, seg := range parts {
+			if seg == lspStatus {
+				parts = append(parts[:i], parts[i+1:]...)
+				dropped = true
+				break
+			}
+		}
+		if dropped {
+			rightStatus = buildRight(parts)
+			continue
+		}
+		for i, seg := range parts {
+			if seg == langTitle {
+				parts = append(parts[:i], parts[i+1:]...)
+				dropped = true
+				break
+			}
+		}
+		if dropped {
+			rightStatus = buildRight(parts)
+			continue
+		}
+		break
+	}
+
+	rightRunes := []rune(rightStatus)
+	rightW := runewidth.StringWidth(rightStatus)
+	leftRunes := []rune(leftStatus)
+
+	// 1. Paint entire status bar background with statusBg
+	for x := 0; x < w; x++ {
+		buf.SetRune(x, statusBarY, ' ', statusFg, statusBg, cell.AttrNone)
+	}
+
+	if w > 0 {
+		// 2. Right-align rightStatus so UTF-8 and diagnostics are NEVER cut off
+		if rightW >= w {
+			col := 0
+			for _, r := range rightRunes {
+				rw := runewidth.RuneWidth(r)
+				if col+rw > w {
+					break
+				}
+				buf.SetRune(col, statusBarY, r, statusFg, statusBg, cell.AttrNone)
+				for extra := 1; extra < rw; extra++ {
+					buf.SetRune(col+extra, statusBarY, ' ', statusFg, statusBg, cell.AttrNone)
+				}
+				col += rw
+			}
+		} else {
+			rightStartX := w - rightW
+			col := 0
+			for _, r := range rightRunes {
+				rw := runewidth.RuneWidth(r)
+				buf.SetRune(rightStartX+col, statusBarY, r, statusFg, statusBg, cell.AttrNone)
+				for extra := 1; extra < rw; extra++ {
+					buf.SetRune(rightStartX+col+extra, statusBarY, ' ', statusFg, statusBg, cell.AttrNone)
+				}
+				col += rw
+			}
+
+			availLeftW := rightStartX - 1
+			if availLeftW > 0 {
+				col = 0
+				for _, r := range leftRunes {
+					rw := runewidth.RuneWidth(r)
+					if col+rw > availLeftW {
+						if col < availLeftW {
+							buf.SetRune(col, statusBarY, '…', statusFg, statusBg, cell.AttrNone)
+						}
+						break
+					}
+					buf.SetRune(col, statusBarY, r, statusFg, statusBg, cell.AttrNone)
+					for extra := 1; extra < rw; extra++ {
+						buf.SetRune(col+extra, statusBarY, ' ', statusFg, statusBg, cell.AttrNone)
+					}
+					col += rw
+				}
+			}
+		}
+	}
 
 	// 8. Draw Omnibar Modal Dialog (if open)
 	if m.omnibarOpen {
@@ -9822,9 +10039,28 @@ func (m *AppModel) renderMainMenu(buf *buffer.Buffer, w, h int) {
 	items := getMainMenuItems()
 	box := m.BoxChars()
 
+	maxLabelW := 0
+	maxShortcutW := 0
+	for _, item := range items {
+		lw := runewidth.StringWidth(item.label)
+		if lw > maxLabelW {
+			maxLabelW = lw
+		}
+		sw := runewidth.StringWidth(item.shortcut)
+		if sw > maxShortcutW {
+			maxShortcutW = sw
+		}
+	}
+	menuW := maxLabelW + maxShortcutW + 6
+	if menuW < 38 {
+		menuW = 38
+	}
+	if menuW > w-2 {
+		menuW = w - 2
+	}
+
 	menuX := 0
 	menuY := 1
-	menuW := 36
 	menuH := len(items) + 2
 
 	bg := toColor(m.theme.PopupBg)
@@ -9881,22 +10117,40 @@ func (m *AppModel) renderMainMenu(buf *buffer.Buffer, w, h int) {
 			buf.SetRune(x, rowY, ' ', rowFg, rowBg, attr)
 		}
 
-		text := fmt.Sprintf(" %s", item.label)
-		for i, r := range text {
-			x := menuX + 1 + i
-			if x < menuX+menuW-len(item.shortcut)-2 {
-				buf.SetRune(x, rowY, r, rowFg, rowBg, attr)
+		// Draw label
+		labelRunes := []rune(" " + item.label)
+		col := 0
+		maxLabelEnd := menuW - maxShortcutW - 4
+		for _, r := range labelRunes {
+			rw := runewidth.RuneWidth(r)
+			if col+rw <= maxLabelEnd {
+				buf.SetRune(menuX+1+col, rowY, r, rowFg, rowBg, attr)
+				for extra := 1; extra < rw; extra++ {
+					buf.SetRune(menuX+1+col+extra, rowY, ' ', rowFg, rowBg, attr)
+				}
+				col += rw
 			}
 		}
 
+		// Draw shortcut right-aligned
 		if item.shortcut != "" {
-			scX := menuX + menuW - len(item.shortcut) - 2
+			scRunes := []rune(item.shortcut)
+			scWidth := runewidth.StringWidth(item.shortcut)
+			scX := menuX + menuW - scWidth - 2
 			scFg := shortcutFg
 			if isSel {
 				scFg = selFg
 			}
-			for i, r := range item.shortcut {
-				buf.SetRune(scX+i, rowY, r, scFg, rowBg, attr)
+			scCol := 0
+			for _, r := range scRunes {
+				rw := runewidth.RuneWidth(r)
+				if scX+scCol+rw < menuX+menuW-1 {
+					buf.SetRune(scX+scCol, rowY, r, scFg, rowBg, attr)
+					for extra := 1; extra < rw; extra++ {
+						buf.SetRune(scX+scCol+extra, rowY, ' ', scFg, rowBg, attr)
+					}
+				}
+				scCol += rw
 			}
 		}
 	}
@@ -9989,15 +10243,20 @@ func (m *AppModel) renderProfileDropdown(buf *buffer.Buffer, w, h int) {
 				prefix = " ✓ "
 			}
 			line := prefix + p.Name
-			for i, r := range line {
-				x := menuX + 1 + i
-				if x < menuX+menuW-1 {
+			col := 0
+			for charIdx, r := range []rune(line) {
+				rw := runewidth.RuneWidth(r)
+				if menuX+1+col+rw < menuX+menuW-1 {
 					fColor := rowFg
-					if p.Name == activeName && i < 3 {
+					if p.Name == activeName && charIdx < 3 {
 						fColor = activeFg
 					}
-					buf.SetRune(x, rowY, r, fColor, rowBg, attr)
+					buf.SetRune(menuX+1+col, rowY, r, fColor, rowBg, attr)
+					for extra := 1; extra < rw; extra++ {
+						buf.SetRune(menuX+1+col+extra, rowY, ' ', fColor, rowBg, attr)
+					}
 				}
+				col += rw
 			}
 		} else if idx == len(profiles) {
 			for x := menuX + 1; x < menuX+menuW-1 && x < w; x++ {
@@ -10017,11 +10276,16 @@ func (m *AppModel) renderProfileDropdown(buf *buffer.Buffer, w, h int) {
 				buf.SetRune(x, rowY, ' ', rowFg, rowBg, attr)
 			}
 			line := "   Edit configs..."
-			for i, r := range line {
-				x := menuX + 1 + i
-				if x < menuX+menuW-1 {
-					buf.SetRune(x, rowY, r, rowFg, rowBg, attr)
+			col := 0
+			for _, r := range []rune(line) {
+				rw := runewidth.RuneWidth(r)
+				if menuX+1+col+rw < menuX+menuW-1 {
+					buf.SetRune(menuX+1+col, rowY, r, rowFg, rowBg, attr)
+					for extra := 1; extra < rw; extra++ {
+						buf.SetRune(menuX+1+col+extra, rowY, ' ', rowFg, rowBg, attr)
+					}
 				}
+				col += rw
 			}
 		}
 	}
