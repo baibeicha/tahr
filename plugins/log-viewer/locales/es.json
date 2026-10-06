@@ -1,0 +1,14 @@
+{
+  "plugin.log-viewer.name": "Visor de registros",
+  "plugin.log-viewer.desc": "Visor de alta velocidad para archivos de registro grandes con filtros y seguimiento",
+  "command.log-viewer.open": "Registros: Abrir archivo en visor rápido",
+  "Log Viewer: Open File in High-Speed Viewer": "Registros: Abrir archivo en visor rápido",
+  "command.log-viewer.toggleTail": "Registros: Alternar seguimiento en tiempo real",
+  "Log Viewer: Toggle Real-time Tailing": "Registros: Alternar seguimiento en tiempo real",
+  "command.log-viewer.filterLevel": "Registros: Filtrar por nivel de gravedad",
+  "Log Viewer: Filter by Severity Level": "Registros: Filtrar por nivel de gravedad",
+  "command.log-viewer.clearFilters": "Registros: Limpiar filtros activos",
+  "Log Viewer: Clear Active Filters": "Registros: Limpiar filtros activos",
+  "toolwindow.log-viewer-panel": "Visor de registros",
+  "Log Viewer": "Visor de registros"
+}

@@ -1,0 +1,14 @@
+{
+  "plugin.docker-compose.name": "Gestor de Docker Compose",
+  "plugin.docker-compose.desc": "Inspección de servicios, monitoreo, registros en tiempo real y shell de contenedores",
+  "command.docker-compose.open": "Docker: Abrir gestor de Compose",
+  "Docker: Open Compose Manager": "Docker: Abrir gestor de Compose",
+  "command.docker-compose.up": "Docker: Compose Up (Iniciar servicios)",
+  "Docker: Compose Up (Start Services)": "Docker: Compose Up (Iniciar servicios)",
+  "command.docker-compose.down": "Docker: Compose Down (Detener servicios)",
+  "Docker: Compose Down (Stop Services)": "Docker: Compose Down (Detener servicios)",
+  "command.docker-compose.logs": "Docker: Ver registros de contenedores",
+  "Docker: View Container Logs": "Docker: Ver registros de contenedores",
+  "toolwindow.docker-compose-panel": "Docker Compose",
+  "Docker": "Docker Compose"
+}

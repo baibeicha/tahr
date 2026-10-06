@@ -1,0 +1,8 @@
+{
+  "plugin.grpc-proto.name": "gRPC & Protobuf Tooling",
+  "plugin.grpc-proto.desc": "Protocol Buffers syntax highlighting, buf format/generate automation, and interactive gRPC RPC invocation via Server Reflection",
+  "command.grpc-proto.invoke": "gRPC: Invoke Service Endpoint",
+  "gRPC: Invoke Service Endpoint": "gRPC: Invoke Service Endpoint",
+  "command.grpc-proto.generate": "gRPC: Run buf generate",
+  "gRPC: Run buf generate": "gRPC: Run buf generate"
+}

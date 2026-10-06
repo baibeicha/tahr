@@ -1,0 +1,14 @@
+{
+  "plugin.log-viewer.name": "Просмотр логов",
+  "plugin.log-viewer.desc": "Высокоскоростной просмотрщик больших логов с фильтрацией и слежением",
+  "command.log-viewer.open": "Логи: Открыть файл в быстром просмотрщике",
+  "Log Viewer: Open File in High-Speed Viewer": "Логи: Открыть файл в быстром просмотрщике",
+  "command.log-viewer.toggleTail": "Логи: Переключить слежение в реальном времени",
+  "Log Viewer: Toggle Real-time Tailing": "Логи: Переключить слежение в реальном времени",
+  "command.log-viewer.filterLevel": "Логи: Фильтр по уровню важности",
+  "Log Viewer: Filter by Severity Level": "Логи: Фильтр по уровню важности",
+  "command.log-viewer.clearFilters": "Логи: Очистить активные фильтры",
+  "Log Viewer: Clear Active Filters": "Логи: Очистить активные фильтры",
+  "toolwindow.log-viewer-panel": "Просмотр логов",
+  "Log Viewer": "Просмотр логов"
+}

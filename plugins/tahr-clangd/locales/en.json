@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-clangd.name": "C / C++ Language Support",
+  "plugin.tahr-clangd.desc": "C and C++ language support with clangd LSP, CMake/Makefile integration, and lldb-dap debugging"
+}

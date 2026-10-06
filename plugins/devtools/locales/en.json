@@ -1,0 +1,10 @@
+{
+  "plugin.devtools.name": "Developer Utility Suite",
+  "plugin.devtools.desc": "Offline swiss-army knife for backend developers: JWT decoder, Unix timestamp converter, UUID v4 generator, Base64/URL encoding, and SHA256/MD5 hashing",
+  "command.devtools.open": "DevTools: Open Utilities Palette",
+  "DevTools: Open Utilities Palette": "DevTools: Open Utilities Palette",
+  "command.devtools.jwtDecode": "DevTools: Decode JWT Token",
+  "DevTools: Decode JWT Token": "DevTools: Decode JWT Token",
+  "command.devtools.uuidGen": "DevTools: Generate UUID v4",
+  "DevTools: Generate UUID v4": "DevTools: Generate UUID v4"
+}

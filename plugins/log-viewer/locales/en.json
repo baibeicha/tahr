@@ -1,0 +1,14 @@
+{
+  "plugin.log-viewer.name": "High-Throughput Log Viewer",
+  "plugin.log-viewer.desc": "High-performance log inspector with chunked memory-mapped reader, regex pattern filters, severity highlighting, and real-time tailing",
+  "command.log-viewer.open": "Log Viewer: Open File in High-Speed Viewer",
+  "Log Viewer: Open File in High-Speed Viewer": "Log Viewer: Open File in High-Speed Viewer",
+  "command.log-viewer.toggleTail": "Log Viewer: Toggle Real-time Tailing",
+  "Log Viewer: Toggle Real-time Tailing": "Log Viewer: Toggle Real-time Tailing",
+  "command.log-viewer.filterLevel": "Log Viewer: Filter by Severity Level",
+  "Log Viewer: Filter by Severity Level": "Log Viewer: Filter by Severity Level",
+  "command.log-viewer.clearFilters": "Log Viewer: Clear Active Filters",
+  "Log Viewer: Clear Active Filters": "Log Viewer: Clear Active Filters",
+  "toolwindow.log-viewer-panel": "Log Viewer",
+  "Log Viewer": "Log Viewer"
+}

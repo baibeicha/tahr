@@ -1,0 +1,4 @@
+{
+  "plugin.git-lens.name": "GitLens",
+  "plugin.git-lens.desc": "Аннотации авторов строк кода и история изменений"
+}

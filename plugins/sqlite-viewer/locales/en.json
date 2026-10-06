@@ -1,0 +1,10 @@
+{
+  "plugin.sqlite-viewer.name": "SQLite Database Viewer",
+  "plugin.sqlite-viewer.desc": "Zero-CGO SQLite database inspector with table schemas, paginated DataGrid viewer, column sorting, and custom SQL query execution",
+  "command.sqlite-viewer.openActive": "SQLite: Open Database in DataGrid",
+  "SQLite: Open Database in DataGrid": "SQLite: Open Database in DataGrid",
+  "command.sqlite-viewer.runQuery": "SQLite: Run Custom SQL Query",
+  "SQLite: Run Custom SQL Query": "SQLite: Run Custom SQL Query",
+  "toolwindow.sqlite-viewer-panel": "SQLite",
+  "SQLite": "SQLite"
+}

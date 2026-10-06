@@ -1,0 +1,4 @@
+{
+  "plugin.config-pack.name": "Config Formats: JSON, YAML & TOML",
+  "plugin.config-pack.desc": "Syntax highlighting, schema validation (SchemaStore), and document structure for JSON, YAML, and TOML configurations"
+}

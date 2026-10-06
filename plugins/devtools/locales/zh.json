@@ -1,0 +1,10 @@
+{
+  "plugin.devtools.name": "开发者工具箱",
+  "plugin.devtools.desc": "实用工具集合：JWT 解码、UUID 生成、Base64 转换",
+  "command.devtools.open": "DevTools: 打开实用工具面板",
+  "DevTools: Open Utilities Palette": "DevTools: 打开实用工具面板",
+  "command.devtools.jwtDecode": "DevTools: 解码 JWT 令牌",
+  "DevTools: Decode JWT Token": "DevTools: 解码 JWT 令牌",
+  "command.devtools.uuidGen": "DevTools: 生成 UUID v4",
+  "DevTools: Generate UUID v4": "DevTools: 生成 UUID v4"
+}

@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-ts.name": "TypeScript & JavaScript Support",
+  "plugin.tahr-ts.desc": "TypeScript and JavaScript language support with typescript-language-server LSP, Node/Bun/Deno autodetection, and project templates"
+}

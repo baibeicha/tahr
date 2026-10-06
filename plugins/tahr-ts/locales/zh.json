@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-ts.name": "TypeScript 与 JavaScript 支持",
+  "plugin.tahr-ts.desc": "通过 vtsls 提供 TypeScript/JavaScript 支持"
+}

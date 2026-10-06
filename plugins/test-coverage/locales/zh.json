@@ -1,0 +1,4 @@
+{
+  "plugin.test-coverage.name": "测试覆盖率",
+  "plugin.test-coverage.desc": "代码覆盖率高亮与报告查看"
+}

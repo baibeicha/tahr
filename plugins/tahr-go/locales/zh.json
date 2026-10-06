@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-go.name": "Go 语言支持",
+  "plugin.tahr-go.desc": "通过 gopls 提供 Go 语言支持与 Delve 调试"
+}

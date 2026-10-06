@@ -1,0 +1,4 @@
+{
+  "plugin.test-runner.name": "Обозреватель тестов",
+  "plugin.test-runner.desc": "Интеграция с тестовыми фреймворками"
+}

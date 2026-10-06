@@ -1,0 +1,8 @@
+{
+  "plugin.rest-client.name": "Cliente REST",
+  "plugin.rest-client.desc": "Ejecución de solicitudes HTTP/REST directamente desde el editor",
+  "command.rest-client.send": "REST: Enviar solicitud bajo el cursor",
+  "REST: Send Request Under Cursor": "REST: Enviar solicitud bajo el cursor",
+  "command.rest-client.history": "REST: Ver historial de solicitudes",
+  "REST: View Request History": "REST: Ver historial de solicitudes"
+}

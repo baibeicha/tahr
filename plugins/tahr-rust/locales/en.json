@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-rust.name": "Rust Language Support",
+  "plugin.tahr-rust.desc": "Rust language support with rust-analyzer LSP, Cargo integration, project templates and lldb-dap debugging"
+}

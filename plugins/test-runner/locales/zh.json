@@ -1,0 +1,4 @@
+{
+  "plugin.test-runner.name": "测试运行器扩展",
+  "plugin.test-runner.desc": "多语言测试框架集成与运行"
+}

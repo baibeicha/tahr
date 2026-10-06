@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-clangd.name": "Soporte para C/C++",
+  "plugin.tahr-clangd.desc": "Soporte para C/C++ con Clangd LSP"
+}

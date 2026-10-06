@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-clangd.name": "Поддержка C/C++",
+  "plugin.tahr-clangd.desc": "Поддержка C и C++ через Clangd LSP"
+}

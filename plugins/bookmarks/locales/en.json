@@ -1,0 +1,4 @@
+{
+  "plugin.bookmarks.name": "Code Bookmarks & Navigation",
+  "plugin.bookmarks.desc": "Interactive line bookmarks with gutter markers, quick-jump fuzzy modal (Ctrl+Shift+B), cycling shortcuts (F2/Shift+F2), and sidebar list"
+}

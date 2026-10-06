@@ -1,0 +1,4 @@
+{
+  "plugin.test-coverage.name": "Cobertura de pruebas",
+  "plugin.test-coverage.desc": "Visualización de cobertura de código"
+}

@@ -1,0 +1,8 @@
+{
+  "plugin.todo-tree.name": "Дерево TODO",
+  "plugin.todo-tree.desc": "Сканирование и древовидное отображение комментариев TODO/FIXME",
+  "command.todo-tree.refresh": "TODO: Обновить комментарии в проекте",
+  "TODO: Refresh Workspace Comments": "TODO: Обновить комментарии в проекте",
+  "toolwindow.todo-tree-panel": "Дерево TODO",
+  "TODOs": "Дерево TODO"
+}

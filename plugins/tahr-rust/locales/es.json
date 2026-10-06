@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-rust.name": "Soporte para Rust",
+  "plugin.tahr-rust.desc": "Soporte para Rust con rust-analyzer y Cargo"
+}

@@ -1,0 +1,10 @@
+{
+  "plugin.task-runner.name": "任务运行器",
+  "plugin.task-runner.desc": "项目任务编排与执行工具 (.tahr/tasks.json)",
+  "command.task-runner.open": "任务: 打开任务运行器",
+  "Tasks: Open Task Runner": "任务: 打开任务运行器",
+  "command.task-runner.runLast": "任务: 重新运行上次任务",
+  "Tasks: Re-run Last Task": "任务: 重新运行上次任务",
+  "toolwindow.task-runner-panel": "任务运行器",
+  "Tasks": "任务运行器"
+}

@@ -1,0 +1,8 @@
+{
+  "plugin.rest-client.name": "REST 客户端",
+  "plugin.rest-client.desc": "直接在编辑器中执行和调试 HTTP/REST 请求",
+  "command.rest-client.send": "REST: 发送光标处请求",
+  "REST: Send Request Under Cursor": "REST: 发送光标处请求",
+  "command.rest-client.history": "REST: 查看请求历史记录",
+  "REST: View Request History": "REST: 查看请求历史记录"
+}

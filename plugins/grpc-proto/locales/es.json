@@ -1,0 +1,8 @@
+{
+  "plugin.grpc-proto.name": "gRPC y Protobuf",
+  "plugin.grpc-proto.desc": "Invocación de puntos de conexión gRPC y generación de Protobuf",
+  "command.grpc-proto.invoke": "gRPC: Invocar punto de conexión",
+  "gRPC: Invoke Service Endpoint": "gRPC: Invocar punto de conexión",
+  "command.grpc-proto.generate": "gRPC: Ejecutar buf generate",
+  "gRPC: Run buf generate": "gRPC: Ejecutar buf generate"
+}

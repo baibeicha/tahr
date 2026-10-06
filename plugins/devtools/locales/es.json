@@ -1,0 +1,10 @@
+{
+  "plugin.devtools.name": "DevTools",
+  "plugin.devtools.desc": "Conjunto de utilidades: decodificación JWT, generación de UUID, etc.",
+  "command.devtools.open": "DevTools: Abrir paleta de utilidades",
+  "DevTools: Open Utilities Palette": "DevTools: Abrir paleta de utilidades",
+  "command.devtools.jwtDecode": "DevTools: Decodificar token JWT",
+  "DevTools: Decode JWT Token": "DevTools: Decodificar token JWT",
+  "command.devtools.uuidGen": "DevTools: Generar UUID v4",
+  "DevTools: Generate UUID v4": "DevTools: Generar UUID v4"
+}

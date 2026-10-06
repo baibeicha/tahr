@@ -1,0 +1,8 @@
+{
+  "plugin.rest-client.name": "REST Клиент",
+  "plugin.rest-client.desc": "Отправка HTTP/REST запросов непосредственно из файлов редактора",
+  "command.rest-client.send": "REST: Отправить запрос под курсором",
+  "REST: Send Request Under Cursor": "REST: Отправить запрос под курсором",
+  "command.rest-client.history": "REST: Просмотр истории запросов",
+  "REST: View Request History": "REST: Просмотр истории запросов"
+}

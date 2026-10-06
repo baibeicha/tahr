@@ -1,0 +1,10 @@
+{
+  "plugin.git-graph.name": "Git 提交图谱",
+  "plugin.git-graph.desc": "直观的可视化 Git 分支与提交历史图",
+  "command.git-graph.open": "Git: 打开提交图谱",
+  "Git: Open Commit Graph": "Git: 打开提交图谱",
+  "command.git-graph.refresh": "Git: 刷新提交图谱",
+  "Git: Refresh Commit Graph": "Git: 刷新提交图谱",
+  "toolwindow.git-graph-view": "Git Graph",
+  "Git Graph": "Git Graph"
+}

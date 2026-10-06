@@ -1,0 +1,4 @@
+{
+  "plugin.git-lens.name": "GitLens 行注释",
+  "plugin.git-lens.desc": "光标所在行 Git 追溯信息与历史查看"
+}

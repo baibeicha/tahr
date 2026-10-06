@@ -1,0 +1,6 @@
+{
+  "plugin.regex-tester.name": "正则表达式测试器",
+  "plugin.regex-tester.desc": "实时交互式正则表达式测试与匹配高亮",
+  "command.regex-tester.open": "Regex: 打开交互式沙箱",
+  "Regex: Open Interactive Sandbox": "Regex: 打开交互式沙箱"
+}

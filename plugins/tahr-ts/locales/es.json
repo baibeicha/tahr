@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-ts.name": "Soporte para TypeScript",
+  "plugin.tahr-ts.desc": "Soporte para TypeScript y JavaScript con vtsls"
+}

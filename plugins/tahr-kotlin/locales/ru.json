@@ -1,4 +1,4 @@
 {
-  "plugin.tahr-kotlin.name": "Поддержка языка Kotlin",
-  "plugin.tahr-kotlin.desc": "Поддержка языка Kotlin с kotlin-language-server LSP, интеграцией с Gradle/Maven и тестированием JUnit/Kotest"
+  "plugin.tahr-kotlin.name": "Kotlin Language Support",
+  "plugin.tahr-kotlin.desc": "Kotlin language support with kotlin-language-server LSP, Gradle/Maven integration and JUnit/Kotest runner"
 }

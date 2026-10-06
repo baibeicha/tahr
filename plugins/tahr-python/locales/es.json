@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-python.name": "Soporte para Python",
+  "plugin.tahr-python.desc": "Soporte para Python con Pyright y pytest"
+}

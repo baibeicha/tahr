@@ -1,0 +1,10 @@
+{
+  "plugin.db-er-diagram.name": "ER-Диаграмма баз данных",
+  "plugin.db-er-diagram.desc": "Интерактивная диаграмма сущностей и связей с экспортом",
+  "command.db-er-diagram.openCanvas": "База данных: Открыть интерактивную ER-диаграмму (F6)",
+  "Database: Open Interactive ER Diagram (F6)": "База данных: Открыть интерактивную ER-диаграмму (F6)",
+  "command.db-er-diagram.exportMermaid": "База данных: Экспорт ER-диаграммы в Mermaid",
+  "Database: Export ER Diagram to Mermaid": "База данных: Экспорт ER-диаграммы в Mermaid",
+  "command.db-er-diagram.exportDDL": "База данных: Экспорт ER-диаграммы в DDL миграцию",
+  "Database: Export ER Diagram to DDL Migration": "База данных: Экспорт ER-диаграммы в DDL миграцию"
+}

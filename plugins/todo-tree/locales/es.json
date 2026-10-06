@@ -1,0 +1,8 @@
+{
+  "plugin.todo-tree.name": "Árbol de TODOs",
+  "plugin.todo-tree.desc": "Escaneo y visualización en árbol de comentarios TODO/FIXME en el espacio de trabajo",
+  "command.todo-tree.refresh": "TODO: Actualizar comentarios del espacio de trabajo",
+  "TODO: Refresh Workspace Comments": "TODO: Actualizar comentarios del espacio de trabajo",
+  "toolwindow.todo-tree-panel": "Árbol de TODOs",
+  "TODOs": "Árbol de TODOs"
+}

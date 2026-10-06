@@ -1,0 +1,8 @@
+{
+  "plugin.todo-tree.name": "Workspace TODO Tree",
+  "plugin.todo-tree.desc": "Scans workspace files for TODO, FIXME, BUG, HACK, and NOTE comments, displaying them in a hierarchical sidebar tree with instant jump",
+  "command.todo-tree.refresh": "TODO: Refresh Workspace Comments",
+  "TODO: Refresh Workspace Comments": "TODO: Refresh Workspace Comments",
+  "toolwindow.todo-tree-panel": "TODOs",
+  "TODOs": "TODOs"
+}

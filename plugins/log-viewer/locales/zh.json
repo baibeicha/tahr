@@ -1,0 +1,14 @@
+{
+  "plugin.log-viewer.name": "日志查看器",
+  "plugin.log-viewer.desc": "专为大型日志文件设计的高速查看器，支持实时跟踪与过滤",
+  "command.log-viewer.open": "日志: 在高速查看器中打开文件",
+  "Log Viewer: Open File in High-Speed Viewer": "日志: 在高速查看器中打开文件",
+  "command.log-viewer.toggleTail": "日志: 切换实时跟踪 (Tailing)",
+  "Log Viewer: Toggle Real-time Tailing": "日志: 切换实时跟踪 (Tailing)",
+  "command.log-viewer.filterLevel": "日志: 按严重级别过滤",
+  "Log Viewer: Filter by Severity Level": "日志: 按严重级别过滤",
+  "command.log-viewer.clearFilters": "日志: 清除活动过滤器",
+  "Log Viewer: Clear Active Filters": "日志: 清除活动过滤器",
+  "toolwindow.log-viewer-panel": "日志查看器",
+  "Log Viewer": "日志查看器"
+}

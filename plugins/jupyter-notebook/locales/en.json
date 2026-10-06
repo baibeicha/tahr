@@ -1,0 +1,16 @@
+{
+  "plugin.jupyter-notebook.name": "Jupyter Notebook Interactive Runner",
+  "plugin.jupyter-notebook.desc": "Interactive .ipynb notebook editor and execution engine supporting code cells, markdown cells, rich MIME outputs, and kernel management",
+  "command.jupyter-notebook.runCell": "Notebook: Run Selected Cell and Advance",
+  "Notebook: Run Selected Cell and Advance": "Notebook: Run Selected Cell and Advance",
+  "command.jupyter-notebook.runAll": "Notebook: Run All Cells",
+  "Notebook: Run All Cells": "Notebook: Run All Cells",
+  "command.jupyter-notebook.restartKernel": "Notebook: Restart Kernel and Clear Outputs",
+  "Notebook: Restart Kernel and Clear Outputs": "Notebook: Restart Kernel and Clear Outputs",
+  "command.jupyter-notebook.insertCodeCell": "Notebook: Insert Code Cell Below",
+  "Notebook: Insert Code Cell Below": "Notebook: Insert Code Cell Below",
+  "command.jupyter-notebook.insertMarkdownCell": "Notebook: Insert Markdown Cell Below",
+  "Notebook: Insert Markdown Cell Below": "Notebook: Insert Markdown Cell Below",
+  "toolwindow.jupyter-notebook-panel": "Notebooks",
+  "Notebooks": "Notebooks"
+}

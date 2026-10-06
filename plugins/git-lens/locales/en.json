@@ -1,0 +1,4 @@
+{
+  "plugin.git-lens.name": "Git Lens: Inline Blame & Diff",
+  "plugin.git-lens.desc": "Git intelligence with Inline Blame on the active line, gutter diff indicators, and interactive side-by-side diff view"
+}

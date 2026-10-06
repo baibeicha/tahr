@@ -1,4 +1,4 @@
 {
-  "plugin.tahr-zig.name": "Zig 语言支持",
-  "plugin.tahr-zig.desc": "Zig 语言支持，提供 ZLS (Zig Language Server)、原生 zig test 测试运行器与启动配置"
+  "plugin.tahr-zig.name": "Zig Language Support",
+  "plugin.tahr-zig.desc": "Zig language support with ZLS (Zig Language Server), native zig test runner and launch configurations"
 }

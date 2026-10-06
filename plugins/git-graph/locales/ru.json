@@ -1,0 +1,10 @@
+{
+  "plugin.git-graph.name": "Git Граф",
+  "plugin.git-graph.desc": "Визуальное отображение истории коммитов и веток Git",
+  "command.git-graph.open": "Git: Открыть граф коммитов",
+  "Git: Open Commit Graph": "Git: Открыть граф коммитов",
+  "command.git-graph.refresh": "Git: Обновить граф коммитов",
+  "Git: Refresh Commit Graph": "Git: Обновить граф коммитов",
+  "toolwindow.git-graph-view": "Git Graph",
+  "Git Graph": "Git Graph"
+}

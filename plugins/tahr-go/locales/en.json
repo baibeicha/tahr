@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-go.name": "Go Language Support",
+  "plugin.tahr-go.desc": "Language Server (gopls), Delve debugger, launch templates and SDK autodetection"
+}

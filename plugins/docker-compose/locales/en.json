@@ -1,0 +1,14 @@
+{
+  "plugin.docker-compose.name": "Docker Compose Manager",
+  "plugin.docker-compose.desc": "Inspect services, monitor health status, stream real-time logs to terminal splits, and attach interactive shell sessions via Docker Engine socket or CLI",
+  "command.docker-compose.open": "Docker: Open Compose Manager",
+  "Docker: Open Compose Manager": "Docker: Open Compose Manager",
+  "command.docker-compose.up": "Docker: Compose Up (Start Services)",
+  "Docker: Compose Up (Start Services)": "Docker: Compose Up (Start Services)",
+  "command.docker-compose.down": "Docker: Compose Down (Stop Services)",
+  "Docker: Compose Down (Stop Services)": "Docker: Compose Down (Stop Services)",
+  "command.docker-compose.logs": "Docker: View Container Logs",
+  "Docker: View Container Logs": "Docker: View Container Logs",
+  "toolwindow.docker-compose-panel": "Docker",
+  "Docker": "Docker"
+}

@@ -1,0 +1,6 @@
+{
+  "plugin.regex-tester.name": "Probador de Regex",
+  "plugin.regex-tester.desc": "Entorno interactivo para probar expresiones regulares",
+  "command.regex-tester.open": "Regex: Abrir entorno interactivo",
+  "Regex: Open Interactive Sandbox": "Regex: Abrir entorno interactivo"
+}

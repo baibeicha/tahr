@@ -1,0 +1,4 @@
+{
+  "plugin.ai-completion.name": "AI 代码自动补全",
+  "plugin.ai-completion.desc": "毫秒级本地神经网络代码续写与补全"
+}

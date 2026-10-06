@@ -1,0 +1,10 @@
+{
+  "plugin.db-er-diagram.name": "Database ER Diagram & Schema Designer",
+  "plugin.db-er-diagram.desc": "Interactive 2D entity-relationship (ER) diagram visualizer with Crow's Foot relations, Sugiyama auto-layout, table search, and DDL/Mermaid export",
+  "command.db-er-diagram.openCanvas": "Database: Open Interactive ER Diagram (F6)",
+  "Database: Open Interactive ER Diagram (F6)": "Database: Open Interactive ER Diagram (F6)",
+  "command.db-er-diagram.exportMermaid": "Database: Export ER Diagram to Mermaid",
+  "Database: Export ER Diagram to Mermaid": "Database: Export ER Diagram to Mermaid",
+  "command.db-er-diagram.exportDDL": "Database: Export ER Diagram to DDL Migration",
+  "Database: Export ER Diagram to DDL Migration": "Database: Export ER Diagram to DDL Migration"
+}

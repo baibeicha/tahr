@@ -1,0 +1,10 @@
+{
+  "plugin.sqlite-viewer.name": "SQLite 查看器",
+  "plugin.sqlite-viewer.desc": "快速查看与查询 SQLite 数据库",
+  "command.sqlite-viewer.openActive": "SQLite: 在数据表格中打开数据库",
+  "SQLite: Open Database in DataGrid": "SQLite: 在数据表格中打开数据库",
+  "command.sqlite-viewer.runQuery": "SQLite: 执行自定义 SQL 查询",
+  "SQLite: Run Custom SQL Query": "SQLite: 执行自定义 SQL 查询",
+  "toolwindow.sqlite-viewer-panel": "SQLite",
+  "SQLite": "SQLite"
+}

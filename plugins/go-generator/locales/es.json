@@ -1,0 +1,12 @@
+{
+  "plugin.go-generator.name": "Generador Go",
+  "plugin.go-generator.desc": "Generación automática de etiquetas de struct, constructores e interfaces",
+  "command.go-generator.addTags": "Go: Agregar etiquetas de estructura (json, db, yaml)",
+  "Go: Add Struct Tags (json, db, yaml)": "Go: Agregar etiquetas de estructura (json, db, yaml)",
+  "command.go-generator.removeTags": "Go: Eliminar etiquetas de estructura",
+  "Go: Remove Struct Tags": "Go: Eliminar etiquetas de estructura",
+  "command.go-generator.newConstructor": "Go: Generar constructor New...",
+  "Go: Generate Constructor New...": "Go: Generar constructor New...",
+  "command.go-generator.implInterface": "Go: Implementar métodos de interfaz",
+  "Go: Implement Interface Methods": "Go: Implementar métodos de interfaz"
+}

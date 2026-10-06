@@ -1,0 +1,14 @@
+{
+  "plugin.docker-compose.name": "Менеджер Docker Compose",
+  "plugin.docker-compose.desc": "Просмотр сервисов, мониторинг состояния, потоковый вывод логов и интерактивная оболочка",
+  "command.docker-compose.open": "Docker: Открыть менеджер Compose",
+  "Docker: Open Compose Manager": "Docker: Открыть менеджер Compose",
+  "command.docker-compose.up": "Docker: Compose Up (Запуск сервисов)",
+  "Docker: Compose Up (Start Services)": "Docker: Compose Up (Запуск сервисов)",
+  "command.docker-compose.down": "Docker: Compose Down (Остановка сервисов)",
+  "Docker: Compose Down (Stop Services)": "Docker: Compose Down (Остановка сервисов)",
+  "command.docker-compose.logs": "Docker: Просмотр логов контейнеров",
+  "Docker: View Container Logs": "Docker: Просмотр логов контейнеров",
+  "toolwindow.docker-compose-panel": "Docker Compose",
+  "Docker": "Docker Compose"
+}

@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-go.name": "Поддержка Go",
+  "plugin.tahr-go.desc": "Поддержка Go через gopls LSP и Delve"
+}

@@ -1,0 +1,10 @@
+{
+  "plugin.sqlite-viewer.name": "Visor de SQLite",
+  "plugin.sqlite-viewer.desc": "Visualización y consulta rápida de bases de datos SQLite",
+  "command.sqlite-viewer.openActive": "SQLite: Abrir base de datos en cuadrícula",
+  "SQLite: Open Database in DataGrid": "SQLite: Abrir base de datos en cuadrícula",
+  "command.sqlite-viewer.runQuery": "SQLite: Ejecutar consulta SQL personalizada",
+  "SQLite: Run Custom SQL Query": "SQLite: Ejecutar consulta SQL personalizada",
+  "toolwindow.sqlite-viewer-panel": "SQLite",
+  "SQLite": "SQLite"
+}

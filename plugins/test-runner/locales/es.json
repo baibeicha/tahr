@@ -1,0 +1,4 @@
+{
+  "plugin.test-runner.name": "Ejecutor de pruebas",
+  "plugin.test-runner.desc": "Integración con entornos de prueba"
+}

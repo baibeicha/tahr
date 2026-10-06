@@ -1,4 +1,4 @@
 {
-  "plugin.tahr-csharp.name": "C# 语言支持",
-  "plugin.tahr-csharp.desc": "C# (.NET) 语言支持，提供 OmniSharp / csharp-ls LSP、dotnet test 测试运行器与 netcoredbg 调试器"
+  "plugin.tahr-csharp.name": "C# Language Support",
+  "plugin.tahr-csharp.desc": "C# (.NET) language support with OmniSharp / csharp-ls LSP, dotnet test runner and netcoredbg debugger"
 }

@@ -1,0 +1,12 @@
+{
+  "plugin.go-generator.name": "Go 代码生成器",
+  "plugin.go-generator.desc": "自动生成结构体标签、构造函数与接口实现",
+  "command.go-generator.addTags": "Go: 添加结构体标签 (json, db, yaml)",
+  "Go: Add Struct Tags (json, db, yaml)": "Go: 添加结构体标签 (json, db, yaml)",
+  "command.go-generator.removeTags": "Go: 移除结构体标签",
+  "Go: Remove Struct Tags": "Go: 移除结构体标签",
+  "command.go-generator.newConstructor": "Go: 生成构造函数 New...",
+  "Go: Generate Constructor New...": "Go: 生成构造函数 New...",
+  "command.go-generator.implInterface": "Go: 实现接口方法",
+  "Go: Implement Interface Methods": "Go: 实现接口方法"
+}

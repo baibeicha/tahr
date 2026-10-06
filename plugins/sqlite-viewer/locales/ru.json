@@ -1,0 +1,10 @@
+{
+  "plugin.sqlite-viewer.name": "Просмотр SQLite",
+  "plugin.sqlite-viewer.desc": "Быстрый просмотр и редактирование баз данных SQLite",
+  "command.sqlite-viewer.openActive": "SQLite: Открыть базу в табличном виде",
+  "SQLite: Open Database in DataGrid": "SQLite: Открыть базу в табличном виде",
+  "command.sqlite-viewer.runQuery": "SQLite: Выполнить пользовательский SQL запрос",
+  "SQLite: Run Custom SQL Query": "SQLite: Выполнить пользовательский SQL запрос",
+  "toolwindow.sqlite-viewer-panel": "SQLite",
+  "SQLite": "SQLite"
+}

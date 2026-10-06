@@ -1,0 +1,10 @@
+{
+  "plugin.db-er-diagram.name": "数据库 ER 关系图",
+  "plugin.db-er-diagram.desc": "交互式实体关系图 (ER Diagram) 与导出工具",
+  "command.db-er-diagram.openCanvas": "数据库: 打开交互式 ER 图 (F6)",
+  "Database: Open Interactive ER Diagram (F6)": "数据库: 打开交互式 ER 图 (F6)",
+  "command.db-er-diagram.exportMermaid": "数据库: 导出 ER 图为 Mermaid 格式",
+  "Database: Export ER Diagram to Mermaid": "数据库: 导出 ER 图为 Mermaid 格式",
+  "command.db-er-diagram.exportDDL": "数据库: 导出 ER 图为 DDL 迁移脚本",
+  "Database: Export ER Diagram to DDL Migration": "数据库: 导出 ER 图为 DDL 迁移脚本"
+}

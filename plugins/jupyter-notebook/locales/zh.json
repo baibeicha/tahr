@@ -1,0 +1,16 @@
+{
+  "plugin.jupyter-notebook.name": "Jupyter 交互式笔记本",
+  "plugin.jupyter-notebook.desc": "交互式 .ipynb 笔记本编辑与运行引擎",
+  "command.jupyter-notebook.runCell": "Jupyter: 运行选中单元格并前进",
+  "Notebook: Run Selected Cell and Advance": "Jupyter: 运行选中单元格并前进",
+  "command.jupyter-notebook.runAll": "Jupyter: 运行所有单元格",
+  "Notebook: Run All Cells": "Jupyter: 运行所有单元格",
+  "command.jupyter-notebook.restartKernel": "Jupyter: 重启内核并清空输出",
+  "Notebook: Restart Kernel and Clear Outputs": "Jupyter: 重启内核并清空输出",
+  "command.jupyter-notebook.insertCodeCell": "Jupyter: 在下方插入代码单元格",
+  "Notebook: Insert Code Cell Below": "Jupyter: 在下方插入代码单元格",
+  "command.jupyter-notebook.insertMarkdownCell": "Jupyter: 在下方插入 Markdown 单元格",
+  "Notebook: Insert Markdown Cell Below": "Jupyter: 在下方插入 Markdown 单元格",
+  "toolwindow.jupyter-notebook-panel": "Jupyter 笔记本",
+  "Notebooks": "Jupyter 笔记本"
+}

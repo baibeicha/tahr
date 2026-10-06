@@ -1,0 +1,12 @@
+{
+  "plugin.ai-chat.name": "Asistente IA",
+  "plugin.ai-chat.desc": "Asistente inteligente para análisis de código, explicaciones y refactorización",
+  "command.ai-chat.toggle": "AI: Alternar barra lateral de chat",
+  "AI: Toggle Chat Sidebar": "AI: Alternar barra lateral de chat",
+  "command.ai-chat.explain": "AI: Explicar código seleccionado",
+  "AI: Explain Selected Code": "AI: Explicar código seleccionado",
+  "command.ai-chat.fix": "AI: Proponer corrección para diagnósticos",
+  "AI: Propose Fix for Diagnostics": "AI: Proponer corrección para diagnósticos",
+  "toolwindow.ai-chat-panel": "Asistente IA",
+  "AI Assistant": "Asistente IA"
+}

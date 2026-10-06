@@ -1,0 +1,10 @@
+{
+  "plugin.git-graph.name": "Grafo de Git",
+  "plugin.git-graph.desc": "Visualización gráfica de ramas y confirmaciones de Git",
+  "command.git-graph.open": "Git: Abrir grafo de confirmaciones",
+  "Git: Open Commit Graph": "Git: Abrir grafo de confirmaciones",
+  "command.git-graph.refresh": "Git: Actualizar grafo de confirmaciones",
+  "Git: Refresh Commit Graph": "Git: Actualizar grafo de confirmaciones",
+  "toolwindow.git-graph-view": "Git Graph",
+  "Git Graph": "Git Graph"
+}

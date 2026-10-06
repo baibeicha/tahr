@@ -1,0 +1,4 @@
+{
+  "plugin.ai-completion.name": "AI Inline Code Completion",
+  "plugin.ai-completion.desc": "AI-powered inline code suggestions (ghost text) with built-in llama-server integration and support for custom local or cloud OpenAI-compatible providers"
+}

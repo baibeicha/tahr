@@ -1,0 +1,15 @@
+{
+  "id": "tahr-es",
+  "name": "Spanish Language Pack",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Complete Spanish (Español) localization for Tahr IDE interface, dialogs, commands, and settings",
+  "category": "i18n",
+  "localizations": [
+    {
+      "locale": "es",
+      "name": "Español",
+      "file": "locales/es.json"
+    }
+  ]
+}

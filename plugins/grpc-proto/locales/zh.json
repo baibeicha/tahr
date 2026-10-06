@@ -1,0 +1,8 @@
+{
+  "plugin.grpc-proto.name": "gRPC 与 Protobuf",
+  "plugin.grpc-proto.desc": "gRPC 端点调用与 Protobuf 代码生成工具",
+  "command.grpc-proto.invoke": "gRPC: 调用服务接口",
+  "gRPC: Invoke Service Endpoint": "gRPC: 调用服务接口",
+  "command.grpc-proto.generate": "gRPC: 执行 buf generate",
+  "gRPC: Run buf generate": "gRPC: 执行 buf generate"
+}

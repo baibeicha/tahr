@@ -1,0 +1,12 @@
+{
+  "plugin.go-generator.name": "Go Code & Tag Generator",
+  "plugin.go-generator.desc": "Productivity code generator for Go developers: struct tags (json, db, yaml, validate), constructor generation (New...), and interface method stubs (impl)",
+  "command.go-generator.addTags": "Go: Add Struct Tags (json, db, yaml)",
+  "Go: Add Struct Tags (json, db, yaml)": "Go: Add Struct Tags (json, db, yaml)",
+  "command.go-generator.removeTags": "Go: Remove Struct Tags",
+  "Go: Remove Struct Tags": "Go: Remove Struct Tags",
+  "command.go-generator.newConstructor": "Go: Generate Constructor New...",
+  "Go: Generate Constructor New...": "Go: Generate Constructor New...",
+  "command.go-generator.implInterface": "Go: Implement Interface Methods",
+  "Go: Implement Interface Methods": "Go: Implement Interface Methods"
+}

@@ -1,0 +1,8 @@
+{
+  "plugin.todo-tree.name": "TODO 树",
+  "plugin.todo-tree.desc": "全工作区扫描并树状展示 TODO/FIXME/HACK 注释",
+  "command.todo-tree.refresh": "TODO: 刷新工作区注释",
+  "TODO: Refresh Workspace Comments": "TODO: 刷新工作区注释",
+  "toolwindow.todo-tree-panel": "TODO 树",
+  "TODOs": "TODO 树"
+}

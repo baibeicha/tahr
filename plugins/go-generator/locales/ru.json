@@ -1,0 +1,12 @@
+{
+  "plugin.go-generator.name": "Go Генератор",
+  "plugin.go-generator.desc": "Автогенерация тегов структур, конструкторов и реализаций интерфейсов",
+  "command.go-generator.addTags": "Go: Добавить теги структуры (json, db, yaml)",
+  "Go: Add Struct Tags (json, db, yaml)": "Go: Добавить теги структуры (json, db, yaml)",
+  "command.go-generator.removeTags": "Go: Удалить теги структуры",
+  "Go: Remove Struct Tags": "Go: Удалить теги структуры",
+  "command.go-generator.newConstructor": "Go: Сгенерировать конструктор New...",
+  "Go: Generate Constructor New...": "Go: Сгенерировать конструктор New...",
+  "command.go-generator.implInterface": "Go: Реализовать методы интерфейса",
+  "Go: Implement Interface Methods": "Go: Реализовать методы интерфейса"
+}

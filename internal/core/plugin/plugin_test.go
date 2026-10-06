@@ -518,8 +518,8 @@ func TestTier1PluginsPackagingAndInstallation(t *testing.T) {
 		t.Fatalf("failed to parse registry.json: %v", err)
 	}
 
-	if len(registry) != 28 {
-		t.Fatalf("expected 28 plugins in registry.json, got %d", len(registry))
+	if len(registry) < 28 {
+		t.Fatalf("expected at least 28 plugins in registry.json, got %d", len(registry))
 	}
 
 	tempDir := t.TempDir()

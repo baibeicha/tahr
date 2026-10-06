@@ -1,0 +1,10 @@
+{
+  "plugin.git-graph.name": "Visual Git Graph",
+  "plugin.git-graph.desc": "Interactive visual commit and branch graph showing merge histories, branch topologies, tags, authors, and commit diffs",
+  "command.git-graph.open": "Git: Open Commit Graph",
+  "Git: Open Commit Graph": "Git: Open Commit Graph",
+  "command.git-graph.refresh": "Git: Refresh Commit Graph",
+  "Git: Refresh Commit Graph": "Git: Refresh Commit Graph",
+  "toolwindow.git-graph-view": "Git Graph",
+  "Git Graph": "Git Graph"
+}

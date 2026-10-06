@@ -1,0 +1,12 @@
+{
+  "plugin.ai-chat.name": "AI Chat Assistant",
+  "plugin.ai-chat.desc": "Interactive AI coding assistant sidebar with context tags (@file, @selection, @diagnostics, @terminal), SSE streaming, and direct code actions",
+  "command.ai-chat.toggle": "AI: Toggle Chat Sidebar",
+  "AI: Toggle Chat Sidebar": "AI: Toggle Chat Sidebar",
+  "command.ai-chat.explain": "AI: Explain Selected Code",
+  "AI: Explain Selected Code": "AI: Explain Selected Code",
+  "command.ai-chat.fix": "AI: Propose Fix for Diagnostics",
+  "AI: Propose Fix for Diagnostics": "AI: Propose Fix for Diagnostics",
+  "toolwindow.ai-chat-panel": "AI Assistant",
+  "AI Assistant": "AI Assistant"
+}

@@ -1,0 +1,12 @@
+{
+  "plugin.ai-chat.name": "AI 助手",
+  "plugin.ai-chat.desc": "智能代码分析、解释、重构与问答助手",
+  "command.ai-chat.toggle": "AI: 切换聊天侧边栏",
+  "AI: Toggle Chat Sidebar": "AI: 切换聊天侧边栏",
+  "command.ai-chat.explain": "AI: 解释所选代码",
+  "AI: Explain Selected Code": "AI: 解释所选代码",
+  "command.ai-chat.fix": "AI: 针对诊断提出修复建议",
+  "AI: Propose Fix for Diagnostics": "AI: 针对诊断提出修复建议",
+  "toolwindow.ai-chat-panel": "AI 助手",
+  "AI Assistant": "AI 助手"
+}

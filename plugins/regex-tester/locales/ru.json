@@ -1,0 +1,6 @@
+{
+  "plugin.regex-tester.name": "Тестер Regex",
+  "plugin.regex-tester.desc": "Интерактивная проверка регулярных выражений",
+  "command.regex-tester.open": "Regex: Открыть интерактивную песочницу",
+  "Regex: Open Interactive Sandbox": "Regex: Открыть интерактивную песочницу"
+}

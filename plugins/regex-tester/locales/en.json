@@ -1,0 +1,6 @@
+{
+  "plugin.regex-tester.name": "Interactive Regex Sandbox",
+  "plugin.regex-tester.desc": "Real-time regular expression evaluation and testing sandbox using Go RE2 regex syntax with capture groups and live highlight spans",
+  "command.regex-tester.open": "Regex: Open Interactive Sandbox",
+  "Regex: Open Interactive Sandbox": "Regex: Open Interactive Sandbox"
+}

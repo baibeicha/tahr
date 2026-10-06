@@ -1,0 +1,4 @@
+{
+  "plugin.test-runner.name": "Universal Test Runner",
+  "plugin.test-runner.desc": "Multi-language test discoverer and runner supporting Go (go test), Rust (cargo test), Python (pytest), TS/JS (vitest/jest), and C/C++ (ctest)"
+}

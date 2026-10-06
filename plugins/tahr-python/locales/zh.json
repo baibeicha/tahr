@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-python.name": "Python 语言支持",
+  "plugin.tahr-python.desc": "通过 Pyright 提供 Python 语言支持与 pytest 集成"
+}

@@ -1,0 +1,10 @@
+{
+  "plugin.task-runner.name": "Universal Task Runner",
+  "plugin.task-runner.desc": "Autodetects and executes build tasks from Makefile, Taskfile.yml, package.json, Justfile, and deno.json directly in Tahr's PTY terminal",
+  "command.task-runner.open": "Tasks: Open Task Runner",
+  "Tasks: Open Task Runner": "Tasks: Open Task Runner",
+  "command.task-runner.runLast": "Tasks: Re-run Last Task",
+  "Tasks: Re-run Last Task": "Tasks: Re-run Last Task",
+  "toolwindow.task-runner-panel": "Tasks",
+  "Tasks": "Tasks"
+}

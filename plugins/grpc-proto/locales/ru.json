@@ -1,0 +1,8 @@
+{
+  "plugin.grpc-proto.name": "gRPC и Protobuf",
+  "plugin.grpc-proto.desc": "Инструменты вызова gRPC сервисов и генерации Protobuf",
+  "command.grpc-proto.invoke": "gRPC: Вызвать эндпоинт сервиса",
+  "gRPC: Invoke Service Endpoint": "gRPC: Вызвать эндпоинт сервиса",
+  "command.grpc-proto.generate": "gRPC: Запустить buf generate",
+  "gRPC: Run buf generate": "gRPC: Запустить buf generate"
+}

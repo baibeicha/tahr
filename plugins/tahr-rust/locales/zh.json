@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-rust.name": "Rust 语言支持",
+  "plugin.tahr-rust.desc": "通过 rust-analyzer 提供 Rust 语言支持与 Cargo 集成"
+}

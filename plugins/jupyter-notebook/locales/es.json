@@ -1,0 +1,16 @@
+{
+  "plugin.jupyter-notebook.name": "Cuaderno Jupyter",
+  "plugin.jupyter-notebook.desc": "Editor y motor de ejecución interactivo de cuadernos .ipynb",
+  "command.jupyter-notebook.runCell": "Jupyter: Ejecutar celda seleccionada y avanzar",
+  "Notebook: Run Selected Cell and Advance": "Jupyter: Ejecutar celda seleccionada y avanzar",
+  "command.jupyter-notebook.runAll": "Jupyter: Ejecutar todas las celdas",
+  "Notebook: Run All Cells": "Jupyter: Ejecutar todas las celdas",
+  "command.jupyter-notebook.restartKernel": "Jupyter: Reiniciar kernel y limpiar salidas",
+  "Notebook: Restart Kernel and Clear Outputs": "Jupyter: Reiniciar kernel y limpiar salidas",
+  "command.jupyter-notebook.insertCodeCell": "Jupyter: Insertar celda de código abajo",
+  "Notebook: Insert Code Cell Below": "Jupyter: Insertar celda de código abajo",
+  "command.jupyter-notebook.insertMarkdownCell": "Jupyter: Insertar celda Markdown abajo",
+  "Notebook: Insert Markdown Cell Below": "Jupyter: Insertar celda Markdown abajo",
+  "toolwindow.jupyter-notebook-panel": "Cuaderno Jupyter",
+  "Notebooks": "Cuaderno Jupyter"
+}

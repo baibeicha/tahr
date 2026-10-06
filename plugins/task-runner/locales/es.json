@@ -1,0 +1,10 @@
+{
+  "plugin.task-runner.name": "Gestor de tareas",
+  "plugin.task-runner.desc": "Orquestación y ejecución de tareas de compilación (.tahr/tasks.json)",
+  "command.task-runner.open": "Tareas: Abrir gestor de tareas",
+  "Tasks: Open Task Runner": "Tareas: Abrir gestor de tareas",
+  "command.task-runner.runLast": "Tareas: Volver a ejecutar última tarea",
+  "Tasks: Re-run Last Task": "Tareas: Volver a ejecutar última tarea",
+  "toolwindow.task-runner-panel": "Gestor de tareas",
+  "Tasks": "Gestor de tareas"
+}

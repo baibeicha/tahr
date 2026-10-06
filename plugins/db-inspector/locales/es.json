@@ -1,0 +1,14 @@
+{
+  "plugin.db-inspector.name": "Inspector de base de datos",
+  "plugin.db-inspector.desc": "Inspección de tablas, ejecución de consultas SQL y vista en cuadrícula",
+  "command.db-inspector.connect": "Base de datos: Conectar a base de datos...",
+  "Database: Connect to Database...": "Base de datos: Conectar a base de datos...",
+  "command.db-inspector.disconnect": "Base de datos: Desconectar sesión activa",
+  "Database: Disconnect Active Session": "Base de datos: Desconectar sesión activa",
+  "command.db-inspector.runQuery": "Base de datos: Ejecutar consulta SQL en el cursor",
+  "Database: Execute SQL Query at Cursor": "Base de datos: Ejecutar consulta SQL en el cursor",
+  "command.db-inspector.openTable": "Base de datos: Abrir tabla en cuadrícula de datos",
+  "Database: Open Table in DataGrid": "Base de datos: Abrir tabla en cuadrícula de datos",
+  "toolwindow.db-inspector-panel": "Bases de datos",
+  "Databases": "Bases de datos"
+}

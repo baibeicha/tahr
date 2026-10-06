@@ -1,0 +1,8 @@
+{
+  "plugin.rest-client.name": "Interactive REST Client",
+  "plugin.rest-client.desc": "Execute HTTP and REST requests directly from .http and .rest files with RFC 7230 syntax, environment variables, and live split view response rendering",
+  "command.rest-client.send": "REST: Send Request Under Cursor",
+  "REST: Send Request Under Cursor": "REST: Send Request Under Cursor",
+  "command.rest-client.history": "REST: View Request History",
+  "REST: View Request History": "REST: View Request History"
+}

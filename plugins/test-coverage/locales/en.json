@@ -1,0 +1,4 @@
+{
+  "plugin.test-coverage.name": "Test Coverage Visualizer",
+  "plugin.test-coverage.desc": "Visualizes test coverage from reports (coverage.out, lcov.info) with gutter line coloring and status bar metrics"
+}

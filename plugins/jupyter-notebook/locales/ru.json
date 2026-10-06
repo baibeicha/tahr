@@ -1,0 +1,16 @@
+{
+  "plugin.jupyter-notebook.name": "Блокнот Jupyter",
+  "plugin.jupyter-notebook.desc": "Интерактивный запуск и редактирование .ipynb блокнотов",
+  "command.jupyter-notebook.runCell": "Jupyter: Выполнить ячейку и перейти далее",
+  "Notebook: Run Selected Cell and Advance": "Jupyter: Выполнить ячейку и перейти далее",
+  "command.jupyter-notebook.runAll": "Jupyter: Выполнить все ячейки",
+  "Notebook: Run All Cells": "Jupyter: Выполнить все ячейки",
+  "command.jupyter-notebook.restartKernel": "Jupyter: Перезапустить ядро и очистить вывод",
+  "Notebook: Restart Kernel and Clear Outputs": "Jupyter: Перезапустить ядро и очистить вывод",
+  "command.jupyter-notebook.insertCodeCell": "Jupyter: Вставить ячейку кода снизу",
+  "Notebook: Insert Code Cell Below": "Jupyter: Вставить ячейку кода снизу",
+  "command.jupyter-notebook.insertMarkdownCell": "Jupyter: Вставить ячейку Markdown снизу",
+  "Notebook: Insert Markdown Cell Below": "Jupyter: Вставить ячейку Markdown снизу",
+  "toolwindow.jupyter-notebook-panel": "Блокнот Jupyter",
+  "Notebooks": "Блокнот Jupyter"
+}

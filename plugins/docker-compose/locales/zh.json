@@ -1,0 +1,14 @@
+{
+  "plugin.docker-compose.name": "Docker Compose 管理器",
+  "plugin.docker-compose.desc": "检查服务、监控健康状态、实时日志流与交互式容器 Shell",
+  "command.docker-compose.open": "Docker: 打开 Compose 管理器",
+  "Docker: Open Compose Manager": "Docker: 打开 Compose 管理器",
+  "command.docker-compose.up": "Docker: Compose Up (启动服务)",
+  "Docker: Compose Up (Start Services)": "Docker: Compose Up (启动服务)",
+  "command.docker-compose.down": "Docker: Compose Down (Detener servicios)",
+  "Docker: Compose Down (Stop Services)": "Docker: Compose Down (Detener servicios)",
+  "command.docker-compose.logs": "Docker: 查看容器日志",
+  "Docker: View Container Logs": "Docker: 查看容器日志",
+  "toolwindow.docker-compose-panel": "Docker Compose",
+  "Docker": "Docker Compose"
+}

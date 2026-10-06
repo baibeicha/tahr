@@ -1,0 +1,10 @@
+{
+  "plugin.task-runner.name": "Запуск задач",
+  "plugin.task-runner.desc": "Оркестрация и выполнение задач проекта (.tahr/tasks.json)",
+  "command.task-runner.open": "Задачи: Открыть запуск задач",
+  "Tasks: Open Task Runner": "Задачи: Открыть запуск задач",
+  "command.task-runner.runLast": "Задачи: Повторить последнюю задачу",
+  "Tasks: Re-run Last Task": "Задачи: Повторить последнюю задачу",
+  "toolwindow.task-runner-panel": "Запуск задач",
+  "Tasks": "Запуск задач"
+}

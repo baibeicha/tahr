@@ -1,0 +1,14 @@
+{
+  "plugin.db-inspector.name": "Database Inspector",
+  "plugin.db-inspector.desc": "Universal database client supporting PostgreSQL, MySQL, MariaDB, SQLite, MSSQL, CockroachDB, DuckDB, ClickHouse, and Redis with schema explorer and DataGrid query viewer",
+  "command.db-inspector.connect": "Database: Connect to Database...",
+  "Database: Connect to Database...": "Database: Connect to Database...",
+  "command.db-inspector.disconnect": "Database: Disconnect Active Session",
+  "Database: Disconnect Active Session": "Database: Disconnect Active Session",
+  "command.db-inspector.runQuery": "Database: Execute SQL Query at Cursor",
+  "Database: Execute SQL Query at Cursor": "Database: Execute SQL Query at Cursor",
+  "command.db-inspector.openTable": "Database: Open Table in DataGrid",
+  "Database: Open Table in DataGrid": "Database: Open Table in DataGrid",
+  "toolwindow.db-inspector-panel": "Databases",
+  "Databases": "Databases"
+}

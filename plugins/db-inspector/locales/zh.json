@@ -1,0 +1,14 @@
+{
+  "plugin.db-inspector.name": "数据库管理检查器",
+  "plugin.db-inspector.desc": "表结构检查、执行 SQL 查询与数据表格查看",
+  "command.db-inspector.connect": "数据库: 连接到数据库...",
+  "Database: Connect to Database...": "数据库: 连接到数据库...",
+  "command.db-inspector.disconnect": "数据库: 断开当前会话",
+  "Database: Disconnect Active Session": "数据库: 断开当前会话",
+  "command.db-inspector.runQuery": "数据库: 执行光标处 SQL 查询",
+  "Database: Execute SQL Query at Cursor": "数据库: 执行光标处 SQL 查询",
+  "command.db-inspector.openTable": "数据库: 在数据表格中打开表",
+  "Database: Open Table in DataGrid": "数据库: 在数据表格中打开表",
+  "toolwindow.db-inspector-panel": "数据库管理",
+  "Databases": "数据库管理"
+}

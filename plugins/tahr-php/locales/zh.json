@@ -1,4 +1,4 @@
 {
-  "plugin.tahr-php.name": "PHP 语言支持",
-  "plugin.tahr-php.desc": "PHP 语言支持，提供 Intelephense / phpactor LSP、PHPUnit 测试、Xdebug 调试与 Composer 集成"
+  "plugin.tahr-php.name": "PHP Language Support",
+  "plugin.tahr-php.desc": "PHP language support with Intelephense / phpactor LSP, PHPUnit testing, Xdebug DAP adapter and Composer integration"
 }

@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-python.name": "Python Language Support",
+  "plugin.tahr-python.desc": "Python language support with Pyright LSP, debugpy DAP debugger, pytest integration, virtualenv autodetection"
+}

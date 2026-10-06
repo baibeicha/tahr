@@ -1,0 +1,10 @@
+{
+  "plugin.devtools.name": "DevTools",
+  "plugin.devtools.desc": "Набор полезных утилит разработчика: JWT, UUID, Base64",
+  "command.devtools.open": "DevTools: Открыть палитру утилит",
+  "DevTools: Open Utilities Palette": "DevTools: Открыть палитру утилит",
+  "command.devtools.jwtDecode": "DevTools: Декодировать JWT токен",
+  "DevTools: Decode JWT Token": "DevTools: Декодировать JWT токен",
+  "command.devtools.uuidGen": "DevTools: Сгенерировать UUID v4",
+  "DevTools: Generate UUID v4": "DevTools: Сгенерировать UUID v4"
+}

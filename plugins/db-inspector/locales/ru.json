@@ -1,0 +1,14 @@
+{
+  "plugin.db-inspector.name": "Инспектор баз данных",
+  "plugin.db-inspector.desc": "Просмотр таблиц, выполнение SQL запросов и табличный редактор",
+  "command.db-inspector.connect": "База данных: Подключиться к базе данных...",
+  "Database: Connect to Database...": "База данных: Подключиться к базе данных...",
+  "command.db-inspector.disconnect": "База данных: Отключить активную сессию",
+  "Database: Disconnect Active Session": "База данных: Отключить активную сессию",
+  "command.db-inspector.runQuery": "База данных: Выполнить SQL запрос под курсором",
+  "Database: Execute SQL Query at Cursor": "База данных: Выполнить SQL запрос под курсором",
+  "command.db-inspector.openTable": "База данных: Открыть таблицу в табличном виде",
+  "Database: Open Table in DataGrid": "База данных: Открыть таблицу в табличном виде",
+  "toolwindow.db-inspector-panel": "Базы данных",
+  "Databases": "Базы данных"
+}
