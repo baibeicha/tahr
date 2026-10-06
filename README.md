@@ -24,13 +24,15 @@
 ## 🚀 Key Highlights
 
 * **Augmented Rope Buffer**: $O(\log N)$ text inserts, deletes, and splits capable of opening gigabyte-sized files instantaneously without UI thread stalls.
-* **Full-Featured LSP & DAP**: Out-of-the-box Language Server Protocol (gopls, pyright, rust-analyzer, clangd, typescript-language-server) and Delve DAP interactive debugging (Call Stack, Variables, Breakpoints, Step Over/Into/Out).
+* **Universal Multi-Language Test Runner**: Automated test discovery and execution for Go, Rust, Python, JavaScript/TypeScript, Java (Maven/Gradle), PHP (Pest/PHPUnit), C# (.NET), Kotlin, Zig, and Ruby with real-time test tree reporting.
+* **Peer-to-Peer Real-Time Collaboration**: Distributed pair programming with multi-tier signaling cascades (mDNS LAN, Nostr WebSockets, BitTorrent DHT), follower mode, and permission-gated terminal sharing.
+* **Full-Featured LSP & DAP**: Out-of-the-box Language Server Protocol (gopls, pyright, rust-analyzer, clangd, typescript-language-server, jdtls, intelephense, omnisharp, zls, solargraph) and Delve DAP interactive debugging (Call Stack, Variables, Breakpoints, Step Over/Into/Out).
 * **Dynamic Split Panes (1 to 6 Views)**: Single, 2-column, 3-column, 4-grid (2x2), 5-pane, and 6-grid (3x2) editor splits with instant hotkey cycling (`Ctrl+\`).
 * **Multi-Cursor & Smart Selections**: Full multi-cursor capabilities (`Ctrl+D`, `Alt+Click`), bracket rainbow matching, and word selections.
-* **Integrated Terminal Drawer**: TrueColor terminal tabs (`F4` / `Ctrl+~`) powered by Windows ConPTY and POSIX PTY.
-* **Zstandard Plugin Ecosystem**: Modular extensions packaged into compact `.tahr` archives with a built-in Extension Marketplace (`Ctrl+,`).
-* **Internationalization (i18n)**: English base UI with dynamic language pack loading (including complete Russian localization `tahr-ru`).
-* **Reliability & Crash Recovery**: Automated defer/recover panic crash recording and one-click diagnostic bug reporter.
+* **Integrated Terminal Drawer**: TrueColor terminal tabs (`F4` / `Ctrl+~`) powered by Windows ConPTY and POSIX PTY with live resize handles.
+* **Zstandard Plugin Ecosystem**: Modular extensions packaged into compact `.tahr` archives with a built-in Extension Marketplace (`Ctrl+,`). Every plugin bundles its own internal localized catalogs.
+* **Full Multi-Language Localization**: English base UI with dynamic language pack loading (including Russian `tahr-ru`, Chinese `tahr-zh`, and Spanish `tahr-es`).
+* **Instant Startup & Reliability**: Asynchronous SDK probe pipeline (<10ms startup time), defer/recover panic crash recording, and one-click diagnostic bug reporter.
 
 ---
 
@@ -77,6 +79,8 @@ go build -o bin/tahr ./cmd/tahr
 | `F8` | Toggle DAP Debugger HUD |
 | `F9` | Toggle Breakpoint |
 | `F10` / `F11` | Step Over / Step Into line |
+| `Ctrl+Shift+T` | Toggle Universal Test Explorer |
+| `Ctrl+Shift+L` | Toggle Peer-to-Peer Collaboration panel |
 | `Ctrl+,` | Open IDE Settings & Extension Marketplace |
 | `Ctrl+P` | Omnibar: Rapid fuzzy file search |
 | `Ctrl+Shift+P` | Command Palette (Actions, Tools, Formatting) |
@@ -89,13 +93,15 @@ go build -o bin/tahr ./cmd/tahr
 
 ## 🧩 Plugin Ecosystem & Registry
 
-Tahr features an official registry containing 30+ production-grade extensions:
+Tahr features an official registry containing 36+ production-grade extensions:
 
-* **Language Packs**: `tahr-ru` (Complete Russian localization)
-* **LSP & Toolchains**: `tahr-go`, `tahr-rust`, `tahr-python`, `tahr-ts`, `tahr-clangd`
-* **Database & Storage**: `sqlite-viewer`, `db-inspector`, `clickhouse-inspector`, `redis-inspector`, `s3-viewer`
+* **Official Language Packs**: `tahr-ru` (Russian), `tahr-zh` (Simplified Chinese), `tahr-es` (Spanish)
+* **Language Support**: `tahr-go`, `tahr-rust`, `tahr-python`, `tahr-ts`, `tahr-clangd`, `tahr-java`, `tahr-php`, `tahr-kotlin`, `tahr-zig`, `tahr-csharp`, `tahr-ruby`
+* **Database & Storage**: `sqlite-viewer`, `db-inspector`, `db-er-diagram`, `clickhouse-inspector`, `redis-inspector`, `s3-viewer`
 * **Cloud & DevOps**: `docker-compose`, `k8s-inspector`, `tahr-kafka`, `tahr-nats`, `tahr-rabbitmq`, `remote-ssh`
-* **AI & Developer Productivity**: `ai-chat`, `ai-completion`, `rest-client`, `regex-tester`, `profiler`, `jupyter-notebook`
+* **AI & Developer Productivity**: `ai-chat`, `ai-completion`, `rest-client`, `regex-tester`, `profiler`, `jupyter-notebook`, `test-runner`, `test-coverage`
+
+Each plugin encapsulates its own internal translations (`locales/en.json`, `locales/ru.json`, `locales/zh.json`, `locales/es.json`) to keep the core IDE lean and fully decoupled.
 
 ### Developing & Packaging a Plugin
 
