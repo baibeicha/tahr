@@ -642,7 +642,7 @@ func (cp *ChatPanel) Render(buf *buffer.Buffer, startX, startY, sideW, sideH int
 						inCodeBlock = false
 						fullCode := strings.Join(curCodeLines, "\n")
 						rows = append(rows, renderedRow{
-							text:     "└── [Apply] [Insert] [Copy]",
+							text:     "└──  Apply   Insert   Copy ",
 							fg:       toColor(theme.Function),
 							attr:     cell.AttrBold,
 							isAction: true,
@@ -702,9 +702,9 @@ func (cp *ChatPanel) Render(buf *buffer.Buffer, startX, startY, sideW, sideH int
 
 			if row.isAction {
 				// Register click hit regions for buttons
-				applyIdx := strings.Index(row.text, "[Apply]")
-				insertIdx := strings.Index(row.text, "[Insert]")
-				copyIdx := strings.Index(row.text, "[Copy]")
+				applyIdx := strings.Index(row.text, " Apply ")
+				insertIdx := strings.Index(row.text, " Insert ")
+				copyIdx := strings.Index(row.text, " Copy ")
 
 				if applyIdx != -1 {
 					cp.CodeActionHits = append(cp.CodeActionHits, CodeActionHit{

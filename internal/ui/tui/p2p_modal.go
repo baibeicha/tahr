@@ -116,14 +116,14 @@ func (m *P2PModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	buf.SetRune(x+w-1, y+h-1, '┘', borderFg, bg, cell.AttrNone)
 
 	// 2. Title Header
-	title := " ⚡ P2P Multi-User Collaboration "
+	title := " P2P Multi-User Collaboration "
 	for i, r := range []rune(title) {
 		buf.SetRune(x+3+i, y, r, borderFg, bg, cell.AttrBold)
 	}
 
 	// 3. Session Code Banner
 	rowY := y + 2
-	codePrompt := fmt.Sprintf("Session Code: [ %s ]", m.Session.SessionCode)
+	codePrompt := fmt.Sprintf("Session Code: %s", m.Session.SessionCode)
 	if m.CopiedHint {
 		codePrompt += " (Copied to clipboard!)"
 	} else {
@@ -176,7 +176,7 @@ func (m *P2PModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 		if m.PendingPTY {
 			ptyState = "Enabled"
 		}
-		toggleLine := fmt.Sprintf("   Role: [%s] (T to toggle)   Terminal PTY: [%s] (P to toggle)", m.PendingRole, ptyState)
+		toggleLine := fmt.Sprintf("   Role: %s (T to toggle)   Terminal PTY: %s (P to toggle)", m.PendingRole, ptyState)
 		for i, r := range []rune(toggleLine) {
 			if x+3+i < x+w-3 {
 				buf.SetRune(x+3+i, rowY, r, accentFg, bg, cell.AttrNone)
@@ -184,7 +184,7 @@ func (m *P2PModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 		}
 		rowY++
 
-		actionLine := "   [ Accept: Press Y / Enter ]    [ Decline: Press N ]"
+		actionLine := "   Accept: Press Y / Enter    Decline: Press N"
 		for i, r := range []rune(actionLine) {
 			if x+3+i < x+w-3 {
 				buf.SetRune(x+3+i, rowY, r, greenFg, bg, cell.AttrBold)
@@ -211,9 +211,9 @@ func (m *P2PModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 			for _, p := range m.Session.Peers {
 				ptyTag := ""
 				if p.CanTerminal {
-					ptyTag = " [PTY]"
+					ptyTag = " (PTY)"
 				}
-				peerLine := fmt.Sprintf("  ● %-12s  Role: [%s]%s  Cursor: %d", p.Nickname, p.Role, ptyTag, p.CursorRune)
+				peerLine := fmt.Sprintf("  * %-12s  Role: %s%s  Cursor: %d", p.Nickname, p.Role, ptyTag, p.CursorRune)
 				for i, r := range []rune(peerLine) {
 					if x+3+i < x+w-3 {
 						buf.SetRune(x+3+i, rowY, r, greenFg, bg, cell.AttrNone)
@@ -228,7 +228,7 @@ func (m *P2PModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	}
 
 	// 6. Action Footer
-	footer := "[ Close (Esc) ]"
+	footer := " Close (Esc) "
 	footX := x + (w-len(footer))/2
 	for i, r := range []rune(footer) {
 		buf.SetRune(footX+i, y+h-2, r, borderFg, bg, cell.AttrBold)

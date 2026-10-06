@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
@@ -88,5 +89,37 @@ func TestDAGCanvasWidget_PanAndSelection(t *testing.T) {
 	widget.MoveSelectedNode(10, 0)
 	if model.Nodes[widget.SelectedNodeID].X != origX+10 {
 		t.Errorf("expected card X to shift by 10")
+	}
+}
+
+func TestDAGCanvasWidget_EmptyState(t *testing.T) {
+	theme := &ui.Theme{
+		Foreground: 0xFFFFFF,
+		Background: 0x1E1E2E,
+		LineNumber: 0x6C7086,
+	}
+	model := dag.NewGraphModel()
+	widget := NewDAGCanvasWidget(model, theme)
+	buf := buffer.NewBuffer(80, 25)
+
+	widget.Render(buf, buffer.NewRect(0, 0, 80, 25))
+
+	foundEmptyTitle := false
+	for y := 0; y < 25; y++ {
+		var lineRunes []rune
+		for x := 0; x < 80; x++ {
+			lineRunes = append(lineRunes, buf.Cell(x, y).Rune)
+		}
+		lineStr := string(lineRunes)
+		if strings.Contains(lineStr, "Схема базы данных не найдена") {
+			foundEmptyTitle = true
+		}
+		if strings.Contains(lineStr, "orders") || strings.Contains(lineStr, "users") {
+			t.Fatalf("unexpected hardcoded mock table found in empty canvas: %s", lineStr)
+		}
+	}
+
+	if !foundEmptyTitle {
+		t.Errorf("expected empty state title in canvas rendering")
 	}
 }

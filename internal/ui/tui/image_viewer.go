@@ -189,8 +189,8 @@ func (iv *ImageViewerState) Render(buf *buffer.Buffer, area buffer.Rect, theme *
 	}
 
 	protoStr := iv.Protocol.String()
-	modeStr := fmt.Sprintf("Scale: %s [M]", iv.ScaleModeTitle())
-	infoText := fmt.Sprintf(" 📷 %s  │  %s  │  %s  │  %s  │  %s  │  %s ",
+	modeStr := fmt.Sprintf("Scale: %s (M)", iv.ScaleModeTitle())
+	infoText := fmt.Sprintf(" ● %s  │  %s  │  %s  │  %s  │  %s  │  %s ",
 		filepath.Base(iv.FilePath), dimStr, sizeStr, iv.Format, protoStr, modeStr)
 
 	curX := area.X
@@ -199,7 +199,7 @@ func (iv *ImageViewerState) Render(buf *buffer.Buffer, area buffer.Rect, theme *
 			break
 		}
 		fg := headerFg
-		if strings.ContainsRune("📷│[]", r) {
+		if strings.ContainsRune("●│()", r) {
 			fg = subFg
 		} else if strings.ContainsRune("MFitFillStretch", r) {
 			fg = accentFg

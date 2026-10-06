@@ -146,6 +146,17 @@ func DetectBuildCommand(workspaceRoot, activeFilePath string) (string, []string)
 	return "go", []string{"build", "-v", "."}
 }
 
+// Run parses a command string and launches the process.
+func (r *Runner) Run(command, workspaceRoot string) error {
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return nil
+	}
+	cmdName := parts[0]
+	args := parts[1:]
+	return r.StartProcess(workspaceRoot, cmdName, args, command)
+}
+
 // StartProcess launches an external command asynchronously and streams lines to the runner log.
 func (r *Runner) StartProcess(workspaceRoot, cmdName string, args []string, title string) error {
 	return r.StartProcessWithEnv(workspaceRoot, cmdName, args, nil, title)

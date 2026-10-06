@@ -304,29 +304,29 @@ func (mr *MarkdownRenderer) Render(buf *buffer.Buffer, startX, startY, width, he
 			}
 
 		case MdTaskUnchecked:
-			box := "[ ] "
+			box := "○ "
 			for i, r := range box {
 				buf.SetRune(startX+2+i, screenY, r, commentFg, bg, cell.AttrNone)
 			}
 			for i, r := range md.Text {
-				if i+6 < width-2 {
-					buf.SetRune(startX+6+i, screenY, r, fg, bg, cell.AttrNone)
+				if i+5 < width-2 {
+					buf.SetRune(startX+5+i, screenY, r, fg, bg, cell.AttrNone)
 				}
 			}
 
 		case MdTaskChecked:
-			box := "[✓] "
+			box := "● "
 			for i, r := range box {
 				buf.SetRune(startX+2+i, screenY, r, toColor(theme.String), bg, cell.AttrBold)
 			}
 			for i, r := range md.Text {
-				if i+6 < width-2 {
-					buf.SetRune(startX+6+i, screenY, r, fg, bg, cell.AttrNone)
+				if i+5 < width-2 {
+					buf.SetRune(startX+5+i, screenY, r, fg, bg, cell.AttrNone)
 				}
 			}
 
 		case MdCodeFenceStart:
-			tag := fmt.Sprintf("┌── [ %s ] ", md.Aux)
+			tag := fmt.Sprintf("┌──  %s  ", md.Aux)
 			for col := 0; col < width-4; col++ {
 				r := '─'
 				if col < len(tag) {

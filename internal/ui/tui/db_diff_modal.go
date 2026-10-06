@@ -78,12 +78,12 @@ func (m *DBDiffModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	}
 
 	// 2. Title & Tabs
-	title := " ⚡ Schema Migration Review "
+	title := " ● Schema Migration Review "
 	for i, r := range []rune(title) {
 		buf.SetRune(x+2+i, y, r, borderFg, bg, cell.AttrBold)
 	}
 
-	tabBar := " [1: Up Migration (DDL)]   [2: Down Rollback] "
+	tabBar := "  1: Up Migration (DDL)    2: Down Rollback  "
 	for i, r := range []rune(tabBar) {
 		buf.SetRune(x+2+i, y+2, r, fg, bg, cell.AttrBold)
 	}
@@ -91,7 +91,7 @@ func (m *DBDiffModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	// 3. Destructive Warning Banner
 	rowY := y + 4
 	if m.Diff.HasDestructive {
-		warnMsg := " ⚠️  CAUTION: Destructive changes detected (DROP COLUMN / TABLE)! Data loss possible."
+		warnMsg := " ● CAUTION: Destructive changes detected (DROP COLUMN / TABLE)! Data loss possible."
 		for i, r := range []rune(warnMsg) {
 			if x+2+i < x+w-2 {
 				buf.SetRune(x+2+i, rowY, r, warnFg, bg, cell.AttrBold)
@@ -124,7 +124,7 @@ func (m *DBDiffModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	}
 
 	// 5. Actions Footer
-	footer := "[ Apply to Dev DB (Enter) ]   [ Save Migration (Ctrl+S) ]   [ Cancel (Esc) ]"
+	footer := " Apply to Dev DB (Enter)    Save Migration (Ctrl+S)    Cancel (Esc) "
 	footX := x + (w-len(footer))/2
 	if footX < x+2 {
 		footX = x + 2

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
@@ -18,12 +19,23 @@ type DAGCanvasWidget struct {
 	SelectedNodeID string
 	SelectedPortID string
 	Theme          *ui.Theme
+	Kind           string
 }
 
 // NewDAGCanvasWidget creates a new canvas widget bound to a model and theme.
 func NewDAGCanvasWidget(model *dag.GraphModel, theme *ui.Theme) *DAGCanvasWidget {
 	if model == nil {
 		model = dag.NewGraphModel()
+	}
+	needsLayout := false
+	for _, n := range model.Nodes {
+		if n.X == 0 && n.Y == 0 {
+			needsLayout = true
+			break
+		}
+	}
+	if needsLayout && len(model.Nodes) > 0 {
+		dag.LayoutSugiyama(model, dag.DefaultSugiyamaConfig())
 	}
 	router := dag.NewChannelRouter()
 	router.RouteAll(model)
@@ -33,10 +45,15 @@ func NewDAGCanvasWidget(model *dag.GraphModel, theme *ui.Theme) *DAGCanvasWidget
 		Router: router,
 		Theme:  theme,
 	}
-	// Select first node by default if available
+
+	// Select first node deterministically
+	var sortedIDs []string
 	for id := range model.Nodes {
-		widget.SelectedNodeID = id
-		break
+		sortedIDs = append(sortedIDs, id)
+	}
+	sort.Strings(sortedIDs)
+	if len(sortedIDs) > 0 {
+		widget.SelectedNodeID = sortedIDs[0]
 	}
 	return widget
 }
@@ -53,6 +70,7 @@ func (cw *DAGCanvasWidget) SelectNextNode() {
 	for id := range cw.Model.Nodes {
 		ids = append(ids, id)
 	}
+	sort.Strings(ids)
 	if len(ids) == 0 {
 		return
 	}
@@ -71,6 +89,7 @@ func (cw *DAGCanvasWidget) SelectPrevNode() {
 	for id := range cw.Model.Nodes {
 		ids = append(ids, id)
 	}
+	sort.Strings(ids)
 	if len(ids) == 0 {
 		return
 	}
@@ -109,72 +128,71 @@ func (cw *DAGCanvasWidget) Render(buf *buffer.Buffer, bounds buffer.Rect) {
 	pkColor := toColor(0xF6C177) // Gold PK
 	fkColor := toColor(0x9CCFD8) // Cyan FK
 
-	// 1. Draw subtle background grid
+	// 1. Draw subtle background grid with safe positive modulus
 	for y := bounds.Y; y < bounds.Y+bounds.Height; y++ {
 		for x := bounds.X; x < bounds.X+bounds.Width; x++ {
 			r := ' '
-			if (x-cw.PanX)%10 == 0 && (y-cw.PanY)%5 == 0 {
+			relX := (x - bounds.X - cw.PanX)%12 + 12
+			relY := (y - bounds.Y - cw.PanY)%6 + 6
+			if relX%12 == 0 && relY%6 == 0 {
 				r = '·'
 			}
 			buf.SetRune(x, y, r, edgeColor, bg, cell.AttrNone)
 		}
 	}
 
-	// 2. Draw Edges
-	for _, edge := range cw.Model.Edges {
-		if len(edge.Points) < 2 {
-			continue
-		}
-		for i := 0; i < len(edge.Points)-1; i++ {
-			p1 := edge.Points[i]
-			p2 := edge.Points[i+1]
-			cw.drawSegment(buf, bounds, p1, p2, edgeColor, bg)
-		}
-		// Draw end marker
-		lastPt := edge.Points[len(edge.Points)-1]
-		scrX := bounds.X + lastPt[0] + cw.PanX
-		scrY := bounds.Y + lastPt[1] + cw.PanY
-		if scrX >= bounds.X && scrX < bounds.X+bounds.Width && scrY >= bounds.Y && scrY < bounds.Y+bounds.Height {
-			markerRune := '▶'
-			if edge.MarkerEnd == dag.MarkerCrowFootMany {
-				markerRune = 'ᚚ'
-			}
-			buf.SetRune(scrX, scrY, markerRune, activeColor, bg, cell.AttrBold)
-		}
+	// If no tables in model, render informative Empty State
+	if len(cw.Model.Nodes) == 0 {
+		cw.renderEmptyState(buf, bounds, fg, bg, edgeColor)
+		return
 	}
 
-	// 3. Draw Node Cards
-	for _, node := range cw.Model.Nodes {
+	// 2. Draw Node Cards deterministically (sorted by ID to prevent flicker/jitter)
+	var nodeIDs []string
+	for id := range cw.Model.Nodes {
+		nodeIDs = append(nodeIDs, id)
+	}
+	sort.Strings(nodeIDs)
+
+	for _, id := range nodeIDs {
+		node := cw.Model.Nodes[id]
 		scrX := bounds.X + node.X + cw.PanX
 		scrY := bounds.Y + node.Y + cw.PanY
 		isSelected := node.ID == cw.SelectedNodeID
 
 		cardBorderColor := edgeColor
 		cardTitleColor := fg
+		cardAttr := cell.AttrNone
 		if isSelected {
 			cardBorderColor = activeColor
 			cardTitleColor = activeColor
+			cardAttr = cell.AttrBold
 		}
 
-		// Draw Frame
-		cw.renderCardFrame(buf, bounds, scrX, scrY, node.Width, node.Height, cardBorderColor, bg)
+		// Draw Frame: top, divider at y+1, bottom at y+h-1, side borders
+		cw.renderCardFrame(buf, bounds, scrX, scrY, node.Width, node.Height, cardBorderColor, bg, cardAttr)
 
-		// Title
+		// Title row (at scrY) with selection indicator
 		title := fmt.Sprintf(" %s ", node.Title)
+		if isSelected {
+			title = fmt.Sprintf(" ▶ %s ", node.Title)
+		}
 		for i, r := range []rune(title) {
-			if scrX+2+i < bounds.X+bounds.Width && scrX+2+i >= bounds.X && scrY >= bounds.Y && scrY < bounds.Y+bounds.Height {
-				buf.SetRune(scrX+2+i, scrY, r, cardTitleColor, bg, cell.AttrBold)
+			cellX := scrX + 1 + i
+			if cellX >= bounds.X && cellX < bounds.X+bounds.Width && cellX < scrX+node.Width-1 &&
+				scrY >= bounds.Y && scrY < bounds.Y+bounds.Height {
+				buf.SetRune(cellX, scrY, r, cardTitleColor, bg, cell.AttrBold)
 			}
 		}
 
-		// Rows
+		// Rows (starting at scrY + 2, after top border and separator line)
 		for rIdx, row := range node.Rows {
 			rowY := scrY + 2 + rIdx
-			if rowY < bounds.Y || rowY >= bounds.Y+bounds.Height {
+			if rowY < bounds.Y || rowY >= bounds.Y+bounds.Height || rowY >= scrY+node.Height-1 {
 				continue
 			}
 
-			// Key icon
+			// Key tag (3 chars)
 			keyTag := "   "
 			keyFg := fg
 			if row.IsPK {
@@ -185,8 +203,21 @@ func (cw *DAGCanvasWidget) Render(buf *buffer.Buffer, bounds buffer.Rect) {
 				keyFg = fkColor
 			}
 
-			lineStr := fmt.Sprintf("%s%-*s %s", keyTag, node.Width-len(row.DataType)-8, row.Name, row.DataType)
-			for i, r := range []rune(lineStr) {
+			innerW := node.Width - 2 // space between left and right │
+			if innerW < 6 {
+				innerW = 6
+			}
+			nameW := innerW - 3 - len(row.DataType) - 1
+			if nameW < 1 {
+				nameW = 1
+			}
+			lineStr := fmt.Sprintf("%s%-*s %s", keyTag, nameW, row.Name, row.DataType)
+			lineRunes := []rune(lineStr)
+			if len(lineRunes) > innerW {
+				lineRunes = lineRunes[:innerW]
+			}
+
+			for i, r := range lineRunes {
 				cellX := scrX + 1 + i
 				if cellX >= bounds.X && cellX < bounds.X+bounds.Width && cellX < scrX+node.Width-1 {
 					rowFg := fg
@@ -196,86 +227,274 @@ func (cw *DAGCanvasWidget) Render(buf *buffer.Buffer, bounds buffer.Rect) {
 					buf.SetRune(cellX, rowY, r, rowFg, bg, cell.AttrNone)
 				}
 			}
+		}
+	}
 
-			// Draw Port Anchors on left/right borders
-			if scrX >= bounds.X && scrX < bounds.X+bounds.Width {
-				buf.SetRune(scrX, rowY, '○', cardBorderColor, bg, cell.AttrNone)
+	// 3. Draw Edges with Directional Grid (Corners, Junctions, Arrows)
+	cw.renderEdges(buf, bounds, edgeColor, activeColor, bg)
+}
+
+// renderEmptyState displays an informative empty card when no database or schema files exist.
+func (cw *DAGCanvasWidget) renderEmptyState(buf *buffer.Buffer, bounds buffer.Rect, fg, bg, borderColor cell.Color) {
+	var lines []string
+	if cw.Kind == "project-graph" || cw.Kind == "graph" {
+		lines = []string{
+			"╭─────────────────────────────────────────────────────────────╮",
+			"│                Граф проекта / Call Hierarchy                │",
+			"├─────────────────────────────────────────────────────────────┤",
+			"│                                                             │",
+			"│  • Откройте файл с кодом (.go, .rs, .py, .ts) в редакторе  │",
+			"│  • Нажмите F3 для анализа вызовов активного файла/функции   │",
+			"│                                                             │",
+			"│  Режимы анализа (переключение клавишей r / в меню):         │",
+			"│    • Call Graph (Downstream) — вызываемые функции           │",
+			"│    • Blast Radius (Upstream) — вызывающие функции           │",
+			"│    • Module Imports & Cycles — циклические импорты          │",
+			"│                                                             │",
+			"╰─────────────────────────────────────────────────────────────╯",
+		}
+	} else {
+		lines = []string{
+			"╭─────────────────────────────────────────────────────────────╮",
+			"│                Схема базы данных не найдена                 │",
+			"├─────────────────────────────────────────────────────────────┤",
+			"│                                                             │",
+			"│  • Нажмите «+ Подключить БД» в панели «Таблицы»             │",
+			"│  • Или добавьте файлы схемы / миграций (.sql) в проект      │",
+			"│                                                             │",
+			"│  Поддерживаемые СУБД:                                       │",
+			"│    PostgreSQL, MySQL, MariaDB, SQLite, MSSQL,               │",
+			"│    CockroachDB, DuckDB, ClickHouse, Redis                   │",
+			"│                                                             │",
+			"╰─────────────────────────────────────────────────────────────╯",
+		}
+	}
+	cardW := 63
+	cardH := len(lines)
+	startX := bounds.X + (bounds.Width-cardW)/2
+	startY := bounds.Y + (bounds.Height-cardH)/2
+	if startX < bounds.X {
+		startX = bounds.X
+	}
+	if startY < bounds.Y {
+		startY = bounds.Y
+	}
+
+	for rowIdx, line := range lines {
+		y := startY + rowIdx
+		if y >= bounds.Y+bounds.Height {
+			break
+		}
+		runes := []rune(line)
+		for colIdx, r := range runes {
+			x := startX + colIdx
+			if x >= bounds.X+bounds.Width {
+				break
 			}
-			rightBorder := scrX + node.Width - 1
-			if rightBorder >= bounds.X && rightBorder < bounds.X+bounds.Width {
-				buf.SetRune(rightBorder, rowY, '●', cardBorderColor, bg, cell.AttrNone)
+			color := fg
+			if rowIdx == 0 || rowIdx == 2 || rowIdx == len(lines)-1 || colIdx == 0 || colIdx == len(runes)-1 {
+				color = borderColor
+			} else if rowIdx == 1 {
+				color = fg
 			}
+			attr := cell.AttrNone
+			if rowIdx == 1 {
+				attr = cell.AttrBold
+			}
+			buf.SetRune(x, y, r, color, bg, attr)
 		}
 	}
 }
 
-func (cw *DAGCanvasWidget) drawSegment(buf *buffer.Buffer, b buffer.Rect, p1, p2 [2]int, fg, bg cell.Color) {
-	x1 := b.X + p1[0] + cw.PanX
-	y1 := b.Y + p1[1] + cw.PanY
-	x2 := b.X + p2[0] + cw.PanX
-	y2 := b.Y + p2[1] + cw.PanY
+const (
+	dirN uint8 = 1 << 0
+	dirS uint8 = 1 << 1
+	dirE uint8 = 1 << 2
+	dirW uint8 = 1 << 3
+)
 
-	if x1 == x2 { // Vertical segment
-		minY, maxY := y1, y2
-		if minY > maxY {
-			minY, maxY = maxY, minY
+type edgeGridCell struct {
+	mask  uint8
+	color cell.Color
+}
+
+func (cw *DAGCanvasWidget) renderEdges(buf *buffer.Buffer, bounds buffer.Rect, edgeColor, activeColor, bg cell.Color) {
+	grid := make(map[[2]int]edgeGridCell)
+
+	// Step A: Plot all edge segments into the directional grid
+	for _, edge := range cw.Model.Edges {
+		if len(edge.Points) < 2 {
+			continue
 		}
-		if x1 >= b.X && x1 < b.X+b.Width {
-			for y := minY; y <= maxY; y++ {
-				if y >= b.Y && y < b.Y+b.Height {
-					buf.SetRune(x1, y, '│', fg, bg, cell.AttrNone)
+		isEdgeSelected := (edge.FromNode == cw.SelectedNodeID || edge.ToNode == cw.SelectedNodeID)
+		eColor := edgeColor
+		if isEdgeSelected {
+			eColor = activeColor
+		}
+
+		for i := 0; i < len(edge.Points)-1; i++ {
+			p1 := edge.Points[i]
+			p2 := edge.Points[i+1]
+
+			if p1[0] == p2[0] { // Vertical segment
+				minY, maxY := p1[1], p2[1]
+				if minY > maxY {
+					minY, maxY = maxY, minY
 				}
-			}
-		}
-	} else if y1 == y2 { // Horizontal segment
-		minX, maxX := x1, x2
-		if minX > maxX {
-			minX, maxX = maxX, minX
-		}
-		if y1 >= b.Y && y1 < b.Y+b.Height {
-			for x := minX; x <= maxX; x++ {
-				if x >= b.X && x < b.X+b.Width {
-					buf.SetRune(x, y1, '─', fg, bg, cell.AttrNone)
+				x := p1[0]
+				for y := minY; y <= maxY; y++ {
+					pt := [2]int{x, y}
+					cellVal := grid[pt]
+					if y > minY {
+						cellVal.mask |= dirN
+					}
+					if y < maxY {
+						cellVal.mask |= dirS
+					}
+					if isEdgeSelected || cellVal.color.Value == 0 {
+						cellVal.color = eColor
+					}
+					grid[pt] = cellVal
+				}
+			} else if p1[1] == p2[1] { // Horizontal segment
+				minX, maxX := p1[0], p2[0]
+				if minX > maxX {
+					minX, maxX = maxX, minX
+				}
+				y := p1[1]
+				for x := minX; x <= maxX; x++ {
+					pt := [2]int{x, y}
+					cellVal := grid[pt]
+					if x > minX {
+						cellVal.mask |= dirW
+					}
+					if x < maxX {
+						cellVal.mask |= dirE
+					}
+					if isEdgeSelected || cellVal.color.Value == 0 {
+						cellVal.color = eColor
+					}
+					grid[pt] = cellVal
 				}
 			}
 		}
 	}
+
+	// Step B: Render directional runes with smooth corners and junctions
+	for pt, cellVal := range grid {
+		scrX := bounds.X + pt[0] + cw.PanX
+		scrY := bounds.Y + pt[1] + cw.PanY
+		if scrX < bounds.X || scrX >= bounds.X+bounds.Width || scrY < bounds.Y || scrY >= bounds.Y+bounds.Height {
+			continue
+		}
+
+		var r rune
+		switch cellVal.mask {
+		case dirN | dirS:
+			r = '│'
+		case dirE | dirW:
+			r = '─'
+		case dirS | dirE:
+			r = '╭'
+		case dirS | dirW:
+			r = '╮'
+		case dirN | dirE:
+			r = '╰'
+		case dirN | dirW:
+			r = '╯'
+		case dirN | dirS | dirE:
+			r = '├'
+		case dirN | dirS | dirW:
+			r = '┤'
+		case dirE | dirW | dirS:
+			r = '┬'
+		case dirE | dirW | dirN:
+			r = '┴'
+		case dirN | dirS | dirE | dirW:
+			r = '┼'
+		case dirE, dirW:
+			r = '─'
+		case dirN, dirS:
+			r = '│'
+		default:
+			if cellVal.mask&(dirE|dirW) != 0 && cellVal.mask&(dirN|dirS) != 0 {
+				r = '┼'
+			} else if cellVal.mask&(dirN|dirS) != 0 {
+				r = '│'
+			} else {
+				r = '─'
+			}
+		}
+		buf.SetRune(scrX, scrY, r, cellVal.color, bg, cell.AttrNone)
+	}
+
+	// Step C: Render arrow heads directly at edge destination
+	for _, edge := range cw.Model.Edges {
+		if len(edge.Points) < 2 {
+			continue
+		}
+		lastPt := edge.Points[len(edge.Points)-1]
+		scrX := bounds.X + lastPt[0] + cw.PanX
+		scrY := bounds.Y + lastPt[1] + cw.PanY
+		if scrX >= bounds.X && scrX < bounds.X+bounds.Width && scrY >= bounds.Y && scrY < bounds.Y+bounds.Height {
+			markerRune := '▶'
+			if edge.MarkerEnd == dag.MarkerCrowFootMany {
+				markerRune = 'ᚚ'
+			}
+			markerColor := edgeColor
+			if edge.FromNode == cw.SelectedNodeID || edge.ToNode == cw.SelectedNodeID {
+				markerColor = activeColor
+			}
+			buf.SetRune(scrX, scrY, markerRune, markerColor, bg, cell.AttrBold)
+		}
+	}
 }
 
-func (cw *DAGCanvasWidget) renderCardFrame(buf *buffer.Buffer, b buffer.Rect, x, y, w, h int, fg, bg cell.Color) {
+func (cw *DAGCanvasWidget) renderCardFrame(buf *buffer.Buffer, b buffer.Rect, x, y, w, h int, fg, bg cell.Color, attr cell.Modifier) {
+	// Fill card interior to occlude background grid and pass-through lines
+	for cy := y; cy < y+h; cy++ {
+		if cy >= b.Y && cy < b.Y+b.Height {
+			for cx := x; cx < x+w; cx++ {
+				if cx >= b.X && cx < b.X+b.Width {
+					buf.SetRune(cx, cy, ' ', fg, bg, cell.AttrNone)
+				}
+			}
+		}
+	}
+
 	for cx := x; cx < x+w; cx++ {
 		if cx >= b.X && cx < b.X+b.Width {
 			if y >= b.Y && y < b.Y+b.Height {
-				buf.SetRune(cx, y, '─', fg, bg, cell.AttrNone)
+				buf.SetRune(cx, y, '─', fg, bg, attr)
 			}
 			if y+1 >= b.Y && y+1 < b.Y+b.Height {
-				buf.SetRune(cx, y+1, '─', fg, bg, cell.AttrNone)
+				buf.SetRune(cx, y+1, '─', fg, bg, attr)
 			}
 			if y+h-1 >= b.Y && y+h-1 < b.Y+b.Height {
-				buf.SetRune(cx, y+h-1, '─', fg, bg, cell.AttrNone)
+				buf.SetRune(cx, y+h-1, '─', fg, bg, attr)
 			}
 		}
 	}
 	for cy := y; cy < y+h; cy++ {
 		if cy >= b.Y && cy < b.Y+b.Height {
 			if x >= b.X && x < b.X+b.Width {
-				buf.SetRune(x, cy, '│', fg, bg, cell.AttrNone)
+				buf.SetRune(x, cy, '│', fg, bg, attr)
 			}
 			if x+w-1 >= b.X && x+w-1 < b.X+b.Width {
-				buf.SetRune(x+w-1, cy, '│', fg, bg, cell.AttrNone)
+				buf.SetRune(x+w-1, cy, '│', fg, bg, attr)
 			}
 		}
 	}
-	cw.setRuneSafe(buf, b, x, y, '╭', fg, bg)
-	cw.setRuneSafe(buf, b, x+w-1, y, '╮', fg, bg)
-	cw.setRuneSafe(buf, b, x, y+1, '├', fg, bg)
-	cw.setRuneSafe(buf, b, x+w-1, y+1, '┤', fg, bg)
-	cw.setRuneSafe(buf, b, x, y+h-1, '╰', fg, bg)
-	cw.setRuneSafe(buf, b, x+w-1, y+h-1, '╯', fg, bg)
+	cw.setRuneSafe(buf, b, x, y, '╭', fg, bg, attr)
+	cw.setRuneSafe(buf, b, x+w-1, y, '╮', fg, bg, attr)
+	cw.setRuneSafe(buf, b, x, y+1, '├', fg, bg, attr)
+	cw.setRuneSafe(buf, b, x+w-1, y+1, '┤', fg, bg, attr)
+	cw.setRuneSafe(buf, b, x, y+h-1, '╰', fg, bg, attr)
+	cw.setRuneSafe(buf, b, x+w-1, y+h-1, '╯', fg, bg, attr)
 }
 
-func (cw *DAGCanvasWidget) setRuneSafe(buf *buffer.Buffer, b buffer.Rect, x, y int, r rune, fg, bg cell.Color) {
+func (cw *DAGCanvasWidget) setRuneSafe(buf *buffer.Buffer, b buffer.Rect, x, y int, r rune, fg, bg cell.Color, attr cell.Modifier) {
 	if x >= b.X && x < b.X+b.Width && y >= b.Y && y < b.Y+b.Height {
-		buf.SetRune(x, y, r, fg, bg, cell.AttrNone)
+		buf.SetRune(x, y, r, fg, bg, attr)
 	}
 }

@@ -766,9 +766,9 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 			statusStr := ""
 			if p.Installed {
 				if p.Enabled {
-					statusStr = "[✓] Enabled"
+					statusStr = "● Enabled"
 				} else {
-					statusStr = "[ ] Disabled"
+					statusStr = "○ Disabled"
 				}
 			}
 			subLine := fmt.Sprintf("   by %s (%s) %s", p.Author, p.RepoName, statusStr)
@@ -778,7 +778,7 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 				}
 			}
 			sFg := commentFg
-			if strings.Contains(statusStr, "[✓]") {
+			if strings.Contains(statusStr, "●") {
 				sFg = stringFg
 			}
 			if isCur {
@@ -861,12 +861,12 @@ func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 				attr = cell.AttrBold
 			}
 
-			check := "[ ]"
+			check := "○"
 			if repo.Enabled {
-				check = "[✓]"
+				check = "●"
 			}
 
-			line1 := fmt.Sprintf(" %s %s [%s]", check, repo.Name, repo.Type)
+			line1 := fmt.Sprintf(" %s %s (%s)", check, repo.Name, repo.Type)
 			line1Runes := []rune(line1)
 			if len(line1Runes) > leftW-2 {
 				line1 = string(line1Runes[:leftW-2])

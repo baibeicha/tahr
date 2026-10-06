@@ -389,12 +389,9 @@ func TestDatabasePlugins_TabsAndToggle(t *testing.T) {
 	if m.dbSidebarTab != "er-diagram" {
 		t.Fatalf("expected tab to switch to 'er-diagram', got %q", m.dbSidebarTab)
 	}
-	if m.splits.TotalPanes() < 2 {
-		t.Fatalf("expected switching to 'er-diagram' to automatically open split canvas, got %d panes", m.splits.TotalPanes())
-	}
-	pane1 := m.splits.PaneAt(1)
-	if pane1 == nil || !pane1.IsView() || pane1.ViewID != "dag-canvas" {
-		t.Fatalf("expected pane 1 to mount dag-canvas, got %v", pane1)
+	activeDoc := m.eng.ActiveDocument()
+	if activeDoc == nil || !strings.HasSuffix(activeDoc.FilePath, "schema.erd") {
+		t.Fatalf("expected active document to be schema.erd editor tab, got %v", activeDoc)
 	}
 
 	// 3. Click back to tab 1: Таблицы
