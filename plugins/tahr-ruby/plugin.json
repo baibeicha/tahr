@@ -1,0 +1,212 @@
+{
+  "id": "tahr-ruby",
+  "name": "Ruby Language Support",
+  "version": "1.0.0",
+  "type": "language",
+  "author": "Tahr Team",
+  "description": "Ruby language support with Solargraph LSP, RSpec / Minitest testing, Bundler integration and rdbg debugger",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "toolchain": {
+    "name": "Ruby",
+    "dynamic_sdk": "ruby"
+  },
+  "localizations": [
+    {
+      "locale": "en",
+      "name": "English",
+      "file": "locales/en.json"
+    },
+    {
+      "locale": "ru",
+      "name": "Русский",
+      "file": "locales/ru.json"
+    },
+    {
+      "locale": "zh",
+      "name": "简体中文",
+      "file": "locales/zh.json"
+    },
+    {
+      "locale": "es",
+      "name": "Español",
+      "file": "locales/es.json"
+    }
+  ],
+  "languages": [
+    {
+      "id": "ruby",
+      "name": "Ruby",
+      "extensions": [
+        ".rb",
+        ".rake"
+      ],
+      "filenames": [
+        "Gemfile",
+        "Gemfile.lock",
+        "Rakefile"
+      ],
+      "comment_token": "#",
+      "build_cmd": "ruby",
+      "build_args": [
+        "-c"
+      ],
+      "run_cmd": "ruby",
+      "run_args": [],
+      "test_cmd": "bundle",
+      "test_args": [
+        "exec",
+        "rspec"
+      ],
+      "test_pattern": "*_spec.rb",
+      "install_cmd": "gem install solargraph"
+    }
+  ],
+  "testing": {
+    "id": "ruby",
+    "name": "RSpec Test Runner",
+    "framework": "rspec",
+    "languages": [
+      "ruby"
+    ],
+    "extensions": [
+      ".rb"
+    ],
+    "test_patterns": [
+      "*_spec.rb",
+      "*_test.rb"
+    ],
+    "command": "bundle",
+    "args": [
+      "exec",
+      "rspec"
+    ],
+    "run_single_args": [
+      "exec",
+      "rspec",
+      "{{file}}",
+      "-e",
+      "{{test}}"
+    ],
+    "run_package_args": [
+      "exec",
+      "rspec",
+      "{{package}}"
+    ],
+    "run_all_args": [
+      "exec",
+      "rspec"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*_spec.rb",
+        "*_test.rb"
+      ],
+      "extract_regexes": [
+        "(?:it|specify|test)\\s+[\"']([^\"']+)[\"']\\s+do"
+      ],
+      "package_root_markers": [
+        "Gemfile",
+        ".rspec"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "(\\d+)\\s+examples?,\\s+0 failures",
+      "fail_pattern": "(\\d+)\\s+examples?,\\s+([1-9]\\d*)\\s+failure",
+      "skip_pattern": "(\\d+)\\s+pending",
+      "traceback_start": "^(?:\\s*#\\s+./.*:\\d+:in|\\s*Failure/Error:)",
+      "traceback_end": "^(?:Finished in|\\d+ examples)"
+    }
+  },
+  "lsp": {
+    "server_name": "solargraph",
+    "command": "solargraph",
+    "args": [
+      "stdio"
+    ],
+    "root_markers": [
+      "Gemfile",
+      ".git"
+    ],
+    "install_cmd": "gem install solargraph"
+  },
+  "dap": {
+    "adapter_name": "rdbg",
+    "command": "rdbg",
+    "args": [
+      "--open",
+      "--port",
+      "1234"
+    ]
+  },
+  "launchTemplates": [
+    {
+      "name": "Ruby: Run Current Script",
+      "type": "ruby",
+      "request": "launch",
+      "target": "${file}"
+    },
+    {
+      "name": "RSpec: Run All",
+      "type": "ruby",
+      "request": "launch",
+      "target": "bundle",
+      "args": [
+        "exec",
+        "rspec"
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "ruby-app",
+      "name": "Ruby (Standard Gem Application)",
+      "description": "Standard Ruby project with Gemfile and RSpec tests",
+      "category": "Ruby",
+      "default_module": "{{.ProjectName}}",
+      "files": [
+        {
+          "path": "Gemfile",
+          "content": "source \"https://rubygems.org\"\n\ngem \"rake\", \"~> 13.0\"\n\ngroup :development, :test do\n  gem \"rspec\", \"~> 3.12\"\nend\n"
+        },
+        {
+          "path": "lib/app.rb",
+          "content": "class App\n  def self.greet\n    \"Hello from {{.ProjectName}}!\"\n  end\nend\n"
+        },
+        {
+          "path": "spec/app_spec.rb",
+          "content": "require \"rspec\"\nrequire_relative \"../lib/app\"\n\nRSpec.describe App do\n  it \"greets correctly\" do\n    expect(App.greet).to include(\"Hello\")\n  end\nend\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": ".bundle/\nvendor/\n*.gem\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA Ruby project.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "ruby",
+      "bundle",
+      "gem",
+      "solargraph",
+      "rspec"
+    ],
+    "windows_paths": [
+      "C:\\Ruby*\\bin",
+      "C:\\tools\\ruby*\\bin"
+    ],
+    "unix_paths": [
+      "/usr/bin/ruby",
+      "/usr/local/bin/ruby",
+      "~/.rbenv/shims/*",
+      "~/.rvm/rubies/*/bin"
+    ]
+  }
+}

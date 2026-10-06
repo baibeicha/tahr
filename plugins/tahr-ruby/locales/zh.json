@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-ruby.name": "Ruby 语言支持",
+  "plugin.tahr-ruby.desc": "Ruby 语言支持，提供 Solargraph LSP、RSpec / Minitest 测试、Bundler 集成与 rdbg 调试器"
+}

@@ -1,4 +1,4 @@
-[
+﻿[
     {
         "id":  "tahr-go",
         "name":  "Go Language Support",
@@ -131,7 +131,7 @@
         "name":  "Community Themes Pack",
         "version":  "1.0.0",
         "author":  "Tahr Community",
-        "description":  "Premium developer color themes: One Dark Pro, RosГ© Pine, Kanagawa, and Cyberpunk",
+        "description":  "Premium developer color themes: One Dark Pro, RosР“В© Pine, Kanagawa, and Cyberpunk",
         "category":  "theme",
         "download_url":  "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/theme-pack.tahr",
         "repo_id":  "official-github",
@@ -513,5 +513,113 @@
                      "python",
                      "data-science"
                  ]
+    },
+    {
+        "id":  "tahr-java",
+        "tags":  [
+                     "java",
+                     "maven",
+                     "gradle",
+                     "junit",
+                     "jdtls",
+                     "lsp"
+                 ],
+        "version":  "1.0.0",
+        "category":  "lsp",
+        "description":  "Java language support with Eclipse JDT Language Server (jdtls), Maven/Gradle integration, JUnit runner and Java Debug Server",
+        "author":  "Tahr Team",
+        "download_url":  "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/tahr-java.tahr",
+        "name":  "Java Language Support",
+        "repo_id":  "official-github",
+        "repo_name":  "Tahr Official"
+    },
+    {
+        "id":  "tahr-php",
+        "tags":  [
+                     "php",
+                     "composer",
+                     "phpunit",
+                     "intelephense",
+                     "lsp"
+                 ],
+        "version":  "1.0.0",
+        "category":  "lsp",
+        "description":  "PHP language support with Intelephense / phpactor LSP, PHPUnit testing, Xdebug DAP adapter and Composer integration",
+        "author":  "Tahr Team",
+        "download_url":  "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/tahr-php.tahr",
+        "name":  "PHP Language Support",
+        "repo_id":  "official-github",
+        "repo_name":  "Tahr Official"
+    },
+    {
+        "id":  "tahr-kotlin",
+        "tags":  [
+                     "kotlin",
+                     "gradle",
+                     "kotest",
+                     "lsp"
+                 ],
+        "version":  "1.0.0",
+        "category":  "lsp",
+        "description":  "Kotlin language support with kotlin-language-server LSP, Gradle/Maven integration and JUnit/Kotest runner",
+        "author":  "Tahr Team",
+        "download_url":  "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/tahr-kotlin.tahr",
+        "name":  "Kotlin Language Support",
+        "repo_id":  "official-github",
+        "repo_name":  "Tahr Official"
+    },
+    {
+        "id":  "tahr-zig",
+        "tags":  [
+                     "zig",
+                     "zls",
+                     "lsp",
+                     "native"
+                 ],
+        "version":  "1.0.0",
+        "category":  "lsp",
+        "description":  "Zig language support with ZLS (Zig Language Server), native zig test runner and launch configurations",
+        "author":  "Tahr Team",
+        "download_url":  "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/tahr-zig.tahr",
+        "name":  "Zig Language Support",
+        "repo_id":  "official-github",
+        "repo_name":  "Tahr Official"
+    },
+    {
+        "id":  "tahr-csharp",
+        "tags":  [
+                     "csharp",
+                     "dotnet",
+                     "csharp-ls",
+                     "omnisharp",
+                     "lsp"
+                 ],
+        "version":  "1.0.0",
+        "category":  "lsp",
+        "description":  "C# (.NET) language support with OmniSharp / csharp-ls LSP, dotnet test runner and netcoredbg debugger",
+        "author":  "Tahr Team",
+        "download_url":  "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/tahr-csharp.tahr",
+        "name":  "C# Language Support",
+        "repo_id":  "official-github",
+        "repo_name":  "Tahr Official"
+    },
+    {
+        "id":  "tahr-ruby",
+        "tags":  [
+                     "ruby",
+                     "gem",
+                     "bundler",
+                     "rspec",
+                     "solargraph",
+                     "lsp"
+                 ],
+        "version":  "1.0.0",
+        "category":  "lsp",
+        "description":  "Ruby language support with Solargraph LSP, RSpec / Minitest testing, Bundler integration and rdbg debugger",
+        "author":  "Tahr Team",
+        "download_url":  "https://raw.githubusercontent.com/baibeicha/tahr/main/plugins/tahr-ruby.tahr",
+        "name":  "Ruby Language Support",
+        "repo_id":  "official-github",
+        "repo_name":  "Tahr Official"
     }
 ]

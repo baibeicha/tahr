@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-php.name": "Soporte para el lenguaje PHP",
+  "plugin.tahr-php.desc": "Soporte para PHP con Intelephense / phpactor LSP, pruebas PHPUnit, adaptador Xdebug e integración con Composer"
+}

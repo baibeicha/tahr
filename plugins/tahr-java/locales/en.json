@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-java.name": "Java Language Support",
+  "plugin.tahr-java.desc": "Java language support with Eclipse JDT Language Server (jdtls), Maven/Gradle integration, JUnit runner and Java Debug Server"
+}

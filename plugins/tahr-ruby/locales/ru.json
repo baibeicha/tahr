@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-ruby.name": "Поддержка языка Ruby",
+  "plugin.tahr-ruby.desc": "Поддержка языка Ruby с Solargraph LSP, тестированием RSpec / Minitest, интеграцией с Bundler и отладчиком rdbg"
+}

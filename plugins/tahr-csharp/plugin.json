@@ -1,0 +1,200 @@
+{
+  "id": "tahr-csharp",
+  "name": "C# Language Support",
+  "version": "1.0.0",
+  "type": "language",
+  "author": "Tahr Team",
+  "description": "C# (.NET) language support with OmniSharp / csharp-ls LSP, dotnet test runner and netcoredbg debugger",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "toolchain": {
+    "name": "Dotnet",
+    "dynamic_sdk": "dotnet"
+  },
+  "localizations": [
+    {
+      "locale": "en",
+      "name": "English",
+      "file": "locales/en.json"
+    },
+    {
+      "locale": "ru",
+      "name": "Русский",
+      "file": "locales/ru.json"
+    },
+    {
+      "locale": "zh",
+      "name": "简体中文",
+      "file": "locales/zh.json"
+    },
+    {
+      "locale": "es",
+      "name": "Español",
+      "file": "locales/es.json"
+    }
+  ],
+  "languages": [
+    {
+      "id": "csharp",
+      "name": "C#",
+      "extensions": [
+        ".cs"
+      ],
+      "filenames": [
+        "*.csproj",
+        "*.sln",
+        "Directory.Build.props"
+      ],
+      "comment_token": "//",
+      "build_cmd": "dotnet",
+      "build_args": [
+        "build"
+      ],
+      "run_cmd": "dotnet",
+      "run_args": [
+        "run"
+      ],
+      "test_cmd": "dotnet",
+      "test_args": [
+        "test"
+      ],
+      "test_pattern": "*Test*.cs",
+      "install_cmd": "dotnet tool install -g csharp-ls"
+    }
+  ],
+  "testing": {
+    "id": "csharp",
+    "name": "Dotnet Test Runner",
+    "framework": "dotnet test",
+    "languages": [
+      "csharp"
+    ],
+    "extensions": [
+      ".cs"
+    ],
+    "test_patterns": [
+      "*Test.cs",
+      "*Tests.cs"
+    ],
+    "command": "dotnet",
+    "args": [
+      "test"
+    ],
+    "run_single_args": [
+      "test",
+      "--filter",
+      "FullyQualifiedName~{{test}}"
+    ],
+    "run_package_args": [
+      "test",
+      "{{package}}"
+    ],
+    "run_all_args": [
+      "test"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*Test.cs",
+        "*Tests.cs"
+      ],
+      "extract_regexes": [
+        "\\[(?:Fact|Theory|Test)\\][\\s\\r\\n]+(?:public\\s+)?(?:async\\s+)?(?:Task|void)\\s+([A-Za-z0-9_]+)\\s*\\("
+      ],
+      "package_root_markers": [
+        "*.sln",
+        "*.csproj"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "Passed!\\s+-\\s+Failed:\\s+0,\\s+Passed:\\s+(\\d+)",
+      "fail_pattern": "Failed!\\s+-\\s+Failed:\\s+(\\d+)",
+      "skip_pattern": "Skipped:\\s+(\\d+)",
+      "traceback_start": "^(?:\\s*Error Message:|\\s*Stack Trace:)",
+      "traceback_end": "^(?:Total tests:)"
+    }
+  },
+  "lsp": {
+    "server_name": "csharp-ls",
+    "command": "csharp-ls",
+    "args": [],
+    "root_markers": [
+      "*.sln",
+      "*.csproj",
+      ".git"
+    ],
+    "install_cmd": "dotnet tool install -g csharp-ls"
+  },
+  "dap": {
+    "adapter_name": "netcoredbg",
+    "command": "netcoredbg",
+    "args": [
+      "--interpreter=vscode"
+    ]
+  },
+  "launchTemplates": [
+    {
+      "name": "C#: Run Project",
+      "type": "csharp",
+      "request": "launch",
+      "target": "dotnet",
+      "args": [
+        "run"
+      ]
+    },
+    {
+      "name": ".NET: Run Tests",
+      "type": "csharp",
+      "request": "launch",
+      "target": "dotnet",
+      "args": [
+        "test"
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "csharp-console",
+      "name": "C# (Console Application)",
+      "description": "Standard .NET console application with csproj and Program.cs",
+      "category": "C#",
+      "default_module": "{{.ProjectName}}",
+      "files": [
+        {
+          "path": "{{.ProjectName}}.csproj",
+          "content": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net8.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <Nullable>enable</Nullable>\n  </PropertyGroup>\n</Project>\n"
+        },
+        {
+          "path": "Program.cs",
+          "content": "using System;\n\nnamespace {{.ProjectName}};\n\nclass Program {\n    static void Main(string[] args) {\n        Console.WriteLine(\"Hello from {{.ProjectName}}!\");\n    }\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "bin/\nobj/\n.vs/\n*.user\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA .NET console application.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "dotnet",
+      "csharp-ls",
+      "omnisharp",
+      "netcoredbg"
+    ],
+    "windows_paths": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "%USERPROFILE%\\.dotnet\\tools\\*"
+    ],
+    "unix_paths": [
+      "/usr/bin/dotnet",
+      "/usr/local/share/dotnet/dotnet",
+      "~/.dotnet/tools/*"
+    ]
+  }
+}

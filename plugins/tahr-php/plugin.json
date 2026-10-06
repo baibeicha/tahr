@@ -1,0 +1,190 @@
+{
+  "id": "tahr-php",
+  "name": "PHP Language Support",
+  "version": "1.0.0",
+  "type": "language",
+  "author": "Tahr Team",
+  "description": "PHP language support with Intelephense / phpactor LSP, PHPUnit testing, Xdebug DAP adapter and Composer integration",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "toolchain": {
+    "name": "PHP",
+    "dynamic_sdk": "php"
+  },
+  "localizations": [
+    {
+      "locale": "en",
+      "name": "English",
+      "file": "locales/en.json"
+    },
+    {
+      "locale": "ru",
+      "name": "Русский",
+      "file": "locales/ru.json"
+    },
+    {
+      "locale": "zh",
+      "name": "简体中文",
+      "file": "locales/zh.json"
+    },
+    {
+      "locale": "es",
+      "name": "Español",
+      "file": "locales/es.json"
+    }
+  ],
+  "languages": [
+    {
+      "id": "php",
+      "name": "PHP",
+      "extensions": [
+        ".php"
+      ],
+      "filenames": [
+        "composer.json",
+        "composer.lock"
+      ],
+      "comment_token": "//",
+      "build_cmd": "php",
+      "build_args": [
+        "-l"
+      ],
+      "run_cmd": "php",
+      "run_args": [],
+      "test_cmd": "phpunit",
+      "test_args": [],
+      "test_pattern": "*Test.php",
+      "install_cmd": "npm install -g intelephense"
+    }
+  ],
+  "testing": {
+    "id": "php",
+    "name": "PHPUnit Test Runner",
+    "framework": "phpunit",
+    "languages": [
+      "php"
+    ],
+    "extensions": [
+      ".php"
+    ],
+    "test_patterns": [
+      "*Test.php"
+    ],
+    "command": "phpunit",
+    "args": [],
+    "run_single_args": [
+      "--filter",
+      "^{{test}}$"
+    ],
+    "run_package_args": [
+      "{{package}}"
+    ],
+    "run_all_args": [],
+    "discovery": {
+      "file_patterns": [
+        "*Test.php"
+      ],
+      "extract_regexes": [
+        "public\\s+function\\s+(test[A-Za-z0-9_]+)\\s*\\("
+      ],
+      "package_root_markers": [
+        "composer.json",
+        "phpunit.xml",
+        "phpunit.xml.dist"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "OK \\((\\d+ tests?, \\d+ assertions?)\\)",
+      "fail_pattern": "FAILURES!\\s+Tests:\\s+(\\d+)",
+      "skip_pattern": "Skipped:\\s+(\\d+)",
+      "traceback_start": "^(?:\\s*\\d+\\)\\s+.*|Failed asserting that.*)",
+      "traceback_end": "^(?:FAILURES!|OK)"
+    }
+  },
+  "lsp": {
+    "server_name": "intelephense",
+    "command": "intelephense",
+    "args": [
+      "--stdio"
+    ],
+    "root_markers": [
+      "composer.json",
+      ".git"
+    ],
+    "install_cmd": "npm install -g intelephense"
+  },
+  "dap": {
+    "adapter_name": "xdebug",
+    "command": "php-debug",
+    "args": []
+  },
+  "launchTemplates": [
+    {
+      "name": "PHP: Run Current Script",
+      "type": "php",
+      "request": "launch",
+      "target": "${file}"
+    },
+    {
+      "name": "PHPUnit: Run All Tests",
+      "type": "php",
+      "request": "launch",
+      "target": "vendor/bin/phpunit"
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "php-composer",
+      "name": "PHP (Composer Application)",
+      "description": "Standard PHP application starter with Composer and PHPUnit",
+      "category": "PHP",
+      "default_module": "vendor/{{.ProjectName}}",
+      "files": [
+        {
+          "path": "composer.json",
+          "content": "{\n  \"name\": \"vendor/{{.ProjectName}}\",\n  \"type\": \"project\",\n  \"require\": {\n    \"php\": \">=8.1\"\n  },\n  \"require-dev\": {\n    \"phpunit/phpunit\": \"^10.0\"\n  },\n  \"autoload\": {\n    \"psr-4\": {\n      \"App\\\\\": \"src/\"\n    }\n  }\n}\n"
+        },
+        {
+          "path": "src/App.php",
+          "content": "<?php\n\nnamespace App;\n\nclass App {\n    public static function run(): string {\n        return \"Hello from {{.ProjectName}}!\";\n    }\n}\n"
+        },
+        {
+          "path": "public/index.php",
+          "content": "<?php\n\nrequire_once __DIR__ . '/../vendor/autoload.php';\n\necho \\App\\App::run();\n"
+        },
+        {
+          "path": "tests/AppTest.php",
+          "content": "<?php\n\nuse PHPUnit\\Framework\\TestCase;\nuse App\\App;\n\nclass AppTest extends TestCase {\n    public function testRun(): void {\n        $this->assertNotEmpty(App::run());\n    }\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "/vendor/\n.phpunit.cache\n*.log\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA PHP application project.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "php",
+      "composer",
+      "intelephense",
+      "phpunit"
+    ],
+    "windows_paths": [
+      "C:\\tools\\php*",
+      "C:\\php",
+      "C:\\Program Files\\PHP\\*\\bin"
+    ],
+    "unix_paths": [
+      "/usr/bin",
+      "/usr/local/bin",
+      "/opt/homebrew/bin"
+    ]
+  }
+}

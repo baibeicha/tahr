@@ -1,0 +1,213 @@
+{
+  "id": "tahr-kotlin",
+  "name": "Kotlin Language Support",
+  "version": "1.0.0",
+  "type": "language",
+  "author": "Tahr Team",
+  "description": "Kotlin language support with kotlin-language-server LSP, Gradle/Maven integration and JUnit/Kotest runner",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "toolchain": {
+    "name": "Kotlin",
+    "dynamic_sdk": "kotlin"
+  },
+  "localizations": [
+    {
+      "locale": "en",
+      "name": "English",
+      "file": "locales/en.json"
+    },
+    {
+      "locale": "ru",
+      "name": "Русский",
+      "file": "locales/ru.json"
+    },
+    {
+      "locale": "zh",
+      "name": "简体中文",
+      "file": "locales/zh.json"
+    },
+    {
+      "locale": "es",
+      "name": "Español",
+      "file": "locales/es.json"
+    }
+  ],
+  "languages": [
+    {
+      "id": "kotlin",
+      "name": "Kotlin",
+      "extensions": [
+        ".kt",
+        ".kts"
+      ],
+      "filenames": [
+        "build.gradle.kts",
+        "settings.gradle.kts"
+      ],
+      "comment_token": "//",
+      "build_cmd": "gradle",
+      "build_args": [
+        "build"
+      ],
+      "run_cmd": "gradle",
+      "run_args": [
+        "run"
+      ],
+      "test_cmd": "gradle",
+      "test_args": [
+        "test"
+      ],
+      "test_pattern": "*Test.kt",
+      "install_cmd": "scoop install kotlin-language-server"
+    }
+  ],
+  "testing": {
+    "id": "kotlin",
+    "name": "Gradle Test Runner",
+    "framework": "gradle",
+    "languages": [
+      "kotlin"
+    ],
+    "extensions": [
+      ".kt",
+      ".kts"
+    ],
+    "test_patterns": [
+      "*Test.kt",
+      "*Tests.kt",
+      "*Spec.kt"
+    ],
+    "command": "gradle",
+    "args": [
+      "test"
+    ],
+    "run_single_args": [
+      "test",
+      "--tests",
+      "{{test}}"
+    ],
+    "run_package_args": [
+      "test",
+      "--tests",
+      "{{package}}.*"
+    ],
+    "run_all_args": [
+      "test"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*Test.kt",
+        "*Tests.kt",
+        "*Spec.kt"
+      ],
+      "extract_regexes": [
+        "@Test(?:\\([^)]*\\))?[\\s\\r\\n]+fun\\s+`?([A-Za-z0-9_\\s]+)`?\\s*\\("
+      ],
+      "package_root_markers": [
+        "build.gradle.kts",
+        "build.gradle",
+        "pom.xml"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "(\\S+)\\s+>\\s+(\\S+)\\s+PASSED",
+      "fail_pattern": "(\\S+)\\s+>\\s+(\\S+)\\s+FAILED",
+      "skip_pattern": "(\\S+)\\s+>\\s+(\\S+)\\s+SKIPPED",
+      "traceback_start": "^(?:\\s*at\\s+\\S+\\(.*\\)|org\\.gradle\\..*)",
+      "traceback_end": "^(?:BUILD SUCCESSFUL|BUILD FAILED)"
+    }
+  },
+  "lsp": {
+    "server_name": "kotlin-language-server",
+    "command": "kotlin-language-server",
+    "args": [],
+    "root_markers": [
+      "build.gradle.kts",
+      "build.gradle",
+      "pom.xml",
+      ".git"
+    ],
+    "install_cmd": "scoop install kotlin-language-server"
+  },
+  "dap": {
+    "adapter_name": "kotlin-debug",
+    "command": "kotlin-debug-adapter",
+    "args": []
+  },
+  "launchTemplates": [
+    {
+      "name": "Kotlin: Run Application",
+      "type": "kotlin",
+      "request": "launch",
+      "target": "gradle",
+      "args": [
+        "run"
+      ]
+    },
+    {
+      "name": "Kotlin: Test All",
+      "type": "kotlin",
+      "request": "launch",
+      "target": "gradle",
+      "args": [
+        "test"
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "kotlin-gradle",
+      "name": "Kotlin (Gradle Application)",
+      "description": "Kotlin starter project with Gradle Kotlin DSL",
+      "category": "Kotlin",
+      "default_module": "com.example.{{.ProjectName}}",
+      "files": [
+        {
+          "path": "build.gradle.kts",
+          "content": "plugins {\n    kotlin(\"jvm\") version \"1.9.22\"\n    application\n}\n\nrepositories {\n    mavenCentral()\n}\n\ndependencies {\n    testImplementation(kotlin(\"test\"))\n}\n\napplication {\n    mainClass.set(\"com.example.MainKt\")\n}\n"
+        },
+        {
+          "path": "settings.gradle.kts",
+          "content": "rootProject.name = \"{{.ProjectName}}\"\n"
+        },
+        {
+          "path": "src/main/kotlin/Main.kt",
+          "content": "package com.example\n\nfun main() {\n    println(\"Hello from {{.ProjectName}}!\")\n}\n"
+        },
+        {
+          "path": "src/test/kotlin/MainTest.kt",
+          "content": "package com.example\n\nimport kotlin.test.Test\nimport kotlin.test.assertTrue\n\nclass MainTest {\n    @Test\n    fun testSample() {\n        assertTrue(true)\n    }\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": ".gradle/\nbuild/\n.idea/\n*.iml\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA Kotlin application built with Gradle.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "kotlinc",
+      "kotlin",
+      "gradle",
+      "kotlin-language-server"
+    ],
+    "windows_paths": [
+      "C:\\tools\\kotlin*",
+      "C:\\Program Files\\Kotlin\\*\\bin",
+      "%USERPROFILE%\\.gradle\\wrapper\\dists\\*"
+    ],
+    "unix_paths": [
+      "/usr/bin",
+      "/usr/local/bin",
+      "/opt/homebrew/bin"
+    ]
+  }
+}

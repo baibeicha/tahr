@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-kotlin.name": "Soporte para el lenguaje Kotlin",
+  "plugin.tahr-kotlin.desc": "Soporte para Kotlin con kotlin-language-server LSP, integración con Gradle/Maven y ejecutor JUnit/Kotest"
+}

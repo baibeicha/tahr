@@ -1,0 +1,205 @@
+{
+  "id": "tahr-java",
+  "name": "Java Language Support",
+  "version": "1.0.0",
+  "type": "language",
+  "author": "Tahr Team",
+  "description": "Java language support with Eclipse JDT Language Server (jdtls), Maven/Gradle integration, JUnit runner and Java Debug Server",
+  "capabilities": [
+    "fs:read",
+    "process:exec"
+  ],
+  "toolchain": {
+    "name": "Java",
+    "dynamic_sdk": "java"
+  },
+  "localizations": [
+    {
+      "locale": "en",
+      "name": "English",
+      "file": "locales/en.json"
+    },
+    {
+      "locale": "ru",
+      "name": "Русский",
+      "file": "locales/ru.json"
+    },
+    {
+      "locale": "zh",
+      "name": "简体中文",
+      "file": "locales/zh.json"
+    },
+    {
+      "locale": "es",
+      "name": "Español",
+      "file": "locales/es.json"
+    }
+  ],
+  "languages": [
+    {
+      "id": "java",
+      "name": "Java",
+      "extensions": [
+        ".java"
+      ],
+      "filenames": [
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle"
+      ],
+      "comment_token": "//",
+      "build_cmd": "mvn",
+      "build_args": [
+        "compile"
+      ],
+      "run_cmd": "java",
+      "run_args": [
+        "-jar"
+      ],
+      "test_cmd": "mvn",
+      "test_args": [
+        "test"
+      ],
+      "test_pattern": "*Test.java",
+      "install_cmd": "scoop install openjdk jdtls"
+    }
+  ],
+  "testing": {
+    "id": "java",
+    "name": "JUnit Test Runner",
+    "framework": "junit",
+    "languages": [
+      "java"
+    ],
+    "extensions": [
+      ".java"
+    ],
+    "test_patterns": [
+      "*Test.java",
+      "*Tests.java",
+      "Test*.java"
+    ],
+    "command": "mvn",
+    "args": [
+      "test"
+    ],
+    "run_single_args": [
+      "test",
+      "-Dtest={{test}}"
+    ],
+    "run_package_args": [
+      "test",
+      "-Dtest={{package}}.*"
+    ],
+    "run_all_args": [
+      "test"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*Test.java",
+        "*Tests.java",
+        "Test*.java"
+      ],
+      "extract_regexes": [
+        "@Test(?:\\([^)]*\\))?[\\s\\r\\n]+(?:public\\s+)?(?:void|void\\s+)?([A-Za-z0-9_]+)\\s*\\("
+      ],
+      "package_root_markers": [
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "Tests run:\\s+\\d+,\\s+Failures:\\s+0,\\s+Errors:\\s+0,\\s+Skipped:\\s+\\d+",
+      "fail_pattern": "FAILURE!\\s+-\\s+in\\s+(\\S+)",
+      "skip_pattern": "Skipped:\\s+([1-9]\\d*)",
+      "traceback_start": "^(?:\\s*at\\s+\\S+\\(.*\\)|org\\.junit\\..*)",
+      "traceback_end": "^(?:\\[INFO\\]|Tests run:)"
+    }
+  },
+  "lsp": {
+    "server_name": "jdtls",
+    "command": "jdtls",
+    "args": [],
+    "root_markers": [
+      "pom.xml",
+      "build.gradle",
+      "settings.gradle",
+      ".git"
+    ],
+    "install_cmd": "scoop install jdtls"
+  },
+  "dap": {
+    "adapter_name": "java-debug",
+    "command": "java-debug-adapter",
+    "args": []
+  },
+  "launchTemplates": [
+    {
+      "name": "Java: Run Main Class",
+      "type": "java",
+      "request": "launch",
+      "target": "src/main/java/com/example/App.java"
+    },
+    {
+      "name": "Maven: Test All",
+      "type": "java",
+      "request": "launch",
+      "target": "mvn",
+      "args": [
+        "test"
+      ]
+    }
+  ],
+  "project_templates": [
+    {
+      "id": "java-maven",
+      "name": "Java (Maven Standard Project)",
+      "description": "Standard Java project with Maven pom.xml and JUnit 5",
+      "category": "Java",
+      "default_module": "com.example.{{.ProjectName}}",
+      "files": [
+        {
+          "path": "pom.xml",
+          "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n    <modelVersion>4.0.0</modelVersion>\n    <groupId>com.example</groupId>\n    <artifactId>{{.ProjectName}}</artifactId>\n    <version>1.0.0-SNAPSHOT</version>\n    <properties>\n        <maven.compiler.source>17</maven.compiler.source>\n        <maven.compiler.target>17</maven.compiler.target>\n        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n    </properties>\n    <dependencies>\n        <dependency>\n            <groupId>org.junit.jupiter</groupId>\n            <artifactId>junit-jupiter</artifactId>\n            <version>5.10.0</version>\n            <scope>test</scope>\n        </dependency>\n    </dependencies>\n</project>\n"
+        },
+        {
+          "path": "src/main/java/com/example/App.java",
+          "content": "package com.example;\n\npublic class App {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from {{.ProjectName}}!\");\n    }\n}\n"
+        },
+        {
+          "path": "src/test/java/com/example/AppTest.java",
+          "content": "package com.example;\n\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertTrue;\n\npublic class AppTest {\n    @Test\n    public void testApp() {\n        assertTrue(true);\n    }\n}\n"
+        },
+        {
+          "path": ".gitignore",
+          "content": "target/\n*.class\n.idea/\n*.iml\n"
+        },
+        {
+          "path": "README.md",
+          "content": "# {{.ProjectName}}\n\nA Java project managed by Maven.\n"
+        }
+      ]
+    }
+  ],
+  "sdk_autodetect": {
+    "binaries": [
+      "java",
+      "javac",
+      "mvn",
+      "gradle",
+      "jdtls"
+    ],
+    "windows_paths": [
+      "C:\\Program Files\\Java\\*\\bin",
+      "C:\\Program Files\\Eclipse Adoptium\\*\\bin",
+      "%JAVA_HOME%\\bin"
+    ],
+    "unix_paths": [
+      "/usr/lib/jvm/*/bin",
+      "/usr/bin",
+      "/opt/homebrew/opt/openjdk/bin"
+    ]
+  }
+}

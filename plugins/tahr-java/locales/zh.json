@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-java.name": "Java 语言支持",
+  "plugin.tahr-java.desc": "Java 语言支持，提供 Eclipse JDT Language Server (jdtls)、Maven/Gradle 集成、JUnit 测试与 Java 调试"
+}

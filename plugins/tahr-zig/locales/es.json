@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-zig.name": "Soporte para el lenguaje Zig",
+  "plugin.tahr-zig.desc": "Soporte para Zig con ZLS (Zig Language Server), ejecutor de pruebas zig test y configuraciones de inicio"
+}

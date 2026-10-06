@@ -1,0 +1,4 @@
+{
+  "plugin.tahr-kotlin.name": "Kotlin 语言支持",
+  "plugin.tahr-kotlin.desc": "Kotlin 语言支持，提供 kotlin-language-server LSP、Gradle/Maven 集成与 JUnit/Kotest 测试"
+}

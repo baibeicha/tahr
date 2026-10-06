@@ -44,6 +44,19 @@ func PackDirectory(srcDir, destTahrPath string) error {
 		}
 		headerName := filepath.ToSlash(relPath)
 
+		if info.IsDir() {
+			base := strings.ToLower(info.Name())
+			if base == ".git" || base == "bin" || base == "models" || base == "node_modules" || base == "vendor" || base == ".cache" {
+				return filepath.SkipDir
+			}
+		} else {
+			ext := strings.ToLower(filepath.Ext(path))
+			base := strings.ToLower(filepath.Base(path))
+			if ext == ".gguf" || ext == ".bin" || ext == ".exe" || ext == ".dll" || ext == ".so" || ext == ".dylib" || ext == ".tahr" || ext == ".tmp" || (strings.HasPrefix(base, ".") && base != ".gitignore") {
+				return nil
+			}
+		}
+
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err
