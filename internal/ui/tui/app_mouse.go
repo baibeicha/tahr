@@ -21,7 +21,6 @@ import (
 	"tahr/internal/core/clipboard"
 	"tahr/internal/core/db"
 	"tahr/internal/core/i18n"
-	"tahr/internal/core/plugin"
 )
 
 func (m *AppModel) computeTermHeaderBtnHitboxes(w int) []termHeaderBtnHitbox {
@@ -2120,36 +2119,17 @@ func (m *AppModel) updateTooltip(x, y int) {
 
 	// 3.1. Secondary Activity Strip (Right Strip)
 	if stripRightW > 0 && x >= m.width-stripRightW {
-		switch y {
-		case 2:
-			m.setTooltip("AI Assistant (Ctrl+L)", x, y)
-			return
-		case 4:
-			m.setTooltip("Database Inspector & DAG Canvas (F6)", x, y)
-			return
-		case 6:
-			m.setTooltip("Project Graphs & Call Hierarchy (F3)", x, y)
-			return
-		default:
-			if y >= 8 && y < m.height-3 && y%2 == 0 {
-				idx := (y - 8) / 2
-				var activeRightTools []plugin.ActiveToolWindow
-				if m.pluginMgr != nil {
-					for _, tw := range m.pluginMgr.ActiveToolWindows() {
-						if tw.Position == "right" {
-							activeRightTools = append(activeRightTools, tw)
-						}
-					}
-				}
-				if idx >= 0 && idx < len(activeRightTools) {
-					m.setTooltip(activeRightTools[idx].Title, x, y)
-					return
-				}
-			}
-			if y >= m.height-3 && y <= m.height-1 {
-				m.setTooltip("Toggle Secondary Sidebar (Ctrl+Alt+B)", x, y)
+		if y >= 2 && y%2 == 0 {
+			items := m.getRightStripItems()
+			idx := (y - 2) / 2
+			if idx >= 0 && idx < len(items) {
+				m.setTooltip(items[idx].title, x, y)
 				return
 			}
+		}
+		if y >= m.height-3 && y <= m.height-1 {
+			m.setTooltip("Toggle Secondary Sidebar (Ctrl+Alt+B)", x, y)
+			return
 		}
 	}
 

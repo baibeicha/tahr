@@ -8,6 +8,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	tea "github.com/baibeicha/goatui/pkg/tea"
 	"tahr/internal/core"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/p2p"
 	"tahr/internal/ui"
 )
@@ -34,10 +35,10 @@ func TestP2PPanel_InitialDisconnectedState(t *testing.T) {
 			}
 		}
 		str := line.String()
-		if strings.Contains(str, "Совместная работа") {
+		if strings.Contains(str, i18n.T("p2p.title")) || strings.Contains(str, "Совместная работа") || strings.Contains(str, "P2P Collaboration") {
 			foundTitle = true
 		}
-		if strings.Contains(str, "Создать комнату") {
+		if strings.Contains(str, i18n.T("p2p.create_room")) || strings.Contains(str, "Создать комнату") || strings.Contains(str, "Create Room") {
 			foundHost = true
 		}
 		if strings.Contains(str, "[") || strings.Contains(str, "]") {
@@ -46,10 +47,10 @@ func TestP2PPanel_InitialDisconnectedState(t *testing.T) {
 	}
 
 	if !foundTitle {
-		t.Fatalf("expected title 'Совместная работа' to be rendered")
+		t.Fatalf("expected title to be rendered")
 	}
 	if !foundHost {
-		t.Fatalf("expected 'Создать комнату' to be rendered")
+		t.Fatalf("expected create room button to be rendered")
 	}
 	if hasBracket {
 		t.Fatalf("expected NO brackets [ or ] in rendered panel")

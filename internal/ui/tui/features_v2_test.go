@@ -20,9 +20,10 @@ import (
 )
 
 func TestSettingsLanguageSwitching(t *testing.T) {
-	defer i18n.SetLocale("en")
+	origLocale := i18n.GetLocale()
+	defer i18n.SetLocale(origLocale)
 
-	pm, err := plugin.NewManager("")
+	pm, err := plugin.NewManager(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +31,7 @@ func TestSettingsLanguageSwitching(t *testing.T) {
 
 	locales := i18n.AvailableLocales()
 	if len(locales) < 2 {
-		t.Fatalf("expected at least 2 locales (en, ru), got %d: %+v", len(locales), locales)
+		t.Fatalf("expected at least 2 locales, got %d: %+v", len(locales), locales)
 	}
 
 	st := NewSettingsState()
@@ -39,17 +40,20 @@ func TestSettingsLanguageSwitching(t *testing.T) {
 	st.FocusRight = true
 	st.FieldIdx = 0 // language
 
-	// Initial cycle from en to ru
+	// Initial cycle from en to next locale
+	nextExpected := locales[1].Code
 	st.cycleCurrentField()
-	if st.Current.Language != "ru" {
-		t.Errorf("expected Current.Language to be 'ru', got %q", st.Current.Language)
+	if st.Current.Language != nextExpected {
+		t.Errorf("expected Current.Language to be %q, got %q", nextExpected, st.Current.Language)
 	}
-	if i18n.GetLocale() != "ru" {
-		t.Errorf("expected i18n.GetLocale() to be 'ru', got %q", i18n.GetLocale())
+	if i18n.GetLocale() != nextExpected {
+		t.Errorf("expected i18n.GetLocale() to be %q, got %q", nextExpected, i18n.GetLocale())
 	}
 
-	// Cycle back from ru to en
-	st.cycleCurrentField()
+	// Cycle through remaining locales back to en
+	for st.Current.Language != "en" {
+		st.cycleCurrentField()
+	}
 	if st.Current.Language != "en" {
 		t.Errorf("expected Current.Language to be 'en', got %q", st.Current.Language)
 	}

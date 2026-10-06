@@ -8,6 +8,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/p2p"
 	"tahr/internal/ui"
 )
@@ -71,13 +72,27 @@ func (p *P2PPanel) HandleKey(k input.Key) bool {
 
 	switch k.Type {
 	case input.KeyEsc:
+		if p.ActiveField == "nick" && strings.TrimSpace(p.Nickname) == "" {
+			p.Nickname = "dev"
+		}
 		p.ActiveField = ""
 		return true
 
 	case input.KeyEnter:
-		if p.ActiveField == "code" && strings.TrimSpace(p.JoinCodeInput) != "" {
+		if p.ActiveField == "nick" {
+			p.Nickname = strings.TrimSpace(p.Nickname)
+			if p.Nickname == "" {
+				p.Nickname = "dev"
+			}
+			p.ActiveField = ""
+			return true
+		} else if p.ActiveField == "code" && strings.TrimSpace(p.JoinCodeInput) != "" {
 			if p.OnJoinSession != nil {
-				p.OnJoinSession(strings.TrimSpace(p.JoinCodeInput), p.Nickname)
+				nick := strings.TrimSpace(p.Nickname)
+				if nick == "" {
+					nick = "dev"
+				}
+				p.OnJoinSession(strings.TrimSpace(p.JoinCodeInput), nick)
 			}
 			p.ActiveField = ""
 			return true
@@ -135,7 +150,7 @@ func (p *P2PPanel) HandleClick(x, y int) bool {
 			case "host":
 				nick := strings.TrimSpace(p.Nickname)
 				if nick == "" {
-					nick = "host"
+					nick = "dev"
 				}
 				if p.OnStartHost != nil {
 					p.OnStartHost(nick)
@@ -148,13 +163,13 @@ func (p *P2PPanel) HandleClick(x, y int) bool {
 				if code == "" {
 					p.ActiveField = "code"
 					if p.OnToast != nil {
-						p.OnToast("warn", "COLLAB", "Введите код комнаты сессии")
+						p.OnToast("warn", "COLLAB", i18n.T("p2p.toast_enter_code"))
 					}
 					return true
 				}
 				nick := strings.TrimSpace(p.Nickname)
 				if nick == "" {
-					nick = "guest"
+					nick = "dev"
 				}
 				if p.OnJoinSession != nil {
 					p.OnJoinSession(code, nick)
@@ -278,34 +293,36 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 	curY := topY
 
 	// 1. Header (clean title, no emojis)
-	printLine(curY, "Совместная работа P2P", accentFg, cell.AttrBold)
+	printLine(curY, i18n.T("p2p.title"), accentFg, cell.AttrBold)
 	curY++
 
 	if p.Session == nil {
 		// ==================== DISCONNECTED STATE ====================
-		printLine(curY, "Прямое подключение без серверов", dimFg, cell.AttrNone)
+		printLine(curY, i18n.T("p2p.subtitle"), dimFg, cell.AttrNone)
 		curY++
 		drawDivider(curY)
 		curY += 2
 
 		// Nickname Input
-		printLine(curY, "Ваш никнейм:", keywordFg, cell.AttrNone)
+		printLine(curY, i18n.T("p2p.your_nickname"), keywordFg, cell.AttrNone)
 		curY++
 
 		nickVal := p.Nickname
-		if nickVal == "" {
-			nickVal = "dev"
-		}
-		nickBox := fmt.Sprintf("Ник: %s", nickVal)
+		var nickBox string
 		if p.ActiveField == "nick" {
-			nickBox = fmt.Sprintf("Ник: %s |", nickVal)
+			nickBox = i18n.T("p2p.nick_prefix", nickVal) + "█"
+		} else {
+			if nickVal == "" {
+				nickVal = "dev"
+			}
+			nickBox = i18n.T("p2p.nick_prefix", nickVal)
 		}
 		printLine(curY, nickBox, fg, cell.AttrBold)
 		registerHit("focus_nick", 0, startX+1, curY, len([]rune(nickBox)))
 		curY += 2
 
 		// Host Action Button (clean text, no [ ])
-		hostBtn := "Создать комнату (Host)"
+		hostBtn := i18n.T("p2p.create_room")
 		printLine(curY, hostBtn, greenFg, cell.AttrBold)
 		registerHit("host", 0, startX+1, curY, len([]rune(hostBtn)))
 		curY += 2
@@ -314,27 +331,27 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 		curY += 2
 
 		// Join Session Section
-		printLine(curY, "Подключение к комнате друга:", keywordFg, cell.AttrNone)
+		printLine(curY, i18n.T("p2p.connect_to_friend"), keywordFg, cell.AttrNone)
 		curY++
 
-		codeVal := p.JoinCodeInput
-		if codeVal == "" && p.ActiveField != "code" {
-			codeVal = "например: tahr-falcon-4821"
-		}
-		codeBox := fmt.Sprintf("Код: %s", codeVal)
-		if p.ActiveField == "code" {
-			codeBox = fmt.Sprintf("Код: %s |", p.JoinCodeInput)
-		}
 		codeColor := fg
-		if p.JoinCodeInput == "" && p.ActiveField != "code" {
-			codeColor = dimFg
+		var codeBox string
+		if p.ActiveField == "code" {
+			codeBox = i18n.T("p2p.code_prefix", p.JoinCodeInput) + "█"
+		} else {
+			if p.JoinCodeInput == "" {
+				codeBox = i18n.T("p2p.code_prefix", i18n.T("p2p.code_placeholder"))
+				codeColor = dimFg
+			} else {
+				codeBox = i18n.T("p2p.code_prefix", p.JoinCodeInput)
+			}
 		}
 		printLine(curY, codeBox, codeColor, cell.AttrNone)
 		registerHit("focus_code", 0, startX+1, curY, len([]rune(codeBox)))
 		curY += 2
 
 		// Join Action Button (clean text, no [ ])
-		joinBtn := "Подключиться к другу"
+		joinBtn := i18n.T("p2p.connect_button")
 		printLine(curY, joinBtn, accentFg, cell.AttrBold)
 		registerHit("join", 0, startX+1, curY, len([]rune(joinBtn)))
 		curY += 2
@@ -344,16 +361,16 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 
 		// Automated Cascade Discovery details
 		infoLines := []string{
-			"Каскадный поиск:",
-			"- LAN mDNS (0-30 мс)",
-			"- Nostr Relay (150-300 мс)",
-			"- BitTorrent DHT (через 2.5 сек)",
+			i18n.T("p2p.cascade_discovery"),
+			i18n.T("p2p.discovery_mdns"),
+			i18n.T("p2p.discovery_nostr"),
+			i18n.T("p2p.discovery_dht"),
 			"",
-			"Возможности:",
-			"- Совместное редактирование",
-			"- Цветные курсоры",
-			"- Следование за курсором",
-			"- Полное шифрование E2E",
+			i18n.T("p2p.features"),
+			i18n.T("p2p.feat_collab_edit"),
+			i18n.T("p2p.feat_colored_cursors"),
+			i18n.T("p2p.feat_follow_cursor"),
+			i18n.T("p2p.feat_e2e_encryption"),
 		}
 		for _, info := range infoLines {
 			if curY >= topY+sideH {
@@ -371,9 +388,9 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 
 	} else {
 		// ==================== CONNECTED / ACTIVE STATE ====================
-		roleLabel := "Организатор (Host)"
+		roleLabel := i18n.T("p2p.role_host")
 		if !p.Session.IsHost {
-			roleLabel = "Гость (Guest)"
+			roleLabel = i18n.T("p2p.role_guest")
 		}
 
 		iceState := string(p.Session.ICEState)
@@ -381,7 +398,7 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 			iceState = "connected"
 		}
 
-		statusLine := fmt.Sprintf("В сети / %s / %s", roleLabel, iceState)
+		statusLine := i18n.T("p2p.status_line", roleLabel, iceState)
 		printLine(curY, statusLine, greenFg, cell.AttrBold)
 		curY++
 
@@ -397,33 +414,33 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 				default:
 					tierName = "LAN mDNS"
 				}
-				printLine(curY, fmt.Sprintf("Сеть: %s", tierName), dimFg, cell.AttrNone)
+				printLine(curY, i18n.T("p2p.signaling_prefix", tierName), dimFg, cell.AttrNone)
 			} else {
 				if p.Session.Coordinator.IsTierActive(p2p.SignalingTierDHT) {
-					printLine(curY, "Поиск: LAN, Nostr и DHT...", dimFg, cell.AttrNone)
+					printLine(curY, i18n.T("p2p.signaling_searching"), dimFg, cell.AttrNone)
 				} else {
-					printLine(curY, "Поиск: LAN и Nostr (DHT через 2.5с)...", dimFg, cell.AttrNone)
+					printLine(curY, i18n.T("p2p.signaling_cascade_delay"), dimFg, cell.AttrNone)
 				}
 			}
 		} else {
-			printLine(curY, fmt.Sprintf("Сеть: %s", tierName), dimFg, cell.AttrNone)
+			printLine(curY, i18n.T("p2p.signaling_prefix", tierName), dimFg, cell.AttrNone)
 		}
 		curY++
 		drawDivider(curY)
 		curY += 2
 
 		// Session Code Banner
-		printLine(curY, "Код сессии для друзей:", keywordFg, cell.AttrNone)
+		printLine(curY, i18n.T("p2p.share_code_title"), keywordFg, cell.AttrNone)
 		curY++
 
-		codeDisplay := fmt.Sprintf("Код: %s", p.Session.SessionCode)
+		codeDisplay := i18n.T("p2p.code_prefix", p.Session.SessionCode)
 		printLine(curY, codeDisplay, accentFg, cell.AttrBold)
 		registerHit("copy_code", 0, startX+1, curY, len([]rune(codeDisplay)))
 		curY++
 
-		copyText := "Копировать код"
+		copyText := i18n.T("p2p.copy_code")
 		if p.CopiedHint && time.Since(p.CopiedTimer) < 3*time.Second {
-			copyText = "Скопировано в буфер"
+			copyText = i18n.T("p2p.copy_code_done")
 		}
 		printLine(curY, copyText, stringFg, cell.AttrNone)
 		registerHit("copy_code", 0, startX+1, curY, len([]rune(copyText)))
@@ -434,26 +451,28 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 			drawDivider(curY)
 			curY++
 			req := p.Session.PendingJoins[0]
-			printLine(curY, fmt.Sprintf("Запрос: %s (#%d)", req.Nickname, req.PeerID), warnFg, cell.AttrBold)
+			printLine(curY, i18n.T("p2p.join_request", req.Nickname, req.PeerID), warnFg, cell.AttrBold)
 			curY++
 
-			ptyLabel := "Выкл"
+			ptyLabel := i18n.T("p2p.perm_pty_off")
 			if p.PendingPTY {
-				ptyLabel = "Вкл"
+				ptyLabel = i18n.T("p2p.perm_pty_on")
 			}
-			permLine := fmt.Sprintf("Роль: %s  Терминал: %s", p.PendingRole, ptyLabel)
+			permLine := i18n.T("p2p.perm_line", p.PendingRole, ptyLabel)
 			printLine(curY, permLine, fg, cell.AttrNone)
 
 			roleHitX := startX + 1 + strings.Index(permLine, p.PendingRole)
 			registerHit("toggle_role", req.PeerID, roleHitX, curY, len(p.PendingRole))
 			ptyHitX := startX + 1 + strings.Index(permLine, ptyLabel)
-			registerHit("toggle_pty", req.PeerID, ptyHitX, curY, len(ptyLabel))
+			registerHit("toggle_pty", req.PeerID, ptyHitX, curY, len([]rune(ptyLabel)))
 			curY++
 
-			actionsLine := "Принять    Отклонить"
+			acceptText := i18n.T("p2p.action_accept")
+			declineText := i18n.T("p2p.action_decline")
+			actionsLine := fmt.Sprintf("%s    %s", acceptText, declineText)
 			printLine(curY, actionsLine, greenFg, cell.AttrBold)
-			registerHit("accept_guest", req.PeerID, startX+1, curY, 7)
-			registerHit("decline_guest", req.PeerID, startX+1+11, curY, 9)
+			registerHit("accept_guest", req.PeerID, startX+1, curY, len([]rune(acceptText)))
+			registerHit("decline_guest", req.PeerID, startX+1+len([]rune(acceptText))+4, curY, len([]rune(declineText)))
 			curY += 2
 		}
 
@@ -462,12 +481,12 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 
 		// Connected Peers List
 		peerCount := p.Session.PeerCount()
-		peersTitle := fmt.Sprintf("Друзья онлайн (%d):", peerCount)
+		peersTitle := i18n.T("p2p.participants_title", peerCount)
 		printLine(curY, peersTitle, keywordFg, cell.AttrBold)
 		curY++
 
 		if peerCount == 0 {
-			printLine(curY, "Никого нет. Отправьте код другу!", dimFg, cell.AttrNone)
+			printLine(curY, i18n.T("p2p.no_participants"), dimFg, cell.AttrNone)
 			curY++
 		} else {
 			for _, peer := range p.Session.Peers {
@@ -486,7 +505,7 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 				printLine(curY, peerHeader, pColor, cell.AttrBold)
 				curY++
 
-				fileLoc := "в редакторе"
+				fileLoc := i18n.T("p2p.in_editor")
 				if peer.ActiveURI != "" {
 					fileLoc = peer.ActiveURI
 					if strings.Contains(fileLoc, "/") || strings.Contains(fileLoc, "\\") {
@@ -496,13 +515,13 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 						}
 					}
 				}
-				peerDetail := fmt.Sprintf("  Файл: %s", fileLoc)
+				peerDetail := i18n.T("p2p.peer_location", fileLoc)
 				printLine(curY, peerDetail, dimFg, cell.AttrNone)
 				curY++
 
-				followBtn := "  Следовать за курсором"
+				followBtn := i18n.T("p2p.follow_start")
 				if p.FollowedPeerID == peer.ID {
-					followBtn = "  Отслеживается"
+					followBtn = i18n.T("p2p.following")
 				}
 				printLine(curY, followBtn, accentFg, cell.AttrNone)
 				registerHit("follow_peer", peer.ID, startX+1, curY, len([]rune(followBtn)))
@@ -514,7 +533,7 @@ func (p *P2PPanel) Render(buf *buffer.Buffer, startX, topY, sideW, sideH int, th
 		if curY < topY+sideH-1 {
 			drawDivider(curY)
 			curY++
-			leaveBtn := "Покинуть комнату"
+			leaveBtn := i18n.T("p2p.leave_session")
 			printLine(curY, leaveBtn, warnFg, cell.AttrBold)
 			registerHit("leave", 0, startX+1, curY, len([]rune(leaveBtn)))
 		}

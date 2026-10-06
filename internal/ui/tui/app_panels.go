@@ -43,28 +43,28 @@ func (m *AppModel) wireP2PSession(session *p2p.CollaborationSession) {
 	}
 	session.OnJoinRequest = func(req p2p.MsgJoinRequest) {
 		if m.toasts != nil {
-			m.toasts.Warn("P2P REQUEST", fmt.Sprintf("Пользователь '%s' просит подключиться", req.Nickname))
+			m.toasts.Warn("P2P REQUEST", i18n.T("p2p.toast_join_req", req.Nickname))
 		}
 	}
 	session.OnPeerJoined = func(peer *p2p.PeerInfo) {
 		if m.toasts != nil {
-			m.toasts.Success("P2P COLLAB", fmt.Sprintf("'%s' подключился к сессии!", peer.Nickname))
+			m.toasts.Success("P2P COLLAB", i18n.T("p2p.toast_peer_joined", peer.Nickname))
 		}
 	}
 	session.OnPeerLeft = func(peerID uint16) {
 		if m.toasts != nil {
-			m.toasts.Info("P2P COLLAB", fmt.Sprintf("Участник %d покинул сессию", peerID))
+			m.toasts.Info("P2P COLLAB", i18n.T("p2p.toast_peer_left", peerID))
 		}
 	}
 	session.OnICEStateChange = func(state p2p.ICEState) {
 		if m.toasts != nil && state == p2p.ICEStateConnected {
-			m.toasts.Success("P2P ICE", "P2P соединение установлено!")
+			m.toasts.Success("P2P ICE", i18n.T("p2p.toast_ice_connected"))
 		}
 	}
 	if session.Coordinator != nil {
 		session.Coordinator.OnTierActivated = func(tier p2p.SignalingTier) {
 			if tier == p2p.SignalingTierDHT && m.toasts != nil {
-				m.toasts.Info("P2P CASCADE", "Подключение через BitTorrent DHT (2.5с fallback)")
+				m.toasts.Info("P2P CASCADE", i18n.T("p2p.toast_dht_fallback"))
 			}
 		}
 		session.Coordinator.OnTierResolved = func(tier p2p.SignalingTier) {
@@ -76,7 +76,7 @@ func (m *AppModel) wireP2PSession(session *p2p.CollaborationSession) {
 				} else if tier == p2p.SignalingTierDHT {
 					tierName = "BitTorrent DHT"
 				}
-				m.toasts.Success("P2P CONNECTED", fmt.Sprintf("Соединение установлено через %s", tierName))
+				m.toasts.Success("P2P CONNECTED", i18n.T("p2p.toast_connected_via", tierName))
 			}
 		}
 	}
@@ -441,7 +441,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "docker",
 			r1:    'D',
 			r2:    'K',
-			title: "Docker Compose",
+			title: i18n.T("docker.title"),
 			mode:  "docker",
 		})
 		seen["docker"] = true
@@ -458,7 +458,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "rest-client",
 			r1:    'R',
 			r2:    'C',
-			title: "REST Client",
+			title: i18n.T("rest.title"),
 			mode:  "rest-client",
 		})
 		seen["rest-client"] = true
@@ -475,7 +475,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "grpc",
 			r1:    'R',
 			r2:    'P',
-			title: "gRPC & Protobuf",
+			title: i18n.T("grpc.title"),
 			mode:  "grpc",
 		})
 		seen["grpc"] = true
@@ -492,7 +492,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "test-runner",
 			r1:    'T',
 			r2:    'R',
-			title: "Test Runner",
+			title: i18n.T("testrunner.title"),
 			mode:  "test-runner",
 		})
 		seen["test-runner"] = true
@@ -509,7 +509,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "todo-tree",
 			r1:    'T',
 			r2:    'D',
-			title: "TODO Tree",
+			title: i18n.T("todo.title"),
 			mode:  "todo-tree",
 		})
 		seen["todo-tree"] = true
@@ -526,7 +526,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "task-runner",
 			r1:    'T',
 			r2:    'K',
-			title: "Task Runner",
+			title: i18n.T("tasks.title"),
 			mode:  "task-runner",
 		})
 		seen["task-runner"] = true
@@ -543,7 +543,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "log-viewer",
 			r1:    'L',
 			r2:    'G',
-			title: "Log Viewer",
+			title: i18n.T("logs.title"),
 			mode:  "log-viewer",
 		})
 		seen["log-viewer"] = true
@@ -560,7 +560,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 			id:    "jupyter-notebook",
 			r1:    'J',
 			r2:    'P',
-			title: "Jupyter Notebook",
+			title: i18n.T("jupyter.title"),
 			mode:  "jupyter-notebook",
 		})
 		seen["jupyter-notebook"] = true
@@ -572,7 +572,7 @@ func (m *AppModel) getRightStripItems() []rightStripItem {
 		id:    "p2p-collab",
 		r1:    'C',
 		r2:    'O',
-		title: "P2P Collaboration",
+		title: i18n.T("p2p.title"),
 		mode:  "p2p-collab",
 	})
 	seen["p2p-collab"] = true
@@ -617,9 +617,9 @@ func (m *AppModel) ToggleRightSidebar(mode string) tea.Cmd {
 			m.rightSidebarMode = mode
 			switch mode {
 			case "ai-chat":
-				m.rightSidebarTitle = "AI Assistant"
+				m.rightSidebarTitle = i18n.T("ai.title")
 			case "db-inspector", "db":
-				m.rightSidebarTitle = "Databases"
+				m.rightSidebarTitle = i18n.T("db.title")
 				if m.dbSidebarTab == "" {
 					m.dbSidebarTab = "tables"
 				}
@@ -633,47 +633,47 @@ func (m *AppModel) ToggleRightSidebar(mode string) tea.Cmd {
 					}
 				}
 			case "docker":
-				m.rightSidebarTitle = "Docker Compose"
+				m.rightSidebarTitle = i18n.T("docker.title")
 				if m.dockerPanel != nil {
 					m.dockerPanel.Refresh()
 				}
 			case "rest-client", "rest":
-				m.rightSidebarTitle = "REST Client"
+				m.rightSidebarTitle = i18n.T("rest.title")
 			case "grpc":
-				m.rightSidebarTitle = "gRPC & Protobuf"
+				m.rightSidebarTitle = i18n.T("grpc.title")
 				if m.grpcPanel != nil {
 					m.grpcPanel.Open = true
 				}
 			case "log-viewer", "logs":
-				m.rightSidebarTitle = "Log Viewer"
+				m.rightSidebarTitle = i18n.T("logs.title")
 				if m.logPanel != nil {
 					m.logPanel.Open = true
 				}
 			case "task-runner", "tasks":
-				m.rightSidebarTitle = "Task Runner"
+				m.rightSidebarTitle = i18n.T("tasks.title")
 				if m.taskPanel != nil {
 					m.taskPanel.Open = true
 					m.taskPanel.Refresh(m.workspaceDir)
 				}
 			case "todo-tree", "todo":
-				m.rightSidebarTitle = "TODO Tree"
+				m.rightSidebarTitle = i18n.T("todo.title")
 				if m.todoPanel != nil {
 					m.todoPanel.Open = true
 					m.todoPanel.Refresh()
 				}
 			case "test-runner", "tests":
-				m.rightSidebarTitle = "Test Runner"
+				m.rightSidebarTitle = i18n.T("testrunner.title")
 				if m.testRunnerPanel != nil {
 					m.testRunnerPanel.Open = true
 					m.testRunnerPanel.Discover()
 				}
 			case "jupyter-notebook", "jupyter":
-				m.rightSidebarTitle = "Jupyter Notebook"
+				m.rightSidebarTitle = i18n.T("jupyter.title")
 				if m.jupyterPanel != nil {
 					m.jupyterPanel.Open = true
 				}
 			case "p2p-collab", "collab", "p2p":
-				m.rightSidebarTitle = "P2P Collaboration"
+				m.rightSidebarTitle = i18n.T("p2p.title")
 			default:
 				m.rightSidebarTitle = mode
 			}

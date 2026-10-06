@@ -10,6 +10,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/testrunner"
 	"tahr/internal/ui"
 )
@@ -315,18 +316,18 @@ func (p *TestRunnerPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.T
 	curY := y
 
 	// 1. Header Bar: Status
-	sumText := "○ idle"
+	sumText := i18n.T("testrunner.status_idle")
 	sumColor := greenFg
 	if p.Running {
-		sumText = "● running..."
+		sumText = i18n.T("testrunner.status_running")
 		sumColor = warnFg
 	} else if p.LastSummary.Total > 0 {
-		sumText = fmt.Sprintf("%d passed, %d failed", p.LastSummary.Passed, p.LastSummary.Failed)
+		sumText = i18n.T("testrunner.results_summary", p.LastSummary.Passed, p.LastSummary.Failed)
 		if p.LastSummary.Failed > 0 {
 			sumColor = errFg
 		}
 	}
-	drawText(buf, x+1, curY, fmt.Sprintf("Tests: %s", sumText), sumColor, bg, cell.AttrBold)
+	drawText(buf, x+1, curY, i18n.T("testrunner.summary_tests", sumText), sumColor, bg, cell.AttrBold)
 	curY++
 
 	// 2. Action buttons (with wrapping for narrow sidebars)
@@ -334,9 +335,9 @@ func (p *TestRunnerPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.T
 		Label  string
 		Action string
 	}{
-		{" Run All ", "run_all"},
-		{" Run Selected ", "run_selected"},
-		{" Refresh ", "refresh"},
+		{i18n.T("testrunner.btn_run_all"), "run_all"},
+		{i18n.T("testrunner.btn_run_selected"), "run_selected"},
+		{i18n.T("testrunner.btn_refresh"), "refresh"},
 	}
 	btnX := x + 1
 	for _, b := range buttons {
@@ -360,17 +361,20 @@ func (p *TestRunnerPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.T
 	if len(p.FlatTests) == 0 {
 		curY++
 		emptyLines := []string{
-			"Тесты не обнаружены",
+			i18n.T("testrunner.no_tests"),
 			"───────────────────────────────",
-			"Поддерживаемые фреймворки:",
+			i18n.T("testrunner.supported_frameworks"),
 			"• Go: go test",
 			"• Python: pytest, unittest",
 			"• Node.js: jest, vitest, mocha",
 			"• Rust: cargo test",
+			"• Java / Kotlin: maven, gradle",
+			"• PHP: phpunit",
+			"• Zig / C# / Ruby",
 			"",
-			"Инструкция:",
-			"• Нажмите ' Refresh ' для скана",
-			"• Нажмите ' Run All ' для запуска",
+			i18n.T("testrunner.instructions"),
+			i18n.T("testrunner.hint_refresh"),
+			i18n.T("testrunner.hint_run_all"),
 		}
 		for _, el := range emptyLines {
 			if curY >= y+h-1 {
@@ -378,11 +382,12 @@ func (p *TestRunnerPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.T
 			}
 			c := dimFg
 			attr := cell.AttrNone
-			if el == "Тесты не обнаружены" {
+			if el == i18n.T("testrunner.no_tests") {
 				c = warnFg
 				attr = cell.AttrBold
-			} else if strings.HasPrefix(el, "Поддерживаемые") || strings.HasPrefix(el, "Инструкция") {
+			} else if el == i18n.T("testrunner.supported_frameworks") || el == i18n.T("testrunner.instructions") {
 				c = accentFg
+				attr = cell.AttrBold
 			} else if strings.HasPrefix(el, "•") {
 				c = textFg
 			}

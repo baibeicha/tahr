@@ -24,6 +24,7 @@ import (
 	"tahr/internal/core/git"
 	"tahr/internal/core/gitlens"
 	"tahr/internal/core/grpcproto"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/launch"
 	"tahr/internal/core/logging"
 	"tahr/internal/core/lsp"
@@ -850,7 +851,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 	m.p2pPanel.OnCopyCode = func(code string) {
 		_ = clipboard.Write(code)
 		if m.toasts != nil {
-			m.toasts.Success("P2P COLLAB", fmt.Sprintf("Код сессии скопирован: %s", code))
+			m.toasts.Success("P2P COLLAB", i18n.T("p2p.toast_copied", code))
 		}
 	}
 	m.p2pPanel.OnStartHost = func(nickname string) {
@@ -859,7 +860,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		m.wireP2PSession(session)
 		session.Coordinator.StartCascade(context.Background(), session.SessionCode, true)
 		if m.toasts != nil {
-			m.toasts.Success("P2P HOST", fmt.Sprintf("Комната создана! Код: %s", session.SessionCode))
+			m.toasts.Success("P2P HOST", i18n.T("p2p.toast_host_created", session.SessionCode))
 		}
 	}
 	m.p2pPanel.OnJoinSession = func(code, nickname string) {
@@ -868,7 +869,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		m.wireP2PSession(session)
 		session.Coordinator.StartCascade(context.Background(), session.SessionCode, false)
 		if m.toasts != nil {
-			m.toasts.Info("P2P JOIN", fmt.Sprintf("Подключение к %s...", code))
+			m.toasts.Info("P2P JOIN", i18n.T("p2p.toast_joining", code))
 		}
 	}
 	m.p2pPanel.OnLeaveSession = func() {
@@ -876,7 +877,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 			_ = m.p2pPanel.Session.Close()
 			m.p2pPanel.Session = nil
 			if m.toasts != nil {
-				m.toasts.Info("P2P COLLAB", "Сессия совместной работы завершена")
+				m.toasts.Info("P2P COLLAB", i18n.T("p2p.toast_session_closed"))
 			}
 		}
 	}
@@ -884,7 +885,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		if m.p2pPanel.Session != nil {
 			err := m.p2pPanel.Session.AcceptGuest(peerID, role, pty)
 			if err == nil && m.toasts != nil {
-				m.toasts.Success("P2P ADMIT", fmt.Sprintf("Гость %d подключен (%s)", peerID, role))
+				m.toasts.Success("P2P ADMIT", i18n.T("p2p.toast_admitted", peerID, role))
 			}
 		}
 	}
@@ -892,7 +893,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		if m.p2pPanel.Session != nil {
 			_ = m.p2pPanel.Session.DeclineGuest(peerID, "rejected by host")
 			if m.toasts != nil {
-				m.toasts.Warn("P2P ADMIT", fmt.Sprintf("Запрос гостя %d отклонен", peerID))
+				m.toasts.Warn("P2P ADMIT", i18n.T("p2p.toast_declined", peerID))
 			}
 		}
 	}
@@ -904,7 +905,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 			}
 			m.openFileAtLocation(peer.ActiveURI, targetLine)
 			if m.toasts != nil {
-				m.toasts.Info("P2P FOLLOW", fmt.Sprintf("Переход к %s (%s)", peer.Nickname, peer.ActiveURI))
+				m.toasts.Info("P2P FOLLOW", i18n.T("p2p.toast_following", peer.Nickname, peer.ActiveURI))
 			}
 		}
 	}

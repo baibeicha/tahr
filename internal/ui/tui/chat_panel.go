@@ -11,6 +11,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"tahr/internal/core/ai"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -419,7 +420,7 @@ func (cp *ChatPanel) SubmitPrompt(activeDocPath, activeSelection, activeDiagnost
 // HandleClick processes mouse interactions with sidebar controls and code block action buttons.
 func (cp *ChatPanel) HandleClick(x, y, startX, startY, sideW, sideH int) bool {
 	// 1. Close button × at top right
-	if y == startY && x >= startX+sideW-3 {
+	if y == startY && x >= startX+sideW-2 {
 		if cp.OnClose != nil {
 			cp.OnClose()
 		}
@@ -532,9 +533,29 @@ func (cp *ChatPanel) Render(buf *buffer.Buffer, startX, startY, sideW, sideH int
 	}
 
 	// Header: Title & Close Button
-	title := "AI Assistant"
-	printLine(startY, title, accentFg, cell.AttrBold)
-	buf.SetRune(startX+sideW-3, startY, '✕', toColor(theme.DiagnosticError), sidebarBg, cell.AttrBold)
+	title := i18n.T("ai.title")
+	if title == "" {
+		title = "AI Assistant"
+	}
+	titleRunes := []rune(title)
+	btnSpace := 2
+	if sideW >= 18 {
+		btnSpace = 6 // "◀ ▶ × "
+	}
+	for i, r := range titleRunes {
+		if i < sideW-btnSpace-1 {
+			buf.SetRune(startX+1+i, startY, r, accentFg, sidebarBg, cell.AttrBold)
+		}
+	}
+	if sideW >= 18 {
+		btnFg := toColor(theme.Foreground)
+		buf.SetRune(startX+sideW-6, startY, '◀', btnFg, sidebarBg, cell.AttrBold)
+		buf.SetRune(startX+sideW-5, startY, ' ', btnFg, sidebarBg, cell.AttrNone)
+		buf.SetRune(startX+sideW-4, startY, '▶', btnFg, sidebarBg, cell.AttrBold)
+		buf.SetRune(startX+sideW-3, startY, ' ', btnFg, sidebarBg, cell.AttrNone)
+	}
+	buf.SetRune(startX+sideW-2, startY, '×', toColor(theme.DiagnosticError), sidebarBg, cell.AttrBold)
+	buf.SetRune(startX+sideW-1, startY, ' ', toColor(theme.DiagnosticError), sidebarBg, cell.AttrNone)
 
 	// Context row: @file
 	docName := "none"
