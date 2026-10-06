@@ -2,11 +2,13 @@ package graphs
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"tahr/internal/core/dag"
+	"tahr/internal/core/lsp"
 )
 
 // HierarchyDirection defines the flow direction of call hierarchy.
@@ -141,10 +143,17 @@ func (h *CallHierarchyNode) ToGraphModel() *dag.GraphModel {
 				badge = "Target"
 			}
 
+			cardFilePath := ""
+			if curr.FileURI != "" {
+				cleanURI := strings.TrimPrefix(curr.FileURI, "file:///")
+				cardFilePath = filepath.FromSlash(cleanURI)
+			}
 			card := &dag.NodeCard{
-				ID:    nodeID,
-				Title: curr.Name,
-				Badge: badge,
+				ID:       nodeID,
+				Title:    curr.Name,
+				Badge:    badge,
+				FilePath: cardFilePath,
+				Line:     curr.Line + 1,
 				Rows: []dag.CardRow{
 					{Name: curr.Detail, DataType: fmt.Sprintf("line %d", curr.Line)},
 				},
@@ -200,4 +209,149 @@ func (o *LSPHierarchyOrchestrator) QueryWithDebounce(
 			onResult(node)
 		}
 	})
+}
+
+// FetchCallHierarchyFromLSP queries the active LSP server (gopls, rust-analyzer, pyright, clangd, tsserver, etc.)
+// for call hierarchy at the given position and builds a CallHierarchyNode tree.
+func FetchCallHierarchyFromLSP(
+	client *lsp.Client,
+	uri string,
+	line, col int,
+	direction HierarchyDirection,
+	maxDepth int,
+) (*CallHierarchyNode, error) {
+	if client == nil {
+		return nil, fmt.Errorf("lsp client is nil")
+	}
+
+	// 1. First attempt: Standard textDocument/prepareCallHierarchy
+	items, err := client.PrepareCallHierarchy(uri, line, col)
+	if err == nil && len(items) > 0 {
+		target := items[0]
+		root := &CallHierarchyNode{
+			Name:       target.Name,
+			Detail:     target.Detail,
+			FileURI:    target.URI,
+			Line:       target.Range.Start.Line,
+			IsStdLib:   IsStdLibSymbol(target.Name, target.Detail),
+			RingRadius: 0,
+		}
+
+		visited := make(map[string]bool)
+		visited[fmt.Sprintf("%s:%d", target.Name, target.Range.Start.Line)] = true
+
+		var expand func(currItem lsp.CallHierarchyItem, currNode *CallHierarchyNode, depth int)
+		expand = func(currItem lsp.CallHierarchyItem, currNode *CallHierarchyNode, depth int) {
+			if depth >= maxDepth || currNode.IsStdLib {
+				return
+			}
+			if direction == DirectionDownstream {
+				outgoing, err := client.OutgoingCalls(currItem)
+				if err == nil {
+					for _, call := range outgoing {
+						k := fmt.Sprintf("%s:%d", call.To.Name, call.To.Range.Start.Line)
+						child := &CallHierarchyNode{
+							Name:       call.To.Name,
+							Detail:     call.To.Detail,
+							FileURI:    call.To.URI,
+							Line:       call.To.Range.Start.Line,
+							IsStdLib:   IsStdLibSymbol(call.To.Name, call.To.Detail),
+							RingRadius: depth + 1,
+						}
+						currNode.Children = append(currNode.Children, child)
+						if !visited[k] {
+							visited[k] = true
+							expand(call.To, child, depth+1)
+						}
+					}
+				}
+			} else {
+				incoming, err := client.IncomingCalls(currItem)
+				if err == nil {
+					for _, call := range incoming {
+						k := fmt.Sprintf("%s:%d", call.From.Name, call.From.Range.Start.Line)
+						child := &CallHierarchyNode{
+							Name:       call.From.Name,
+							Detail:     call.From.Detail,
+							FileURI:    call.From.URI,
+							Line:       call.From.Range.Start.Line,
+							IsStdLib:   IsStdLibSymbol(call.From.Name, call.From.Detail),
+							RingRadius: depth + 1,
+						}
+						currNode.Children = append(currNode.Children, child)
+						if !visited[k] {
+							visited[k] = true
+							expand(call.From, child, depth+1)
+						}
+					}
+				}
+			}
+		}
+
+		expand(target, root, 0)
+		return root, nil
+	}
+
+	// 2. Fallback for language servers without prepareCallHierarchy (e.g. older servers):
+	// Query DocumentSymbols + References to construct cross-symbol relationships!
+	symbols, sErr := client.DocumentSymbols(uri)
+	if sErr != nil || len(symbols) == 0 {
+		return nil, fmt.Errorf("no symbols or call hierarchy available from lsp")
+	}
+
+	// Find the symbol nearest or enclosing (line, col)
+	var targetSym *lsp.DocumentSymbol
+	for i := range symbols {
+		s := &symbols[i]
+		if s.Kind == lsp.SymbolKindFunction || s.Kind == lsp.SymbolKindMethod || s.Kind == lsp.SymbolKindConstructor {
+			if line >= s.Range.Start.Line && line <= s.Range.End.Line {
+				targetSym = s
+				break
+			}
+		}
+	}
+	if targetSym == nil {
+		for i := range symbols {
+			s := &symbols[i]
+			if s.Kind == lsp.SymbolKindFunction || s.Kind == lsp.SymbolKindMethod {
+				targetSym = s
+				break
+			}
+		}
+	}
+	if targetSym == nil {
+		return nil, fmt.Errorf("no function symbol found at target line")
+	}
+
+	root := &CallHierarchyNode{
+		Name:       targetSym.Name,
+		Detail:     targetSym.Detail,
+		FileURI:    uri,
+		Line:       targetSym.Range.Start.Line,
+		IsStdLib:   IsStdLibSymbol(targetSym.Name, targetSym.Detail),
+		RingRadius: 0,
+	}
+
+	// Query workspace references for callers
+	refs, rErr := client.References(uri, targetSym.Range.Start.Line, targetSym.Range.Start.Character, false)
+	if rErr == nil && len(refs) > 0 {
+		seenRef := make(map[string]bool)
+		for _, loc := range refs {
+			refID := fmt.Sprintf("%s:%d", loc.URI, loc.Range.Start.Line)
+			if seenRef[refID] {
+				continue
+			}
+			seenRef[refID] = true
+			callerName := filepath.Base(loc.URI)
+			root.Children = append(root.Children, &CallHierarchyNode{
+				Name:       fmt.Sprintf("%s:%d", callerName, loc.Range.Start.Line+1),
+				Detail:     "reference",
+				FileURI:    loc.URI,
+				Line:       loc.Range.Start.Line,
+				RingRadius: 1,
+			})
+		}
+	}
+
+	return root, nil
 }

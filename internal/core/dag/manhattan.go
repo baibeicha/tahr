@@ -98,43 +98,117 @@ func (cr *ChannelRouter) routeEdge(model *GraphModel, edge *Edge, obstacles []No
 		return
 	}
 
-	// 1. Initial 3-segment orthogonal channel: (src) -> (midX, srcY) -> (midX, dstY) -> (dst)
-	midX := (srcPt[0] + dstPt[0]) / 2
-	if srcPt[0] >= dstPt[0] {
-		// Source is to the right of destination: route with clearance offset
-		midX = srcPt[0] + 3
-	}
+	var pts [][2]int
 
-	pts := [][2]int{
-		srcPt,
-		{midX, srcPt[1]},
-		{midX, dstPt[1]},
-		dstPt,
-	}
+	if srcPt[0] <= dstPt[0] {
+		// Forward direction (left-to-right)
+		// Check for intervening obstacles between source and destination columns
+		var intervening []Rect
+		for _, obs := range obstacles {
+			if obs.NodeID == edge.FromNode || obs.NodeID == edge.ToNode {
+				continue
+			}
+			if obs.Bounds.X+obs.Bounds.W > srcPt[0] && obs.Bounds.X < dstPt[0] {
+				intervening = append(intervening, obs.Bounds)
+			}
+		}
 
-	// 2. Obstacle collision detection & channel diversion
-	hasCollision := false
-	var blockedObstacle Rect
-	for _, obs := range obstacles {
-		if obs.NodeID == edge.FromNode || obs.NodeID == edge.ToNode {
-			continue // Skip endpoint cards themselves
-		}
-		b := obs.Bounds
-		if b.IntersectsSegment(srcPt[0], srcPt[1], midX, srcPt[1]) ||
-			b.IntersectsSegment(midX, srcPt[1], midX, dstPt[1]) ||
-			b.IntersectsSegment(midX, dstPt[1], dstPt[0], dstPt[1]) {
-			hasCollision = true
-			blockedObstacle = b
-			break
-		}
-	}
+		if len(intervening) == 0 {
+			// Neighboring layers: straight line if same Y, else distributed vertical channel lane
+			if srcPt[1] == dstPt[1] {
+				pts = [][2]int{srcPt, dstPt}
+			} else {
+				dist := dstPt[0] - srcPt[0]
+				midX := (srcPt[0] + dstPt[0]) / 2
+				if dist >= 6 {
+					lane := ((srcPt[1]*3 + dstPt[1]*7) & 0x7FFFFFFF) % 3
+					candX := srcPt[0] + 2 + lane*2
+					if candX < dstPt[0]-1 {
+						midX = candX
+					}
+				}
+				pts = [][2]int{
+					srcPt,
+					{midX, srcPt[1]},
+					{midX, dstPt[1]},
+					dstPt,
+				}
+			}
+		} else {
+			// Multi-layer edge crossing intermediate cards: route via highway above or below
+			minY := 999999
+			maxY := -999999
+			for _, b := range intervening {
+				if b.Y < minY {
+					minY = b.Y
+				}
+				if b.Y+b.H > maxY {
+					maxY = b.Y + b.H
+				}
+			}
+			avgY := (srcPt[1] + dstPt[1]) / 2
+			centerObsY := (minY + maxY) / 2
 
-	if hasCollision {
-		// Divert channel above or below the blocked obstacle
-		bypassY := blockedObstacle.Y - 2
-		if bypassY < 0 {
-			bypassY = blockedObstacle.Y + blockedObstacle.H + 2
+			var bypassY int
+			if avgY <= centerObsY {
+				bypassY = minY - 2
+				if bypassY < 1 {
+					bypassY = 1
+				}
+			} else {
+				bypassY = maxY + 2
+			}
+
+			pts = [][2]int{
+				srcPt,
+				{srcPt[0] + 2, srcPt[1]},
+				{srcPt[0] + 2, bypassY},
+				{dstPt[0] - 2, bypassY},
+				{dstPt[0] - 2, dstPt[1]},
+				dstPt,
+			}
 		}
+	} else {
+		// Backward / cycle edge (right-to-left): route via highway around cards
+		minY := 999999
+		maxY := -999999
+		for _, obs := range obstacles {
+			if obs.NodeID == edge.FromNode || obs.NodeID == edge.ToNode {
+				continue
+			}
+			if obs.Bounds.X+obs.Bounds.W > dstPt[0] && obs.Bounds.X < srcPt[0] {
+				if obs.Bounds.Y < minY {
+					minY = obs.Bounds.Y
+				}
+				if obs.Bounds.Y+obs.Bounds.H > maxY {
+					maxY = obs.Bounds.Y + obs.Bounds.H
+				}
+			}
+		}
+		if minY == 999999 {
+			minY = srcPt[1]
+			if dstPt[1] < minY {
+				minY = dstPt[1]
+			}
+			maxY = srcPt[1]
+			if dstPt[1] > maxY {
+				maxY = dstPt[1]
+			}
+		}
+
+		avgY := (srcPt[1] + dstPt[1]) / 2
+		centerObsY := (minY + maxY) / 2
+
+		var bypassY int
+		if avgY <= centerObsY {
+			bypassY = minY - 2
+			if bypassY < 1 {
+				bypassY = 1
+			}
+		} else {
+			bypassY = maxY + 2
+		}
+
 		pts = [][2]int{
 			srcPt,
 			{srcPt[0] + 2, srcPt[1]},
@@ -145,6 +219,35 @@ func (cr *ChannelRouter) routeEdge(model *GraphModel, edge *Edge, obstacles []No
 		}
 	}
 
+	pts = simplifyPoints(pts)
 	edge.Points = pts
 	cr.edgeCache[edge.ID] = pts
+}
+
+func simplifyPoints(pts [][2]int) [][2]int {
+	if len(pts) <= 2 {
+		return pts
+	}
+	res := make([][2]int, 0, len(pts))
+	res = append(res, pts[0])
+	for i := 1; i < len(pts)-1; i++ {
+		prev := res[len(res)-1]
+		curr := pts[i]
+		next := pts[i+1]
+		if curr == prev {
+			continue
+		}
+		if prev[1] == curr[1] && curr[1] == next[1] {
+			continue
+		}
+		if prev[0] == curr[0] && curr[0] == next[0] {
+			continue
+		}
+		res = append(res, curr)
+	}
+	last := pts[len(pts)-1]
+	if last != res[len(res)-1] {
+		res = append(res, last)
+	}
+	return res
 }

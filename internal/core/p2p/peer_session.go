@@ -55,6 +55,7 @@ type CollaborationSession struct {
 	PendingJoins   []MsgJoinRequest
 	Transports     map[uint16]PeerTransport // Active data transports
 	GuestTransport PeerTransport            // For guest role: direct transport to host
+	Coordinator    *SignalingCoordinator    // Automatic zero-server cascade coordinator
 
 	// Event callbacks
 	OnJoinRequest    func(req MsgJoinRequest)
@@ -87,8 +88,9 @@ var peerColors = []string{
 func NewHostSession(nickname string, turnServer string) *CollaborationSession {
 	code := GenerateSessionCode()
 	crypto := DeriveSessionCrypto(code)
+	coord := NewSignalingCoordinator(turnServer)
 
-	return &CollaborationSession{
+	sess := &CollaborationSession{
 		SessionCode:   code,
 		Crypto:        crypto,
 		IsHost:        true,
@@ -102,14 +104,24 @@ func NewHostSession(nickname string, turnServer string) *CollaborationSession {
 		Peers:         make(map[uint16]*PeerInfo),
 		PendingJoins:  make([]MsgJoinRequest, 0),
 		Transports:    make(map[uint16]PeerTransport),
+		Coordinator:   coord,
 	}
+
+	coord.OnTierResolved = func(tier SignalingTier) {
+		sess.mu.Lock()
+		sess.ActiveTier = tier
+		sess.mu.Unlock()
+	}
+
+	return sess
 }
 
 // NewGuestSession initializes a guest session joining an existing room.
 func NewGuestSession(sessionCode, nickname string) *CollaborationSession {
 	crypto := DeriveSessionCrypto(sessionCode)
+	coord := NewSignalingCoordinator("")
 
-	return &CollaborationSession{
+	sess := &CollaborationSession{
 		SessionCode:   sessionCode,
 		Crypto:        crypto,
 		IsHost:        false,
@@ -120,7 +132,16 @@ func NewGuestSession(sessionCode, nickname string) *CollaborationSession {
 		STUNServers:   DefaultSTUNServers,
 		Peers:         make(map[uint16]*PeerInfo),
 		Transports:    make(map[uint16]PeerTransport),
+		Coordinator:   coord,
 	}
+
+	coord.OnTierResolved = func(tier SignalingTier) {
+		sess.mu.Lock()
+		sess.ActiveTier = tier
+		sess.mu.Unlock()
+	}
+
+	return sess
 }
 
 // SetICEState updates connection state and notifies listener.
@@ -541,6 +562,9 @@ func (cs *CollaborationSession) Close() error {
 	}
 	if cs.GuestTransport != nil {
 		_ = cs.GuestTransport.Close()
+	}
+	if cs.Coordinator != nil {
+		cs.Coordinator.Stop()
 	}
 	return nil
 }

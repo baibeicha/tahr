@@ -214,6 +214,12 @@ func (c *Client) Initialize(rootURI string) error {
 				"definition": map[string]any{
 					"dynamicRegistration": false,
 				},
+				"references": map[string]any{
+					"dynamicRegistration": false,
+				},
+				"callHierarchy": map[string]any{
+					"dynamicRegistration": false,
+				},
 				"documentSymbol": map[string]any{
 					"dynamicRegistration":               false,
 					"hierarchicalDocumentSymbolSupport": true,
@@ -702,3 +708,103 @@ func (c *Client) Rename(uri string, line, character int, newName string) (*Works
 	}
 	return &we, nil
 }
+
+// PrepareCallHierarchy queries textDocument/prepareCallHierarchy to find the call hierarchy item at position.
+func (c *Client) PrepareCallHierarchy(uri string, line, character int) ([]CallHierarchyItem, error) {
+	resp, err := c.SendRequest("textDocument/prepareCallHierarchy", CallHierarchyPrepareParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: line, Character: character},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil || resp.Result == nil {
+		return nil, nil
+	}
+
+	data, err := json.Marshal(resp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []CallHierarchyItem
+	if err := json.Unmarshal(data, &items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// IncomingCalls queries callHierarchy/incomingCalls for callers of the given item.
+func (c *Client) IncomingCalls(item CallHierarchyItem) ([]CallHierarchyIncomingCall, error) {
+	resp, err := c.SendRequest("callHierarchy/incomingCalls", CallHierarchyIncomingCallsParams{
+		Item: item,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil || resp.Result == nil {
+		return nil, nil
+	}
+
+	data, err := json.Marshal(resp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	var calls []CallHierarchyIncomingCall
+	if err := json.Unmarshal(data, &calls); err != nil {
+		return nil, err
+	}
+	return calls, nil
+}
+
+// OutgoingCalls queries callHierarchy/outgoingCalls for callees invoked by the given item.
+func (c *Client) OutgoingCalls(item CallHierarchyItem) ([]CallHierarchyOutgoingCall, error) {
+	resp, err := c.SendRequest("callHierarchy/outgoingCalls", CallHierarchyOutgoingCallsParams{
+		Item: item,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil || resp.Result == nil {
+		return nil, nil
+	}
+
+	data, err := json.Marshal(resp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	var calls []CallHierarchyOutgoingCall
+	if err := json.Unmarshal(data, &calls); err != nil {
+		return nil, err
+	}
+	return calls, nil
+}
+
+// References queries textDocument/references across the workspace.
+func (c *Client) References(uri string, line, character int, includeDecl bool) ([]Location, error) {
+	resp, err := c.SendRequest("textDocument/references", ReferenceParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: line, Character: character},
+		Context:      ReferenceContext{IncludeDeclaration: includeDecl},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil || resp.Result == nil {
+		return nil, nil
+	}
+
+	data, err := json.Marshal(resp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	var locs []Location
+	if err := json.Unmarshal(data, &locs); err != nil {
+		return nil, err
+	}
+	return locs, nil
+}
+

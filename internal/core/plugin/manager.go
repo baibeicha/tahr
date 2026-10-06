@@ -942,11 +942,24 @@ func copyDir(src, dst string) error {
 		if info.IsDir() {
 			return os.MkdirAll(target, 0755)
 		}
-		data, err := os.ReadFile(path)
+		// Do not duplicate large binary model weights (>10MB, e.g. .gguf models)
+		if info.Size() > 10*1024*1024 || strings.HasSuffix(strings.ToLower(path), ".gguf") {
+			return nil
+		}
+		in, err := os.Open(path)
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(target, data, info.Mode())
+		defer in.Close()
+
+		out, err := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+
+		_, err = io.Copy(out, in)
+		return err
 	})
 }
 

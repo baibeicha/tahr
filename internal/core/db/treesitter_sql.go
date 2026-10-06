@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	createTableRe = regexp.MustCompile(`(?is)CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-zA-Z0-9_"]+)\s*\((.*?)\);`)
-	fkConstraintRe = regexp.MustCompile(`(?i)FOREIGN\s+KEY\s*\(([a-zA-Z0-9_"]+)\)\s*REFERENCES\s+([a-zA-Z0-9_"]+)\s*\(([a-zA-Z0-9_"]+)\)`)
+	createTableRe = regexp.MustCompile("(?is)CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?([a-zA-Z0-9_\".\\[\\]`]+)\\s*\\((.*?)\\);")
+	fkConstraintRe = regexp.MustCompile("(?i)FOREIGN\\s+KEY\\s*\\(([a-zA-Z0-9_\".\\[\\]`]+)\\)\\s*REFERENCES\\s+([a-zA-Z0-9_\".\\[\\]`]+)\\s*\\(([a-zA-Z0-9_\".\\[\\]`]+)\\)")
 )
 
 // ParseSQLDDL extracts a SchemaAST from raw SQL DDL migration text without requiring a live database.
@@ -80,7 +80,10 @@ func ParseSQLDDL(sqlContent string) *SchemaAST {
 
 func cleanIdentifier(s string) string {
 	s = strings.TrimSpace(s)
-	s = strings.Trim(s, `"'` + "`")
+	if idx := strings.LastIndex(s, "."); idx >= 0 && idx < len(s)-1 {
+		s = s[idx+1:]
+	}
+	s = strings.Trim(s, `"'`+"`[]")
 	return s
 }
 

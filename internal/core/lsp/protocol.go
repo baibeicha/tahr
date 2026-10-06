@@ -419,3 +419,56 @@ type SymbolInformation struct {
 	Location      Location   `json:"location"`
 	ContainerName string     `json:"containerName,omitempty"`
 }
+
+// CallHierarchyPrepareParams is sent on textDocument/prepareCallHierarchy.
+type CallHierarchyPrepareParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+}
+
+// CallHierarchyItem represents an item in a call hierarchy.
+type CallHierarchyItem struct {
+	Name           string     `json:"name"`
+	Kind           SymbolKind `json:"kind"`
+	Tags           []int      `json:"tags,omitempty"`
+	Detail         string     `json:"detail,omitempty"`
+	URI            string     `json:"uri"`
+	Range          Range      `json:"range"`
+	SelectionRange Range      `json:"selectionRange"`
+	Data           any        `json:"data,omitempty"`
+}
+
+// CallHierarchyIncomingCallsParams is sent on callHierarchy/incomingCalls.
+type CallHierarchyIncomingCallsParams struct {
+	Item CallHierarchyItem `json:"item"`
+}
+
+// CallHierarchyIncomingCall represents an incoming call.
+type CallHierarchyIncomingCall struct {
+	From       CallHierarchyItem `json:"from"`
+	FromRanges []Range           `json:"fromRanges"`
+}
+
+// CallHierarchyOutgoingCallsParams is sent on callHierarchy/outgoingCalls.
+type CallHierarchyOutgoingCallsParams struct {
+	Item CallHierarchyItem `json:"item"`
+}
+
+// CallHierarchyOutgoingCall represents an outgoing call.
+type CallHierarchyOutgoingCall struct {
+	To         CallHierarchyItem `json:"to"`
+	FromRanges []Range           `json:"fromRanges"`
+}
+
+// ReferenceParams is sent on textDocument/references.
+type ReferenceParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+	Context      ReferenceContext       `json:"context"`
+}
+
+// ReferenceContext options for textDocument/references.
+type ReferenceContext struct {
+	IncludeDeclaration bool `json:"includeDeclaration"`
+}
+

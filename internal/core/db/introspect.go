@@ -2,11 +2,67 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"tahr/internal/core/dag"
 )
+
+// ConnectionProfile represents configured parameters to connect to a database.
+type ConnectionProfile struct {
+	Type     string `json:"type"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	Database string `json:"database"`
+	User     string `json:"user"`
+	Password string `json:"password,omitempty"`
+	FilePath string `json:"file_path,omitempty"`
+}
+
+// SaveConnectionProfile writes the connection profile into <workspaceDir>/.tahr/db_connections.json.
+func SaveConnectionProfile(workspaceDir string, profile ConnectionProfile) error {
+	if workspaceDir == "" {
+		return nil
+	}
+	dotTahr := filepath.Join(workspaceDir, ".tahr")
+	_ = os.MkdirAll(dotTahr, 0755)
+	connFile := filepath.Join(dotTahr, "db_connections.json")
+	var profiles []ConnectionProfile
+	if data, err := os.ReadFile(connFile); err == nil {
+		_ = json.Unmarshal(data, &profiles)
+	}
+	updated := false
+	for i, p := range profiles {
+		if p.Type == profile.Type && (p.Database == profile.Database || p.FilePath == profile.FilePath) {
+			profiles[i] = profile
+			updated = true
+			break
+		}
+	}
+	if !updated {
+		profiles = append(profiles, profile)
+	}
+	bytes, _ := json.MarshalIndent(profiles, "", "  ")
+	return os.WriteFile(connFile, bytes, 0644)
+}
+
+// LoadConnectionProfiles reads saved connections from <workspaceDir>/.tahr/db_connections.json.
+func LoadConnectionProfiles(workspaceDir string) []ConnectionProfile {
+	if workspaceDir == "" {
+		return nil
+	}
+	connFile := filepath.Join(workspaceDir, ".tahr", "db_connections.json")
+	data, err := os.ReadFile(connFile)
+	if err != nil {
+		return nil
+	}
+	var profiles []ConnectionProfile
+	_ = json.Unmarshal(data, &profiles)
+	return profiles
+}
 
 // Column represents a single database attribute definition.
 type Column struct {
@@ -89,12 +145,18 @@ func (s *SchemaAST) ToGraphModel() *dag.GraphModel {
 				IsNullable: col.IsNullable,
 			})
 
-			// Add port on left (for incoming FK / PK references) and right (for outgoing FK references)
+			// Add port on right (for outgoing FK references) and left (for incoming PK references)
 			card.Ports = append(card.Ports, dag.Port{
 				ID:       col.Name,
 				RowIndex: rIdx,
 				Side:     'R',
-				Type:     dag.PortBoth,
+				Type:     dag.PortOutput,
+			})
+			card.Ports = append(card.Ports, dag.Port{
+				ID:       col.Name + ":in",
+				RowIndex: rIdx,
+				Side:     'L',
+				Type:     dag.PortInput,
 			})
 		}
 		gm.AddNode(card)
@@ -104,7 +166,7 @@ func (s *SchemaAST) ToGraphModel() *dag.GraphModel {
 	for _, tbl := range s.Tables {
 		for _, fk := range tbl.ForeignKeys {
 			if _, exists := gm.Nodes[fk.ToTable]; exists {
-				gm.AddEdge(tbl.Name, fk.FromColumn, fk.ToTable, fk.ToColumn, dag.MarkerCrowFootMany)
+				gm.AddEdge(tbl.Name, fk.FromColumn, fk.ToTable, fk.ToColumn+":in", dag.MarkerCrowFootMany)
 			}
 		}
 	}

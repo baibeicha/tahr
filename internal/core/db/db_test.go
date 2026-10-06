@@ -50,6 +50,26 @@ CREATE TABLE orders (
 	if len(gm.Edges) != 1 {
 		t.Errorf("expected 1 graph edge, got %d", len(gm.Edges))
 	}
+
+	// Test MSSQL and MySQL dialects (brackets and backticks)
+	mssql := `
+CREATE TABLE [dbo].[Customers] (
+    [CustomerID] INT PRIMARY KEY,
+    [CompanyName] NVARCHAR(100) NOT NULL
+);
+CREATE TABLE [Invoices] (
+    [InvoiceID] INT PRIMARY KEY,
+    [CustID] INT NOT NULL,
+    FOREIGN KEY ([CustID]) REFERENCES [Customers]([CustomerID])
+);
+`
+	msSchema := ParseSQLDDL(mssql)
+	if len(msSchema.Tables) < 2 {
+		t.Errorf("expected at least 2 tables from MSSQL DDL, got %d", len(msSchema.Tables))
+	}
+	if msSchema.Tables["Customers"] == nil && msSchema.Tables["dbo.Customers"] == nil {
+		t.Errorf("expected Customers table in parsed MSSQL schema")
+	}
 }
 
 func TestComputeDiff_IntentTrackingRename(t *testing.T) {

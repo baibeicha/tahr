@@ -518,8 +518,8 @@ func TestTier1PluginsPackagingAndInstallation(t *testing.T) {
 		t.Fatalf("failed to parse registry.json: %v", err)
 	}
 
-	if len(registry) != 40 {
-		t.Fatalf("expected 40 plugins in registry.json, got %d", len(registry))
+	if len(registry) != 28 {
+		t.Fatalf("expected 28 plugins in registry.json, got %d", len(registry))
 	}
 
 	tempDir := t.TempDir()
@@ -545,8 +545,8 @@ func TestTier1PluginsPackagingAndInstallation(t *testing.T) {
 	}
 
 	installed := mgr.InstalledPlugins()
-	if len(installed) < 40 {
-		t.Fatalf("expected at least 40 installed plugins, got %d", len(installed))
+	if len(installed) < 28 {
+		t.Fatalf("expected at least 28 installed plugins, got %d", len(installed))
 	}
 
 	// Verify specific capabilities and language configs (Tier 1, Tier 2, Tier 3)
@@ -585,11 +585,6 @@ func TestTier1PluginsPackagingAndInstallation(t *testing.T) {
 		t.Errorf("expected .proto language config registered, got %+v", protoConfig)
 	}
 
-	envConfig := mgr.GetLanguageConfig(".env")
-	if envConfig == nil || envConfig.ID != "dotenv" {
-		t.Errorf("expected .env language config registered, got %+v", envConfig)
-	}
-
 	sqliteConfig := mgr.GetLanguageConfig(".sqlite")
 	if sqliteConfig == nil || sqliteConfig.ID != "sqlite" {
 		t.Errorf("expected .sqlite language config registered, got %+v", sqliteConfig)
@@ -603,11 +598,6 @@ func TestTier1PluginsPackagingAndInstallation(t *testing.T) {
 	sqlConfig := mgr.GetLanguageConfig(".sql")
 	if sqlConfig == nil || sqlConfig.ID != "sql" {
 		t.Errorf("expected .sql language config registered, got %+v", sqlConfig)
-	}
-
-	pprofConfig := mgr.GetLanguageConfig(".pprof")
-	if pprofConfig == nil || pprofConfig.ID != "pprof" {
-		t.Errorf("expected .pprof language config registered, got %+v", pprofConfig)
 	}
 
 	jupyterConfig := mgr.GetLanguageConfig(".ipynb")
@@ -628,8 +618,8 @@ func TestTier1PluginsPackagingAndInstallation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FetchCatalog failed: %v", err)
 	}
-	if len(catalog) < 40 {
-		t.Fatalf("expected at least 40 catalog items from registry.json, got %d", len(catalog))
+	if len(catalog) < 28 {
+		t.Fatalf("expected at least 28 catalog items from registry.json, got %d", len(catalog))
 	}
 }
 

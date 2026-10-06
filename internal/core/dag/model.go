@@ -2,6 +2,7 @@ package dag
 
 import (
 	"fmt"
+	"strings"
 )
 
 // PortType defines signal/link direction on an anchor port.
@@ -33,16 +34,18 @@ type CardRow struct {
 
 // NodeCard represents a rectangular entity card in the DAG Canvas.
 type NodeCard struct {
-	ID     string    `json:"id"`
-	Title  string    `json:"title"`
-	Badge  string    `json:"badge,omitempty"` // e.g. "Table", "Trait", "Service"
-	Rows   []CardRow `json:"rows"`
-	Ports  []Port    `json:"ports"`
-	X      int       `json:"x"`
-	Y      int       `json:"y"`
-	Width  int       `json:"width"`
-	Height int       `json:"height"`
-	Layer  int       `json:"layer"` // Sugiyama rank/layer
+	ID       string    `json:"id"`
+	Title    string    `json:"title"`
+	Badge    string    `json:"badge,omitempty"` // e.g. "Table", "Trait", "Service"
+	FilePath string    `json:"file_path,omitempty"`
+	Line     int       `json:"line,omitempty"` // 1-indexed source line
+	Rows     []CardRow `json:"rows"`
+	Ports    []Port    `json:"ports"`
+	X        int       `json:"x"`
+	Y        int       `json:"y"`
+	Width    int       `json:"width"`
+	Height   int       `json:"height"`
+	Layer    int       `json:"layer"` // Sugiyama rank/layer
 }
 
 // EdgeStyle defines line rendering attributes.
@@ -150,6 +153,17 @@ func (gm *GraphModel) GetPortCoords(nodeID, portID string) ([2]int, bool) {
 	for _, p := range node.Ports {
 		if p.ID == portID {
 			py := node.Y + 2 + p.RowIndex // 2 header rows
+			px := node.X
+			if p.Side == 'R' {
+				px = node.X + node.Width - 1
+			}
+			return [2]int{px, py}, true
+		}
+	}
+	baseID := strings.TrimSuffix(portID, ":in")
+	for _, p := range node.Ports {
+		if p.ID == baseID {
+			py := node.Y + 2 + p.RowIndex
 			px := node.X
 			if p.Side == 'R' {
 				px = node.X + node.Width - 1

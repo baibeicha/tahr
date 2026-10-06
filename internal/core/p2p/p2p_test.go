@@ -1,6 +1,8 @@
 package p2p
 
 import (
+	"context"
+	"sync"
 	"testing"
 	"time"
 )
@@ -424,4 +426,90 @@ func BenchmarkBinaryFraming(b *testing.B) {
 		_, _ = DecodePacket(frame, &decoded)
 	}
 }
+
+func TestSignalingCoordinator_CascadeAndDHTFallback(t *testing.T) {
+	cfg := CascadeConfig{
+		DHTFallbackDelay: 50 * time.Millisecond,
+	}
+	coord := NewSignalingCoordinatorWithConfig(cfg)
+	defer coord.Stop()
+
+	activated := make(map[SignalingTier]bool)
+	var mu sync.Mutex
+	coord.OnTierActivated = func(tier SignalingTier) {
+		mu.Lock()
+		activated[tier] = true
+		mu.Unlock()
+	}
+
+	coord.StartCascade(context.Background(), "tahr-test-1234", true)
+
+	// Immediately at t=0: LAN and Nostr are active simultaneously, DHT is not
+	mu.Lock()
+	hasLAN := activated[SignalingTierLocalLAN]
+	hasNostr := activated[SignalingTierNostr]
+	hasDHT := activated[SignalingTierDHT]
+	mu.Unlock()
+
+	if !hasLAN || !hasNostr {
+		t.Fatalf("expected LAN and Nostr to activate immediately at t=0, got LAN=%v Nostr=%v", hasLAN, hasNostr)
+	}
+	if hasDHT {
+		t.Fatalf("expected DHT to not be active immediately at t=0")
+	}
+
+	// After fallback delay (50ms), DHT activates automatically
+	time.Sleep(80 * time.Millisecond)
+
+	mu.Lock()
+	hasDHTAfter := activated[SignalingTierDHT]
+	mu.Unlock()
+
+	if !hasDHTAfter {
+		t.Fatalf("expected DHT to activate after fallback delay")
+	}
+}
+
+func TestSignalingCoordinator_EarlyResolutionCancelsDHT(t *testing.T) {
+	cfg := CascadeConfig{
+		DHTFallbackDelay: 60 * time.Millisecond,
+	}
+	coord := NewSignalingCoordinatorWithConfig(cfg)
+	defer coord.Stop()
+
+	dhtFired := false
+	coord.OnTierActivated = func(tier SignalingTier) {
+		if tier == SignalingTierDHT {
+			dhtFired = true
+		}
+	}
+
+	coord.StartCascade(context.Background(), "tahr-test-5678", false)
+
+	// Fast resolution at t=10ms
+	time.Sleep(10 * time.Millisecond)
+	coord.ResolveTier(SignalingTierNostr)
+
+	if coord.ActiveTier() != SignalingTierNostr {
+		t.Fatalf("expected ActiveTier to be Nostr, got %v", coord.ActiveTier())
+	}
+	if !coord.IsResolved() {
+		t.Fatalf("expected coordinator to be resolved")
+	}
+
+	// Wait past the fallback delay
+	time.Sleep(80 * time.Millisecond)
+
+	if dhtFired {
+		t.Fatalf("expected DHT to NOT fire after early resolution")
+	}
+}
+
+func TestSignalingCoordinator_DefaultDelayIs2_5Seconds(t *testing.T) {
+	coord := NewSignalingCoordinator("")
+	if coord.config.DHTFallbackDelay != 2500*time.Millisecond {
+		t.Fatalf("expected 2.5s (2500ms) fallback delay, got %v", coord.config.DHTFallbackDelay)
+	}
+}
+
 

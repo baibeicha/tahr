@@ -150,8 +150,8 @@ func LoadHybridSchema(workspaceDir string) *SchemaAST {
 		}
 	}
 
-	// Default demo schema if no SQL files found
-	return DefaultSampleSchema()
+	// No hardcoded fallback! Return empty schema when no files/connections exist.
+	return NewSchemaAST()
 }
 
 // DefaultSampleSchema provides an initial relational schema model.

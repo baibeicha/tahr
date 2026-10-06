@@ -30,8 +30,12 @@ type LanguageConfig struct {
 	BuildArgs    []string         `json:"build_args,omitempty"`
 	RunCmd       string           `json:"run_cmd,omitempty"`
 	RunArgs      []string         `json:"run_args,omitempty"`
+	TestCmd      string           `json:"test_cmd,omitempty"`
+	TestArgs     []string         `json:"test_args,omitempty"`
+	TestPattern  string           `json:"test_pattern,omitempty"`
 	InstallCmd   string           `json:"install_cmd,omitempty"`
 	Toolchain    *ToolchainConfig `json:"toolchain,omitempty"`
+	Testing      json.RawMessage  `json:"testing,omitempty"`
 }
 
 // LSPConfig describes language server launch parameters.
@@ -164,6 +168,7 @@ type Manifest struct {
 	WASMEntry        string                         `json:"wasm_entry,omitempty"`
 	ToolWindows      []ToolWindowConfig             `json:"tool_windows,omitempty"`
 	Contributes      *ContributesConfig             `json:"contributes,omitempty"`
+	Testing          json.RawMessage                `json:"testing,omitempty"`
 
 	SourceTier       int                            `json:"-"` // Precedence tier: TierBuiltin, TierUser, TierLink, TierProject
 }

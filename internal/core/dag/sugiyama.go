@@ -15,8 +15,8 @@ type SugiyamaConfig struct {
 // DefaultSugiyamaConfig returns balanced layout spacing.
 func DefaultSugiyamaConfig() SugiyamaConfig {
 	return SugiyamaConfig{
-		HorizontalSpacing: 10,
-		VerticalSpacing:   3,
+		HorizontalSpacing: 12,
+		VerticalSpacing:   4,
 		StartX:            4,
 		StartY:            2,
 	}
@@ -96,14 +96,25 @@ func LayoutSugiyama(model *GraphModel, cfg SugiyamaConfig) {
 		layers[node.Layer] = append(layers[node.Layer], node)
 	}
 
-	// 2. Crossing Reduction (Barycenter Ordering)
+	// 2. Crossing Reduction (Barycenter Ordering with Rank Indices)
+	nodeRank := make(map[string]float64)
+	for i, node := range layers[0] {
+		nodeRank[node.ID] = float64(i)
+	}
+
 	for l := 1; l <= maxLayer; l++ {
 		currLayerNodes := layers[l]
 		sort.Slice(currLayerNodes, func(i, j int) bool {
-			posI := barycenter(currLayerNodes[i].ID, model)
-			posJ := barycenter(currLayerNodes[j].ID, model)
+			posI := barycenterRank(currLayerNodes[i].ID, model, nodeRank)
+			posJ := barycenterRank(currLayerNodes[j].ID, model, nodeRank)
+			if posI == posJ {
+				return currLayerNodes[i].ID < currLayerNodes[j].ID
+			}
 			return posI < posJ
 		})
+		for r, node := range currLayerNodes {
+			nodeRank[node.ID] = float64(r)
+		}
 	}
 
 	// 3. Coordinate Assignment
@@ -134,14 +145,19 @@ func LayoutSugiyama(model *GraphModel, cfg SugiyamaConfig) {
 	}
 }
 
-// barycenter computes the average Y coordinate of incoming neighbors for a node.
-func barycenter(nodeID string, model *GraphModel) float64 {
-	sumY := 0
+// barycenterRank computes the average layer position of connected neighbors.
+func barycenterRank(nodeID string, model *GraphModel, ranks map[string]float64) float64 {
+	sumRank := 0.0
 	count := 0
 	for _, e := range model.Edges {
 		if e.ToNode == nodeID {
-			if fromNode, ok := model.Nodes[e.FromNode]; ok {
-				sumY += fromNode.Y
+			if r, ok := ranks[e.FromNode]; ok {
+				sumRank += r
+				count++
+			}
+		} else if e.FromNode == nodeID {
+			if r, ok := ranks[e.ToNode]; ok {
+				sumRank += r
 				count++
 			}
 		}
@@ -149,5 +165,5 @@ func barycenter(nodeID string, model *GraphModel) float64 {
 	if count == 0 {
 		return 0
 	}
-	return float64(sumY) / float64(count)
+	return sumRank / float64(count)
 }
