@@ -272,7 +272,7 @@ func GetCommitDAG(dir, branch, period, query string, maxCount int) ([]DAGCommit,
 		maxCount = 50
 	}
 
-	format := "%H\t%h\t%p\t%an\t%cr\t%d\t%s"
+	format := "%H\t%h\t%P\t%an\t%cr\t%d\t%s"
 	args := []string{"log", fmt.Sprintf("--format=%s", format), fmt.Sprintf("-n%d", maxCount)}
 
 	cleanBranch := strings.TrimSpace(branch)
@@ -346,15 +346,37 @@ func GetCommitDAG(dir, branch, period, query string, maxCount int) ([]DAGCommit,
 		dag[i].Col = i
 	}
 
-	// Assign Lanes and Branch names
+	// Build fast lookup maps
+	commitByHash := make(map[string]*DAGCommit)
+	for i := range dag {
+		commitByHash[dag[i].Hash] = &dag[i]
+		commitByHash[dag[i].AbbrevHash] = &dag[i]
+	}
+
+	// 1. Identify primary/main branch spine using first-parent backwards traversal from the latest commit
+	mainHashes := make(map[string]bool)
+	if n > 0 {
+		curr := dag[n-1].Hash
+		for curr != "" {
+			mainHashes[curr] = true
+			cNode, found := commitByHash[curr]
+			if !found || len(cNode.Parents) == 0 {
+				break
+			}
+			curr = cNode.Parents[0]
+		}
+	}
+
+	// 2. Assign Lanes and Branch names
 	hashToLane := make(map[string]int)
+	laneBranchNames := make(map[int]string)
+	laneBranchNames[0] = "main"
 	laneNextFree := 1
-	childCount := make(map[string]int)
 
 	for i := range dag {
 		c := &dag[i]
 
-		branchName := "main"
+		branchName := ""
 		if c.Refs != "" {
 			refParts := strings.Split(c.Refs, ",")
 			for _, rp := range refParts {
@@ -372,29 +394,41 @@ func GetCommitDAG(dir, branch, period, query string, maxCount int) ([]DAGCommit,
 			}
 		}
 
-		if len(c.Parents) == 0 {
+		if mainHashes[c.Hash] {
 			c.Lane = 0
 		} else {
-			primaryParent := c.Parents[0]
-			parentLane, hasParent := hashToLane[primaryParent]
-			if hasParent {
-				if childCount[primaryParent] == 0 {
-					c.Lane = parentLane
-				} else {
-					c.Lane = laneNextFree
-					laneNextFree++
+			// Side branch: check parent's assigned lane
+			parentLane := -1
+			for _, p := range c.Parents {
+				if l, ok := hashToLane[p]; ok && l > 0 {
+					parentLane = l
+					break
 				}
-				childCount[primaryParent]++
+			}
+			if parentLane > 0 {
+				c.Lane = parentLane
 			} else {
-				c.Lane = 0
+				c.Lane = laneNextFree
+				laneNextFree++
 			}
 		}
 
-		if c.Lane > 0 && branchName == "main" {
-			branchName = fmt.Sprintf("br-%d", c.Lane)
+		if branchName != "" {
+			laneBranchNames[c.Lane] = branchName
+		} else if existingName, ok := laneBranchNames[c.Lane]; ok && existingName != "" {
+			branchName = existingName
+		} else {
+			if c.Lane == 0 {
+				branchName = "main"
+			} else {
+				branchName = fmt.Sprintf("branch-%d", c.Lane)
+			}
+			laneBranchNames[c.Lane] = branchName
 		}
+
 		c.Branch = branchName
 		hashToLane[c.Hash] = c.Lane
+		hashToLane[c.AbbrevHash] = c.Lane
 	}
 
 	return dag, nil
