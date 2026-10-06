@@ -4,5 +4,16 @@
   "command.todo-tree.refresh": "TODO: Refresh Workspace Comments",
   "TODO: Refresh Workspace Comments": "TODO: Refresh Workspace Comments",
   "toolwindow.todo-tree-panel": "TODOs",
-  "TODOs": "TODOs"
+  "TODOs": "TODOs",
+  "todo.empty_title": "No annotations found",
+  "todo.supported_tags": "Supported code tags:",
+  "todo.tag_todo": "• TODO: planned tasks",
+  "todo.tag_fixme": "• FIXME: needs fix",
+  "todo.tag_bug": "• BUG: errors and defects",
+  "todo.instructions": "Instructions:",
+  "todo.hint_refresh": "• Press 'Refresh' to scan",
+  "todo.hint_add": "• Or add // TODO in code",
+  "todo.scanning": "Scanning project...",
+  "todo.scanning_l1": "Searching annotations in files",
+  "todo.scanning_l2": "of working directory..."
 }

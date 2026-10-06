@@ -4,5 +4,11 @@
   "command.rest-client.send": "REST: 发送光标处请求",
   "REST: Send Request Under Cursor": "REST: 发送光标处请求",
   "command.rest-client.history": "REST: 查看请求历史记录",
-  "REST: View Request History": "REST: 查看请求历史记录"
+  "REST: View Request History": "REST: 查看请求历史记录",
+  "rest.empty_title": "未找到响应（缓冲区为空）",
+  "rest.instructions": "发送请求说明：",
+  "rest.hint_open": "• 打开 .http 或 .rest 文件",
+  "rest.hint_cursor": "• 将光标置于请求块上",
+  "rest.hint_send": "• 按 F5 (Send Request)",
+  "rest.hint_output": "• 响应将显示在此面板中"
 }

@@ -1,10 +1,20 @@
 {
-  "plugin.devtools.name": "DevTools",
-  "plugin.devtools.desc": "Conjunto de utilidades: decodificación JWT, generación de UUID, etc.",
+  "plugin.devtools.name": "Paquete de utilidades para desarrolladores",
+  "plugin.devtools.desc": "Herramientas sin conexión: decodificador JWT, conversor timestamp Unix, generador UUID v4 y hashes",
   "command.devtools.open": "DevTools: Abrir paleta de utilidades",
   "DevTools: Open Utilities Palette": "DevTools: Abrir paleta de utilidades",
   "command.devtools.jwtDecode": "DevTools: Decodificar token JWT",
   "DevTools: Decode JWT Token": "DevTools: Decodificar token JWT",
   "command.devtools.uuidGen": "DevTools: Generar UUID v4",
-  "DevTools: Generate UUID v4": "DevTools: Generar UUID v4"
+  "DevTools: Generate UUID v4": "DevTools: Generar UUID v4",
+  "dag.project_graph_title": "Gráfico del proyecto / Jerarquía de llamadas",
+  "dag.hint_open_code": "• Abra un archivo de código (.go, .rs, .py, .ts) en el editor",
+  "dag.hint_f3_analysis": "• Presione F3 para analizar llamadas del archivo/función activo",
+  "dag.modes_header": "Modos de análisis (tecla 'r' para cambiar / en menú):",
+  "dag.mode_call_graph": "• Gráfico de llamadas (Downstream) — funciones invocadas",
+  "dag.mode_blast_radius": "• Radio de impacto (Upstream) — funciones llamadoras",
+  "dag.mode_modules": "• Importaciones y ciclos — dependencias circulares",
+  "graph.selected_fmt": "  •  Seleccionado: %s",
+  "graph.header_fmt": " Modo: %s%s  •  r: Modo  •  Enter: Ir a ",
+  "graph.close_btn": " ✕ Cerrar (Esc) "
 }

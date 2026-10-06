@@ -915,14 +915,14 @@ func (m *AppModel) jumpToSymbolFromGraph(nodeID string) {
 
 	// 4. Detected external stdlib or third-party package
 	if strings.Contains(cleanSym, ".") {
-		m.statusMessage = fmt.Sprintf("'%s' — внешняя функция пакета/библиотеки", cleanSym)
+		m.statusMessage = fmt.Sprintf(i18n.T("symbol.external_fn_fmt"), cleanSym)
 		if m.toasts != nil {
-			m.toasts.Info("EXTERNAL", fmt.Sprintf("%s — внешняя зависимость", cleanSym))
+			m.toasts.Info("EXTERNAL", fmt.Sprintf(i18n.T("symbol.external_dep_fmt"), cleanSym))
 		}
 		return
 	}
 
-	m.statusMessage = fmt.Sprintf("Символ '%s' не найден в проекте", cleanSym)
+	m.statusMessage = fmt.Sprintf(i18n.T("symbol.not_found_fmt"), cleanSym)
 }
 
 // OpenDBConsole opens or activates the interactive SQL Query Console as an editor tab.
@@ -1731,7 +1731,7 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 				tab1Bg = toColor(m.theme.PopupSelBg)
 				tab1Attr = cell.AttrBold
 			}
-			t1 := " Таблицы "
+			t1 := i18n.T("db.tables_tab")
 			for i, r := range []rune(t1) {
 				if startX+1+i < startX+sideW-1 {
 					buf.SetRune(startX+1+i, contentTop, r, tab1Fg, tab1Bg, tab1Attr)
@@ -1746,7 +1746,7 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 				tab2Bg = toColor(m.theme.PopupSelBg)
 				tab2Attr = cell.AttrBold
 			}
-			t2 := " ER-диаграмма "
+			t2 := i18n.T("db.er_tab")
 			t2Start := startX + 1 + len([]rune(t1)) + 1
 			for i, r := range []rune(t2) {
 				if t2Start+i < startX+sideW-1 {
@@ -1768,7 +1768,7 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 			if hasTables {
 				printLine(contentTop+offsetY+1, fmt.Sprintf("Layout: Sugiyama 2D (%d tables)", len(schema.Tables)), toColor(m.theme.DiagnosticInfo), cell.AttrNone)
 			} else {
-				printLine(contentTop+offsetY+1, "Схема: не найдена (0 таблиц)", toColor(m.theme.DiagnosticWarn), cell.AttrNone)
+				printLine(contentTop+offsetY+1, i18n.T("db.schema_not_found"), toColor(m.theme.DiagnosticWarn), cell.AttrNone)
 			}
 			for x := startX; x < startX+sideW; x++ {
 				buf.SetRune(x, contentTop+offsetY+2, '┄', borderFg, sidebarBg, cell.AttrNone)
@@ -1780,8 +1780,8 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 				printLine(contentTop+offsetY+5, "Export Mermaid ER", toColor(m.theme.DiagnosticWarn), cell.AttrNone)
 				printLine(contentTop+offsetY+6, "Export DDL Migration", toColor(m.theme.DiagnosticInfo), cell.AttrNone)
 			} else {
-				printLine(contentTop+offsetY+5, "Export Mermaid ER (пусто)", toColor(m.theme.LineNumber), cell.AttrNone)
-				printLine(contentTop+offsetY+6, "Export DDL Migration (пусто)", toColor(m.theme.LineNumber), cell.AttrNone)
+				printLine(contentTop+offsetY+5, i18n.T("db.export_mermaid_empty"), toColor(m.theme.LineNumber), cell.AttrNone)
+				printLine(contentTop+offsetY+6, i18n.T("db.export_ddl_empty"), toColor(m.theme.LineNumber), cell.AttrNone)
 			}
 			for x := startX; x < startX+sideW; x++ {
 				buf.SetRune(x, contentTop+offsetY+7, '┄', borderFg, sidebarBg, cell.AttrNone)
@@ -1819,16 +1819,16 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 				}
 			} else {
 				emptyLines := []string{
-					"Нет таблиц для отображения",
+					i18n.T("db.no_tables"),
 					"",
-					"Поддерживаемые СУБД:",
+					i18n.T("db.supported_engines"),
 					"  PostgreSQL, MySQL, MariaDB,",
 					"  SQLite, MSSQL, CockroachDB,",
 					"  DuckDB, ClickHouse, Redis",
 					"",
-					"Как загрузить схему:",
-					"  1. Подключите БД в [Таблицы]",
-					"  2. Или добавьте .sql файл в проект",
+					i18n.T("db.how_to_load"),
+					i18n.T("db.step_connect"),
+					i18n.T("db.step_add_sql"),
 				}
 				for i, l := range emptyLines {
 					if contentTop+offsetY+8+i < topY+sideH-1 {
@@ -1837,7 +1837,7 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 						if i == 0 {
 							fg = toColor(m.theme.DiagnosticWarn)
 							attr = cell.AttrBold
-						} else if strings.Contains(l, "СУБД") || strings.Contains(l, "Как загрузить") {
+						} else if l == i18n.T("db.supported_engines") || l == i18n.T("db.how_to_load") {
 							fg = toColor(m.theme.Keyword)
 							attr = cell.AttrBold
 						}
@@ -1922,14 +1922,14 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 				}
 			} else {
 				emptyInspLines := []string{
-					"Нет активных таблиц",
+					i18n.T("db.no_active_tables"),
 					"",
-					"Поддерживаемые СУБД:",
+					i18n.T("db.supported_engines"),
 					"  PostgreSQL, MySQL, MariaDB, SQLite",
 					"",
-					"Инструкция:",
-					"  • Нажмите '+ Connect to Database...'",
-					"  • Или добавьте .sql файл в проект",
+					i18n.T("db.instructions"),
+					i18n.T("db.hint_connect_btn"),
+					i18n.T("db.hint_add_sql"),
 				}
 				for i, l := range emptyInspLines {
 					if contentTop+offsetY+7+i < topY+sideH-1 {
@@ -1938,7 +1938,7 @@ func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, s
 						if i == 0 {
 							fg = toColor(m.theme.DiagnosticWarn)
 							attr = cell.AttrBold
-						} else if strings.Contains(l, "СУБД") || strings.Contains(l, "Инструкция") {
+						} else if l == i18n.T("db.supported_engines") || l == i18n.T("db.instructions") {
 							fg = toColor(m.theme.Keyword)
 							attr = cell.AttrBold
 						}

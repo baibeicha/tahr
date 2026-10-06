@@ -10,6 +10,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"tahr/internal/core/clipboard"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/restclient"
 	"tahr/internal/ui"
 )
@@ -938,14 +939,16 @@ func (p *RESTClientPanel) drawScrollbar(buf *buffer.Buffer, x, y, h, totalLines,
 
 // drawEmptyPlaceholder renders an informative multi-line placeholder when no data is loaded.
 func (p *RESTClientPanel) drawEmptyPlaceholder(buf *buffer.Buffer, startX, startY, width, height int, msg string, fg, bg cell.Color) {
+	emptyTitle := i18n.T("rest.empty_title")
+	instructions := i18n.T("rest.instructions")
 	lines := []string{
-		"Ответы не найдены (буфер пуст)",
+		emptyTitle,
 		"───────────────────────────────",
-		"Инструкция по отправке запроса:",
-		"• Откройте файл .http или .rest",
-		"• Поместите курсор на блок запроса",
-		"• Нажмите F5 (Send Request)",
-		"• Ответ отобразится в этой панели",
+		instructions,
+		i18n.T("rest.hint_open"),
+		i18n.T("rest.hint_cursor"),
+		i18n.T("rest.hint_send"),
+		i18n.T("rest.hint_output"),
 	}
 	if msg != "" && !strings.Contains(msg, "No active HTTP response") {
 		lines = strings.Split(msg, "\n")
@@ -963,7 +966,7 @@ func (p *RESTClientPanel) drawEmptyPlaceholder(buf *buffer.Buffer, startX, start
 				c = toColor(p.Theme.DiagnosticWarn)
 			}
 			attr = cell.AttrBold
-		} else if strings.HasPrefix(l, "Инструкция") {
+		} else if l == instructions {
 			if p.Theme != nil {
 				c = toColor(p.Theme.Function)
 			}

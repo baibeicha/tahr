@@ -6,6 +6,7 @@ import (
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"tahr/internal/core/dag"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -111,7 +112,7 @@ func TestDAGCanvasWidget_EmptyState(t *testing.T) {
 			lineRunes = append(lineRunes, buf.Cell(x, y).Rune)
 		}
 		lineStr := string(lineRunes)
-		if strings.Contains(lineStr, "Схема базы данных не найдена") {
+		if strings.Contains(lineStr, i18n.T("dag.db_schema_not_found")) || strings.Contains(lineStr, "Database Schema Not Found") || strings.Contains(lineStr, "Схема базы данных не найдена") {
 			foundEmptyTitle = true
 		}
 		if strings.Contains(lineStr, "orders") || strings.Contains(lineStr, "users") {

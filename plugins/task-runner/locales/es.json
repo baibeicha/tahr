@@ -6,5 +6,14 @@
   "command.task-runner.runLast": "Tareas: Volver a ejecutar última tarea",
   "Tasks: Re-run Last Task": "Tareas: Volver a ejecutar última tarea",
   "toolwindow.task-runner-panel": "Gestor de tareas",
-  "Tasks": "Gestor de tareas"
+  "Tasks": "Gestor de tareas",
+  "task.empty_title": "No se encontraron tareas",
+  "task.supported_formats": "Formatos de archivo compatibles:",
+  "task.format_makefile": "• Makefile (objetivos make)",
+  "task.format_pkgjson": "• package.json (npm/yarn/pnpm)",
+  "task.format_taskfile": "• Taskfile.yml (go-task)",
+  "task.format_justfile": "• justfile (just)",
+  "task.instructions": "Instrucciones:",
+  "task.hint_refresh": "• Presione 'Refresh' para escanear",
+  "task.hint_run": "• Presione 'Run' para ejecutar tarea"
 }

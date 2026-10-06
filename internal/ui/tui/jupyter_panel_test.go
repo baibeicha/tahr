@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -40,8 +41,9 @@ func TestJupyterPanel_EmptyStateAndButtons(t *testing.T) {
 	}
 
 	// Verify informative empty state
-	if !strings.Contains(rendered, "Ячейки не найдены") {
-		t.Errorf("expected empty state title 'Ячейки не найдены', got:\n%s", rendered)
+	emptyTitle := i18n.T("jupyter.empty_title")
+	if !strings.Contains(rendered, emptyTitle) {
+		t.Errorf("expected empty state title %q, got:\n%s", emptyTitle, rendered)
 	}
 	if !strings.Contains(rendered, "+ Code") {
 		t.Errorf("expected instructions mentioning '+ Code', got:\n%s", rendered)

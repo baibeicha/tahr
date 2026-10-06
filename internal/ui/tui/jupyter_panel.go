@@ -10,6 +10,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/jupyter"
 	"tahr/internal/ui"
 )
@@ -333,15 +334,17 @@ func (p *JupyterPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.Them
 	// 3. Cells List
 	if p.Notebook == nil || len(p.Notebook.Cells) == 0 {
 		curY++
+		emptyTitle := i18n.T("jupyter.empty_title")
+		emptyDesc := i18n.T("jupyter.empty_desc")
 		emptyLines := []string{
-			"Ячейки не найдены",
+			emptyTitle,
 			"───────────────────────────────",
-			"Блокнот пуст. Доступные действия:",
-			"• ' + Code ' — добавить блок Python",
-			"• ' + Text ' — добавить блок Markdown",
-			"• ' Run Cell ' — выполнить ячейку",
+			emptyDesc,
+			i18n.T("jupyter.hint_code"),
+			i18n.T("jupyter.hint_text"),
+			i18n.T("jupyter.hint_run"),
 			"",
-			"Или откройте файл .ipynb в проекте",
+			i18n.T("jupyter.empty_footer"),
 		}
 		for _, el := range emptyLines {
 			if curY >= y+h-1 {
@@ -349,10 +352,10 @@ func (p *JupyterPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.Them
 			}
 			c := dimFg
 			attr := cell.AttrNone
-			if el == "Ячейки не найдены" {
+			if el == emptyTitle {
 				c = warnFg
 				attr = cell.AttrBold
-			} else if strings.HasPrefix(el, "Блокнот") {
+			} else if el == emptyDesc {
 				c = accentFg
 			} else if strings.HasPrefix(el, "•") {
 				c = textFg

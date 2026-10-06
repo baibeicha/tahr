@@ -9,6 +9,7 @@ import (
 	"tahr/internal/core"
 	"tahr/internal/core/dag"
 	"tahr/internal/core/db"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -208,13 +209,13 @@ func TestDAGCanvas_KindEmptyState(t *testing.T) {
 				line += string(c.Rune)
 			}
 		}
-		if line != "" && (containsString(line, "Граф проекта") || containsString(line, "Call Hierarchy")) {
+		if line != "" && (containsString(line, "Граф проекта") || containsString(line, "Call Hierarchy") || containsString(line, "Project Graph") || containsString(line, i18n.T("dag.project_graph_title"))) {
 			foundPGTitle = true
 			break
 		}
 	}
 	if !foundPGTitle {
-		t.Fatalf("expected project-graph empty state to contain 'Граф проекта'")
+		t.Fatalf("expected project-graph empty state to contain 'Граф проекта' or 'Project Graph'")
 	}
 
 	// 2. Kind = "db"
@@ -232,13 +233,13 @@ func TestDAGCanvas_KindEmptyState(t *testing.T) {
 				line += string(c.Rune)
 			}
 		}
-		if line != "" && containsString(line, "Схема базы данных не найдена") {
+		if line != "" && (containsString(line, "Схема базы данных не найдена") || containsString(line, "Database Schema Not Found") || containsString(line, i18n.T("dag.db_schema_not_found"))) {
 			foundDBTitle = true
 			break
 		}
 	}
 	if !foundDBTitle {
-		t.Fatalf("expected db canvas empty state to contain 'Схема базы данных не найдена'")
+		t.Fatalf("expected db canvas empty state to contain 'Схема базы данных не найдена' or 'Database Schema Not Found'")
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"tahr/internal/core"
 	"tahr/internal/core/dag"
 	"tahr/internal/core/graphs"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/lsp"
 	"tahr/internal/ui"
 )
@@ -153,11 +154,11 @@ func (p *ProjectGraphPanel) Render(buf *buffer.Buffer, bounds buffer.Rect) {
 	selInfo := ""
 	if p.Canvas != nil && p.Canvas.Model != nil && p.Canvas.SelectedNodeID != "" {
 		if node, ok := p.Canvas.Model.Nodes[p.Canvas.SelectedNodeID]; ok {
-			selInfo = fmt.Sprintf("  •  Выбрано: %s", node.Title)
+			selInfo = fmt.Sprintf(i18n.T("graph.selected_fmt"), node.Title)
 		}
 	}
-	headerText := fmt.Sprintf(" Mode: %s%s  •  r: Режим  •  Enter: Перейти ", p.ModeTitle(), selInfo)
-	closeText := " ✕ Закрыть (Esc) "
+	headerText := fmt.Sprintf(i18n.T("graph.header_fmt"), p.ModeTitle(), selInfo)
+	closeText := i18n.T("graph.close_btn")
 	headerRunes := []rune(headerText)
 	closeRunes := []rune(closeText)
 

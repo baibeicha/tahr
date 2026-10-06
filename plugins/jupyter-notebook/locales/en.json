@@ -12,5 +12,11 @@
   "command.jupyter-notebook.insertMarkdownCell": "Notebook: Insert Markdown Cell Below",
   "Notebook: Insert Markdown Cell Below": "Notebook: Insert Markdown Cell Below",
   "toolwindow.jupyter-notebook-panel": "Notebooks",
-  "Notebooks": "Notebooks"
+  "Notebooks": "Notebooks",
+  "jupyter.empty_title": "No notebook cells found",
+  "jupyter.empty_desc": "Quick actions:",
+  "jupyter.hint_code": "• + Code: add Python code cell",
+  "jupyter.hint_text": "• + Text: add Markdown text cell",
+  "jupyter.hint_run": "• Run: execute current or all cells",
+  "jupyter.empty_footer": "Open a .ipynb file to inspect and run notebooks."
 }

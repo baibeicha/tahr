@@ -6,5 +6,14 @@
   "command.task-runner.runLast": "Tasks: Re-run Last Task",
   "Tasks: Re-run Last Task": "Tasks: Re-run Last Task",
   "toolwindow.task-runner-panel": "Tasks",
-  "Tasks": "Tasks"
+  "Tasks": "Tasks",
+  "task.empty_title": "No tasks found",
+  "task.supported_formats": "Supported file formats:",
+  "task.format_makefile": "• Makefile (make targets)",
+  "task.format_pkgjson": "• package.json (npm/yarn/pnpm)",
+  "task.format_taskfile": "• Taskfile.yml (go-task)",
+  "task.format_justfile": "• justfile (just)",
+  "task.instructions": "Instructions:",
+  "task.hint_refresh": "• Press 'Refresh' to scan",
+  "task.hint_run": "• Press 'Run' to execute task"
 }

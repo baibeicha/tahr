@@ -12,5 +12,11 @@
   "command.jupyter-notebook.insertMarkdownCell": "Jupyter: 在下方插入 Markdown 单元格",
   "Notebook: Insert Markdown Cell Below": "Jupyter: 在下方插入 Markdown 单元格",
   "toolwindow.jupyter-notebook-panel": "Jupyter 笔记本",
-  "Notebooks": "Jupyter 笔记本"
+  "Notebooks": "Jupyter 笔记本",
+  "jupyter.empty_title": "未找到笔记本单元格",
+  "jupyter.empty_desc": "快捷操作：",
+  "jupyter.hint_code": "• + Code: 添加 Python 代码单元格",
+  "jupyter.hint_text": "• + Text: 添加 Markdown 文本单元格",
+  "jupyter.hint_run": "• Run: 执行当前或所有单元格",
+  "jupyter.empty_footer": "打开 .ipynb 文件以检查和运行笔记本。"
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"tahr/internal/core/db"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -251,16 +252,17 @@ func (dg *DataGridWidget) Render(buf *buffer.Buffer, bounds buffer.Rect) {
 		endRow = 0
 	}
 
-	topBar := fmt.Sprintf(" Таблица: %s │ Строки: %d..%d из %d │ Стр. %d/%d │  ◀ Пред    След ▶    ⟳ Обновить    Export CSV ",
-		dg.TableName, startRow, endRow, len(dg.FilteredRows), dg.Page+1, totalPages)
+	topBar := fmt.Sprintf(" %s %s │ "+i18n.T("grid.rows")+" │ "+i18n.T("grid.page")+" │  %s    %s    %s    Export CSV ",
+		i18n.T("grid.table"), dg.TableName, startRow, endRow, len(dg.FilteredRows), dg.Page+1, totalPages,
+		i18n.T("grid.prev"), i18n.T("grid.next"), i18n.T("grid.refresh"))
 	for i, r := range []rune(topBar) {
 		if bounds.X+i < bounds.X+bounds.Width {
 			rColor := fg
 			attr := cell.AttrNone
-			if strings.ContainsRune("Таблица:", r) || i < 12 {
+			if strings.ContainsRune(i18n.T("grid.table"), r) || i < 12 {
 				rColor = accentFg
 				attr = cell.AttrBold
-			} else if strings.ContainsRune("◀ПредСлед▶", r) {
+			} else if strings.ContainsRune("◀▶", r) {
 				rColor = hdrFg
 			} else if strings.ContainsRune("Export CSV", r) {
 				rColor = pkColor
@@ -405,18 +407,18 @@ func (dg *DataGridWidget) Render(buf *buffer.Buffer, bounds buffer.Rect) {
 	// 4. Bottom Footer Bar (Row bounds.Y + bounds.Height - 1)
 	footY := bounds.Y + bounds.Height - 1
 	if footY >= bounds.Y {
-		filterLabel := " Поиск: "
+		filterLabel := i18n.T("grid.search_label")
 		if dg.FilterText != "" {
 			filterLabel += dg.FilterText
 		} else {
-			filterLabel += "введите текст..."
+			filterLabel += i18n.T("grid.search_placeholder")
 		}
 
-		footText := fmt.Sprintf(" %s │ Навигация: ↑↓ строки, PgUp/PgDn страницы │ Экспорт: Export CSV", filterLabel)
+		footText := fmt.Sprintf(" %s │ %s", filterLabel, i18n.T("grid.nav_hint"))
 		for i, r := range []rune(footText) {
 			if bounds.X+i < bounds.X+bounds.Width {
 				rColor := toColor(dg.Theme.LineNumber)
-				if strings.ContainsRune("Поиск:", r) {
+				if strings.ContainsRune(i18n.T("grid.search_label"), r) {
 					rColor = accentFg
 				}
 				buf.SetRune(bounds.X+i, footY, r, rColor, hdrBg, cell.AttrNone)

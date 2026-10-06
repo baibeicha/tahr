@@ -4,5 +4,16 @@
   "command.todo-tree.refresh": "TODO: Обновить комментарии в проекте",
   "TODO: Refresh Workspace Comments": "TODO: Обновить комментарии в проекте",
   "toolwindow.todo-tree-panel": "Дерево TODO",
-  "TODOs": "Дерево TODO"
+  "TODOs": "Дерево TODO",
+  "todo.empty_title": "Аннотации не найдены",
+  "todo.supported_tags": "Поддерживаемые теги в коде:",
+  "todo.tag_todo": "• TODO: запланированные задачи",
+  "todo.tag_fixme": "• FIXME: требующие исправления",
+  "todo.tag_bug": "• BUG: ошибки и дефекты",
+  "todo.instructions": "Инструкция:",
+  "todo.hint_refresh": "• Нажмите ' Refresh ' для скана",
+  "todo.hint_add": "• Или добавьте // TODO в код",
+  "todo.scanning": "Сканирование проекта...",
+  "todo.scanning_l1": "Поиск аннотаций в файлах",
+  "todo.scanning_l2": "рабочей директории..."
 }

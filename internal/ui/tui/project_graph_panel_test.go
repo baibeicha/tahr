@@ -445,8 +445,8 @@ func TestProjectGraph_HeaderNoGarbledUTF8(t *testing.T) {
 	if !strings.Contains(headerStr, "•") {
 		t.Errorf("expected clean bullet '•' in header row, got %s", headerStr)
 	}
-	if !strings.Contains(headerStr, "Режим") {
-		t.Errorf("expected Russian word 'Режим' in header row, got %s", headerStr)
+	if !strings.Contains(headerStr, "Mode") && !strings.Contains(headerStr, "Режим") {
+		t.Errorf("expected 'Mode' or 'Режим' in header row, got %s", headerStr)
 	}
 }
 

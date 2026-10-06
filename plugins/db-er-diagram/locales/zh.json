@@ -1,10 +1,14 @@
 {
-  "plugin.db-er-diagram.name": "数据库 ER 关系图",
-  "plugin.db-er-diagram.desc": "交互式实体关系图 (ER Diagram) 与导出工具",
-  "command.db-er-diagram.openCanvas": "数据库: 打开交互式 ER 图 (F6)",
-  "Database: Open Interactive ER Diagram (F6)": "数据库: 打开交互式 ER 图 (F6)",
-  "command.db-er-diagram.exportMermaid": "数据库: 导出 ER 图为 Mermaid 格式",
-  "Database: Export ER Diagram to Mermaid": "数据库: 导出 ER 图为 Mermaid 格式",
-  "command.db-er-diagram.exportDDL": "数据库: 导出 ER 图为 DDL 迁移脚本",
-  "Database: Export ER Diagram to DDL Migration": "数据库: 导出 ER 图为 DDL 迁移脚本"
+  "plugin.db-er-diagram.name": "数据库 ER 关系图与架构设计器",
+  "plugin.db-er-diagram.desc": "交互式 2D 实体关系图可视化，支持乌鸦脚符号、Sugiyama 自动布局与导出",
+  "command.db-er-diagram.openCanvas": "数据库: 打开交互式 ER 关系图 (F6)",
+  "Database: Open Interactive ER Diagram (F6)": "数据库: 打开交互式 ER 关系图 (F6)",
+  "command.db-er-diagram.exportMermaid": "数据库: 导出 ER 图为 Mermaid",
+  "Database: Export ER Diagram to Mermaid": "数据库: 导出 ER 图为 Mermaid",
+  "command.db-er-diagram.exportDDL": "数据库: 导出 ER 图为 DDL 迁移",
+  "Database: Export ER Diagram to DDL Migration": "数据库: 导出 ER 图为 DDL 迁移",
+  "dag.db_schema_not_found": "未找到数据库架构",
+  "dag.db_hint_connect": "• 在“数据表”面板点击“+ 连接数据库”",
+  "dag.db_hint_add_sql": "• 或将数据库架构/迁移文件 (.sql) 添加到项目中",
+  "dag.db_supported": "支持的数据库："
 }

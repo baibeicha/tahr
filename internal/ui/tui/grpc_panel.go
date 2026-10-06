@@ -9,6 +9,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"tahr/internal/core/clipboard"
 	"tahr/internal/core/grpcproto"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -767,15 +768,17 @@ func (p *GRPCPanel) RenderWithTheme(buf *buffer.Buffer, bounds buffer.Rect, them
 
 	visibleTreeRows := bounds.Height - 3
 	if len(p.TreeItems) == 0 {
+		emptyTitle := i18n.T("grpc.empty_title")
+		instructions := i18n.T("grpc.instructions")
 		emptyLines := []string{
-			"Сервисы не найдены",
+			emptyTitle,
 			"─────────────────────",
-			"В проекте отсутствуют",
-			"файлы .proto",
+			i18n.T("grpc.missing_proto_1"),
+			i18n.T("grpc.missing_proto_2"),
 			"",
-			"Инструкция:",
-			"• Добавьте .proto файлы",
-			"• Или укажите путь к ним",
+			instructions,
+			i18n.T("grpc.hint_add"),
+			i18n.T("grpc.hint_path"),
 		}
 		for row, el := range emptyLines {
 			if row >= visibleTreeRows {
@@ -787,7 +790,7 @@ func (p *GRPCPanel) RenderWithTheme(buf *buffer.Buffer, bounds buffer.Rect, them
 			if row == 0 {
 				c = toColor(theme.DiagnosticWarn)
 				attr = cell.AttrBold
-			} else if strings.HasPrefix(el, "Инструкция") {
+			} else if el == instructions {
 				c = toColor(theme.Function)
 			} else if strings.HasPrefix(el, "•") {
 				c = fg

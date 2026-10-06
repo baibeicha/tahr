@@ -7,6 +7,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/taskrunner"
 	"tahr/internal/ui"
 )
@@ -524,18 +525,21 @@ func (p *TaskPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Theme) {
 
 		if idx >= len(p.items) {
 			if len(p.items) == 0 {
+				emptyTitle := i18n.T("task.empty_title")
+				suppFormats := i18n.T("task.supported_formats")
+				instructions := i18n.T("task.instructions")
 				emptyLines := []string{
-					"Задачи не найдены",
+					emptyTitle,
 					"───────────────────────────────",
-					"Поддерживаемые форматы файлов:",
-					"• Makefile (цели make)",
-					"• package.json (npm/yarn/pnpm)",
-					"• Taskfile.yml (go-task)",
-					"• justfile (just)",
+					suppFormats,
+					i18n.T("task.format_makefile"),
+					i18n.T("task.format_pkgjson"),
+					i18n.T("task.format_taskfile"),
+					i18n.T("task.format_justfile"),
 					"",
-					"Инструкция:",
-					"• Нажмите ' Refresh ' для сканирования",
-					"• Нажмите ' Run ' для запуска задачи",
+					instructions,
+					i18n.T("task.hint_refresh"),
+					i18n.T("task.hint_run"),
 				}
 				if row < len(emptyLines) {
 					el := emptyLines[row]
@@ -544,7 +548,7 @@ func (p *TaskPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Theme) {
 					if row == 0 {
 						c = cell.Color{Type: cell.ColorRGB, Value: theme.DiagnosticWarn}
 						attr = cell.AttrBold
-					} else if strings.HasPrefix(el, "Поддерживаемые") || strings.HasPrefix(el, "Инструкция") {
+					} else if el == suppFormats || el == instructions {
 						c = runBtnFg
 					} else if strings.HasPrefix(el, "•") {
 						c = textFg

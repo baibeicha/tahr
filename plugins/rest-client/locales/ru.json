@@ -4,5 +4,11 @@
   "command.rest-client.send": "REST: Отправить запрос под курсором",
   "REST: Send Request Under Cursor": "REST: Отправить запрос под курсором",
   "command.rest-client.history": "REST: Просмотр истории запросов",
-  "REST: View Request History": "REST: Просмотр истории запросов"
+  "REST: View Request History": "REST: Просмотр истории запросов",
+  "rest.empty_title": "Ответы не найдены (буфер пуст)",
+  "rest.instructions": "Инструкция по отправке запроса:",
+  "rest.hint_open": "• Откройте файл .http или .rest",
+  "rest.hint_cursor": "• Поместите курсор на блок запроса",
+  "rest.hint_send": "• Нажмите F5 (Send Request)",
+  "rest.hint_output": "• Ответ отобразится в этой панели"
 }

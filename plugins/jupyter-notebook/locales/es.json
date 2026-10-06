@@ -12,5 +12,11 @@
   "command.jupyter-notebook.insertMarkdownCell": "Jupyter: Insertar celda Markdown abajo",
   "Notebook: Insert Markdown Cell Below": "Jupyter: Insertar celda Markdown abajo",
   "toolwindow.jupyter-notebook-panel": "Cuaderno Jupyter",
-  "Notebooks": "Cuaderno Jupyter"
+  "Notebooks": "Cuaderno Jupyter",
+  "jupyter.empty_title": "No se encontraron celdas de notebook",
+  "jupyter.empty_desc": "Acciones rápidas:",
+  "jupyter.hint_code": "• + Code: agregar celda de código Python",
+  "jupyter.hint_text": "• + Text: agregar celda de texto Markdown",
+  "jupyter.hint_run": "• Run: ejecutar celda actual o todas",
+  "jupyter.empty_footer": "Abra un archivo .ipynb para inspeccionar y ejecutar notebooks."
 }

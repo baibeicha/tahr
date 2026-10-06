@@ -4,5 +4,11 @@
   "command.rest-client.send": "REST: Enviar solicitud bajo el cursor",
   "REST: Send Request Under Cursor": "REST: Enviar solicitud bajo el cursor",
   "command.rest-client.history": "REST: Ver historial de solicitudes",
-  "REST: View Request History": "REST: Ver historial de solicitudes"
+  "REST: View Request History": "REST: Ver historial de solicitudes",
+  "rest.empty_title": "No se encontraron respuestas (búfer vacío)",
+  "rest.instructions": "Instrucciones para enviar solicitud:",
+  "rest.hint_open": "• Abra un archivo .http o .rest",
+  "rest.hint_cursor": "• Coloque el cursor en el bloque de solicitud",
+  "rest.hint_send": "• Presione F5 (Send Request)",
+  "rest.hint_output": "• La respuesta se mostrará en este panel"
 }

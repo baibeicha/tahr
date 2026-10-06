@@ -3,10 +3,12 @@ package tui
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"tahr/internal/core/dag"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -234,42 +236,66 @@ func (cw *DAGCanvasWidget) Render(buf *buffer.Buffer, bounds buffer.Rect) {
 	cw.renderEdges(buf, bounds, edgeColor, activeColor, bg)
 }
 
+// makeCardRow formats a row inside the empty state card to exactly cardW runes with borders.
+func makeCardRow(text string, cardW int, center bool) string {
+	text = strings.Trim(text, "│ ")
+	r := []rune(text)
+	innerW := cardW - 2
+	if len(r) > innerW {
+		r = r[:innerW]
+	}
+	if center {
+		leftPad := (innerW - len(r)) / 2
+		rightPad := innerW - len(r) - leftPad
+		return "│" + strings.Repeat(" ", leftPad) + string(r) + strings.Repeat(" ", rightPad) + "│"
+	}
+	pad := innerW - len(r) - 2
+	if pad < 0 {
+		pad = 0
+	}
+	return "│  " + string(r) + strings.Repeat(" ", pad) + "│"
+}
+
 // renderEmptyState displays an informative empty card when no database or schema files exist.
 func (cw *DAGCanvasWidget) renderEmptyState(buf *buffer.Buffer, bounds buffer.Rect, fg, bg, borderColor cell.Color) {
+	cardW := 63
+	borderTop := "╭" + strings.Repeat("─", cardW-2) + "╮"
+	borderMid := "├" + strings.Repeat("─", cardW-2) + "┤"
+	borderBtm := "╰" + strings.Repeat("─", cardW-2) + "╯"
+
 	var lines []string
 	if cw.Kind == "project-graph" || cw.Kind == "graph" {
 		lines = []string{
-			"╭─────────────────────────────────────────────────────────────╮",
-			"│                Граф проекта / Call Hierarchy                │",
-			"├─────────────────────────────────────────────────────────────┤",
-			"│                                                             │",
-			"│  • Откройте файл с кодом (.go, .rs, .py, .ts) в редакторе  │",
-			"│  • Нажмите F3 для анализа вызовов активного файла/функции   │",
-			"│                                                             │",
-			"│  Режимы анализа (переключение клавишей r / в меню):         │",
-			"│    • Call Graph (Downstream) — вызываемые функции           │",
-			"│    • Blast Radius (Upstream) — вызывающие функции           │",
-			"│    • Module Imports & Cycles — циклические импорты          │",
-			"│                                                             │",
-			"╰─────────────────────────────────────────────────────────────╯",
+			borderTop,
+			makeCardRow(i18n.T("dag.project_graph_title"), cardW, true),
+			borderMid,
+			makeCardRow("", cardW, false),
+			makeCardRow(i18n.T("dag.hint_open_code"), cardW, false),
+			makeCardRow(i18n.T("dag.hint_f3_analysis"), cardW, false),
+			makeCardRow("", cardW, false),
+			makeCardRow(i18n.T("dag.modes_header"), cardW, false),
+			makeCardRow(i18n.T("dag.mode_call_graph"), cardW, false),
+			makeCardRow(i18n.T("dag.mode_blast_radius"), cardW, false),
+			makeCardRow(i18n.T("dag.mode_modules"), cardW, false),
+			makeCardRow("", cardW, false),
+			borderBtm,
 		}
 	} else {
 		lines = []string{
-			"╭─────────────────────────────────────────────────────────────╮",
-			"│                Схема базы данных не найдена                 │",
-			"├─────────────────────────────────────────────────────────────┤",
-			"│                                                             │",
-			"│  • Нажмите «+ Подключить БД» в панели «Таблицы»             │",
-			"│  • Или добавьте файлы схемы / миграций (.sql) в проект      │",
-			"│                                                             │",
-			"│  Поддерживаемые СУБД:                                       │",
-			"│    PostgreSQL, MySQL, MariaDB, SQLite, MSSQL,               │",
-			"│    CockroachDB, DuckDB, ClickHouse, Redis                   │",
-			"│                                                             │",
-			"╰─────────────────────────────────────────────────────────────╯",
+			borderTop,
+			makeCardRow(i18n.T("dag.db_schema_not_found"), cardW, true),
+			borderMid,
+			makeCardRow("", cardW, false),
+			makeCardRow(i18n.T("dag.db_hint_connect"), cardW, false),
+			makeCardRow(i18n.T("dag.db_hint_add_sql"), cardW, false),
+			makeCardRow("", cardW, false),
+			makeCardRow(i18n.T("dag.db_supported"), cardW, false),
+			makeCardRow("PostgreSQL, MySQL, MariaDB, SQLite, MSSQL,", cardW, false),
+			makeCardRow("CockroachDB, DuckDB, ClickHouse, Redis", cardW, false),
+			makeCardRow("", cardW, false),
+			borderBtm,
 		}
 	}
-	cardW := 63
 	cardH := len(lines)
 	startX := bounds.X + (bounds.Width-cardW)/2
 	startY := bounds.Y + (bounds.Height-cardH)/2

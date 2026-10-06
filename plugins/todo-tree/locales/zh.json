@@ -4,5 +4,16 @@
   "command.todo-tree.refresh": "TODO: 刷新工作区注释",
   "TODO: Refresh Workspace Comments": "TODO: 刷新工作区注释",
   "toolwindow.todo-tree-panel": "TODO 树",
-  "TODOs": "TODO 树"
+  "TODOs": "TODO 树",
+  "todo.empty_title": "未找到注解",
+  "todo.supported_tags": "支持的代码标签：",
+  "todo.tag_todo": "• TODO: 计划任务",
+  "todo.tag_fixme": "• FIXME: 需要修复",
+  "todo.tag_bug": "• BUG: 错误和缺陷",
+  "todo.instructions": "说明：",
+  "todo.hint_refresh": "• 点击 'Refresh' 扫描",
+  "todo.hint_add": "• 或在代码中添加 // TODO",
+  "todo.scanning": "正在扫描项目...",
+  "todo.scanning_l1": "正在文件中搜索注解",
+  "todo.scanning_l2": "工作目录中..."
 }

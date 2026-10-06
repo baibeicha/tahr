@@ -4,5 +4,16 @@
   "command.todo-tree.refresh": "TODO: Actualizar comentarios del espacio de trabajo",
   "TODO: Refresh Workspace Comments": "TODO: Actualizar comentarios del espacio de trabajo",
   "toolwindow.todo-tree-panel": "Árbol de TODOs",
-  "TODOs": "Árbol de TODOs"
+  "TODOs": "Árbol de TODOs",
+  "todo.empty_title": "No se encontraron anotaciones",
+  "todo.supported_tags": "Etiquetas de código compatibles:",
+  "todo.tag_todo": "• TODO: tareas planificadas",
+  "todo.tag_fixme": "• FIXME: requiere corrección",
+  "todo.tag_bug": "• BUG: errores y defectos",
+  "todo.instructions": "Instrucciones:",
+  "todo.hint_refresh": "• Presione 'Refresh' para escanear",
+  "todo.hint_add": "• O agregue // TODO en el código",
+  "todo.scanning": "Escaneando proyecto...",
+  "todo.scanning_l1": "Buscando anotaciones en archivos",
+  "todo.scanning_l2": "del directorio de trabajo..."
 }

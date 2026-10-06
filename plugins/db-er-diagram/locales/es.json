@@ -1,10 +1,14 @@
 {
-  "plugin.db-er-diagram.name": "Diagrama ER de base de datos",
-  "plugin.db-er-diagram.desc": "Diagrama interactivo de entidades y relaciones con exportación",
+  "plugin.db-er-diagram.name": "Diagrama ER de base de datos y diseñador de esquemas",
+  "plugin.db-er-diagram.desc": "Visualizador interactivo 2D de diagramas entidad-relación con diseño automático y exportación",
   "command.db-er-diagram.openCanvas": "Base de datos: Abrir diagrama ER interactivo (F6)",
   "Database: Open Interactive ER Diagram (F6)": "Base de datos: Abrir diagrama ER interactivo (F6)",
   "command.db-er-diagram.exportMermaid": "Base de datos: Exportar diagrama ER a Mermaid",
   "Database: Export ER Diagram to Mermaid": "Base de datos: Exportar diagrama ER a Mermaid",
   "command.db-er-diagram.exportDDL": "Base de datos: Exportar diagrama ER a migración DDL",
-  "Database: Export ER Diagram to DDL Migration": "Base de datos: Exportar diagrama ER a migración DDL"
+  "Database: Export ER Diagram to DDL Migration": "Base de datos: Exportar diagrama ER a migración DDL",
+  "dag.db_schema_not_found": "Esquema de base de datos no encontrado",
+  "dag.db_hint_connect": "• Haga clic en «+ Conectar BD» en el panel «Tablas»",
+  "dag.db_hint_add_sql": "• O agregue archivos de esquema / migraciones (.sql) al proyecto",
+  "dag.db_supported": "Bases de datos compatibles:"
 }

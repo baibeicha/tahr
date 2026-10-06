@@ -4,5 +4,11 @@
   "command.grpc-proto.invoke": "gRPC: Invoke Service Endpoint",
   "gRPC: Invoke Service Endpoint": "gRPC: Invoke Service Endpoint",
   "command.grpc-proto.generate": "gRPC: Run buf generate",
-  "gRPC: Run buf generate": "gRPC: Run buf generate"
+  "gRPC: Run buf generate": "gRPC: Run buf generate",
+  "grpc.empty_title": "No services found",
+  "grpc.missing_proto_1": "No .proto files found",
+  "grpc.missing_proto_2": "in project directory",
+  "grpc.instructions": "Instructions:",
+  "grpc.hint_add": "• Add .proto files",
+  "grpc.hint_path": "• Or configure search path"
 }

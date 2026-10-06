@@ -1,10 +1,20 @@
 {
-  "plugin.devtools.name": "开发者工具箱",
-  "plugin.devtools.desc": "实用工具集合：JWT 解码、UUID 生成、Base64 转换",
+  "plugin.devtools.name": "开发者实用工具箱",
+  "plugin.devtools.desc": "离线开发工具集：JWT 解码、Unix 时间戳转换、UUID v4 生成、编码与哈希计算",
   "command.devtools.open": "DevTools: 打开实用工具面板",
   "DevTools: Open Utilities Palette": "DevTools: 打开实用工具面板",
   "command.devtools.jwtDecode": "DevTools: 解码 JWT 令牌",
   "DevTools: Decode JWT Token": "DevTools: 解码 JWT 令牌",
   "command.devtools.uuidGen": "DevTools: 生成 UUID v4",
-  "DevTools: Generate UUID v4": "DevTools: 生成 UUID v4"
+  "DevTools: Generate UUID v4": "DevTools: 生成 UUID v4",
+  "dag.project_graph_title": "项目调用图谱 / Call Hierarchy",
+  "dag.hint_open_code": "• 在编辑器中打开源码文件 (.go, .rs, .py, .ts)",
+  "dag.hint_f3_analysis": "• 按 F3 分析当前文件/函数的调用关系",
+  "dag.modes_header": "分析模式（按 r 切换 / 菜单）：",
+  "dag.mode_call_graph": "• 调用图谱 (Downstream) — 被调用的函数",
+  "dag.mode_blast_radius": "• 爆炸半径 (Upstream) — 调用者函数",
+  "dag.mode_modules": "• 模块导入与循环 — 循环依赖检测",
+  "graph.selected_fmt": "  •  已选中: %s",
+  "graph.header_fmt": " 模式: %s%s  •  r: 切换模式  •  Enter: 跳转 ",
+  "graph.close_btn": " ✕ 关闭 (Esc) "
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"tahr/internal/core/db"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -119,27 +120,27 @@ func (m *DBConnectModal) TestConnection() {
 	cur := m.Types[m.SelectedType]
 	if cur.IsFileBased {
 		if strings.TrimSpace(m.FilePath) == "" {
-			m.StatusMsg = "Ошибка: укажите путь к файлу базы данных"
+			m.StatusMsg = i18n.T("dbconnect.err_path")
 			m.StatusSuccess = false
 			return
 		}
-		m.StatusMsg = fmt.Sprintf("✓ Подключение к %s успешно! (файл готов)", cur.Name)
+		m.StatusMsg = fmt.Sprintf(i18n.T("dbconnect.success_file"), cur.Name)
 		m.StatusSuccess = true
 		return
 	}
 
 	if strings.TrimSpace(m.Host) == "" {
-		m.StatusMsg = "Ошибка: укажите хост (например, localhost)"
+		m.StatusMsg = i18n.T("dbconnect.err_host")
 		m.StatusSuccess = false
 		return
 	}
 	if strings.TrimSpace(m.Port) == "" {
-		m.StatusMsg = "Ошибка: укажите порт сервера БД"
+		m.StatusMsg = i18n.T("dbconnect.err_port")
 		m.StatusSuccess = false
 		return
 	}
 
-	m.StatusMsg = fmt.Sprintf("✓ Подключение к %s на %s:%s успешно! (0.8ms)", cur.Name, m.Host, m.Port)
+	m.StatusMsg = fmt.Sprintf(i18n.T("dbconnect.success_net"), cur.Name, m.Host, m.Port)
 	m.StatusSuccess = true
 }
 
@@ -404,7 +405,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	buf.SetRune(startX+dialogW-1, startY+dialogH-1, '╯', borderFg, bg, cell.AttrNone)
 
 	// Header row
-	title := " Подключение к базе данных "
+	title := i18n.T("dbconnect.title")
 	for i, r := range []rune(title) {
 		buf.SetRune(startX+2+i, startY, r, hdrFg, hdrBg, cell.AttrBold)
 	}
@@ -413,7 +414,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 
 	// Row 1: DB Type Selector
 	typeY := startY + 2
-	printLabel(buf, startX+3, typeY, "СУБД / Тип:", accentFg, bg)
+	printLabel(buf, startX+3, typeY, i18n.T("dbconnect.label_type"), accentFg, bg)
 	typeStr := fmt.Sprintf(" ◀  %s  ▶ ", cur.Name)
 	tFg := fg
 	tBg := bg
@@ -426,7 +427,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	if cur.IsFileBased {
 		// Row 2: File Path
 		fileY := startY + 5
-		printLabel(buf, startX+3, fileY, "Файл БД:", accentFg, bg)
+		printLabel(buf, startX+3, fileY, i18n.T("dbconnect.label_file"), accentFg, bg)
 		fVal := m.FilePath
 		fFg := fg
 		fBg := bg
@@ -439,7 +440,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	} else {
 		// Row 2: Host & Port
 		hostY := startY + 4
-		printLabel(buf, startX+3, hostY, "Хост:", accentFg, bg)
+		printLabel(buf, startX+3, hostY, i18n.T("dbconnect.label_host"), accentFg, bg)
 		hVal := m.Host
 		hFg := fg
 		hBg := bg
@@ -450,7 +451,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 		}
 		printBox(buf, startX+16, hostY, 24, hVal, hFg, hBg, borderFg)
 
-		printLabel(buf, startX+42, hostY, "Порт:", accentFg, bg)
+		printLabel(buf, startX+42, hostY, i18n.T("dbconnect.label_port"), accentFg, bg)
 		pVal := m.Port
 		pFg := fg
 		pBg := bg
@@ -463,7 +464,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 
 		// Row 3: Database Name
 		dbY := startY + 6
-		printLabel(buf, startX+3, dbY, "Имя БД:", accentFg, bg)
+		printLabel(buf, startX+3, dbY, i18n.T("dbconnect.label_db"), accentFg, bg)
 		dVal := m.Database
 		dFg := fg
 		dBg := bg
@@ -476,7 +477,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 
 		// Row 4: User & Password
 		userY := startY + 8
-		printLabel(buf, startX+3, userY, "Логин:", accentFg, bg)
+		printLabel(buf, startX+3, userY, i18n.T("dbconnect.label_user"), accentFg, bg)
 		uVal := m.User
 		uFg := fg
 		uBg := bg
@@ -487,7 +488,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 		}
 		printBox(buf, startX+16, userY, 18, uVal, uFg, uBg, borderFg)
 
-		printLabel(buf, startX+36, userY, "Пароль:", accentFg, bg)
+		printLabel(buf, startX+36, userY, i18n.T("dbconnect.label_pass"), accentFg, bg)
 		passMask := strings.Repeat("•", len(m.Password))
 		pwFg := fg
 		pwBg := bg
@@ -517,7 +518,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 
 	// Button row
 	btnY := startY + dialogH - 2
-	b1Text := "  Проверить  "
+	b1Text := i18n.T("dbconnect.btn_test")
 	b1Fg := fg
 	b1Bg := hdrBg
 	if m.ActiveField == 7 {
@@ -526,7 +527,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	}
 	printLabel(buf, startX+4, btnY, b1Text, b1Fg, b1Bg)
 
-	b2Text := "  Подключить  "
+	b2Text := i18n.T("dbconnect.btn_connect")
 	b2Fg := successFg
 	b2Bg := hdrBg
 	if m.ActiveField == 8 {
@@ -535,7 +536,7 @@ func (m *DBConnectModal) Render(buf *buffer.Buffer, screenW, screenH int) {
 	}
 	printLabel(buf, startX+22, btnY, b2Text, b2Fg, b2Bg)
 
-	b3Text := "  Отмена (Esc)  "
+	b3Text := i18n.T("dbconnect.btn_cancel")
 	b3Fg := fg
 	b3Bg := hdrBg
 	if m.ActiveField == 9 {

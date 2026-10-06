@@ -4,5 +4,11 @@
   "command.grpc-proto.invoke": "gRPC: Вызвать эндпоинт сервиса",
   "gRPC: Invoke Service Endpoint": "gRPC: Вызвать эндпоинт сервиса",
   "command.grpc-proto.generate": "gRPC: Запустить buf generate",
-  "gRPC: Run buf generate": "gRPC: Запустить buf generate"
+  "gRPC: Run buf generate": "gRPC: Запустить buf generate",
+  "grpc.empty_title": "Сервисы не найдены",
+  "grpc.missing_proto_1": "В проекте отсутствуют",
+  "grpc.missing_proto_2": "файлы .proto",
+  "grpc.instructions": "Инструкция:",
+  "grpc.hint_add": "• Добавьте .proto файлы",
+  "grpc.hint_path": "• Или укажите путь к ним"
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/logviewer"
 	"tahr/internal/ui"
 )
@@ -677,15 +678,15 @@ func (p *LogPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Theme) {
 		if idx >= total {
 			if total == 0 {
 				emptyLines := []string{
-					"Логи не найдены (буфер пуст)",
+					i18n.T("log.empty_title"),
 					"───────────────────────────────",
-					"Tail активен: ожидание новых записей",
+					i18n.T("log.tail_waiting"),
 					"",
-					"Фильтры уровней:",
-					"• All: все уровни",
-					"• Error / Warn / Info: по важности",
-					"• Search: поиск и RegEx по тексту",
-					"• Clear: очистить буфер",
+					i18n.T("log.level_filters"),
+					i18n.T("log.filter_all"),
+					i18n.T("log.filter_severity"),
+					i18n.T("log.filter_search"),
+					i18n.T("log.filter_clear"),
 				}
 				if p.SearchText != "" || p.ActiveLevelFilter != logviewer.LevelUnknown {
 					filterName := "All"
@@ -698,13 +699,13 @@ func (p *LogPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Theme) {
 						filterName = "Info"
 					}
 					emptyLines = []string{
-						"Записи логов не найдены",
+						i18n.T("log.no_matches_title"),
 						"───────────────────────────────",
-						"Нет совпадений для фильтра:",
-						fmt.Sprintf("• Уровень: %s", filterName),
-						fmt.Sprintf("• Поиск: \"%s\"", p.SearchText),
+						i18n.T("log.no_matches"),
+						fmt.Sprintf(i18n.T("log.filter_level_fmt"), filterName),
+						fmt.Sprintf(i18n.T("log.filter_search_fmt"), p.SearchText),
 						"",
-						"Нажмите ' All ' для сброса фильтра",
+						i18n.T("log.reset_hint"),
 					}
 				}
 				if row < len(emptyLines) {
@@ -714,7 +715,7 @@ func (p *LogPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme ui.Theme) {
 					if row == 0 {
 						c = warnColor
 						attr = cell.AttrBold
-					} else if strings.HasPrefix(el, "Фильтры") || strings.HasPrefix(el, "Нет совпадений") {
+					} else if el == i18n.T("log.level_filters") || el == i18n.T("log.no_matches") {
 						c = accentColor
 					} else if strings.HasPrefix(el, "•") {
 						c = textFg

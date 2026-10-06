@@ -9,6 +9,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"tahr/internal/core/i18n"
 	"tahr/internal/core/todotree"
 	"tahr/internal/ui"
 )
@@ -311,25 +312,28 @@ func (p *TodoPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.Theme) 
 	// 4. Items List
 	if len(p.FilteredItems) == 0 {
 		curY++
+		emptyTitle := i18n.T("todo.empty_title")
+		suppTags := i18n.T("todo.supported_tags")
+		instructions := i18n.T("todo.instructions")
 		emptyLines := []string{
-			"Аннотации не найдены",
+			emptyTitle,
 			"───────────────────────────────",
-			"Поддерживаемые теги в коде:",
-			"• TODO: запланированные задачи",
-			"• FIXME: требующие исправления",
-			"• BUG: ошибки и дефекты",
+			suppTags,
+			i18n.T("todo.tag_todo"),
+			i18n.T("todo.tag_fixme"),
+			i18n.T("todo.tag_bug"),
 			"• HACK / XXX / NOTE / OPTIMIZE",
 			"",
-			"Инструкция:",
-			"• Нажмите ' Refresh ' для скана",
-			"• Или добавьте // TODO в код",
+			instructions,
+			i18n.T("todo.hint_refresh"),
+			i18n.T("todo.hint_add"),
 		}
 		if p.Scanning {
 			emptyLines = []string{
-				"Сканирование проекта...",
+				i18n.T("todo.scanning"),
 				"───────────────────────────────",
-				"Поиск аннотаций в файлах",
-				"рабочей директории...",
+				i18n.T("todo.scanning_l1"),
+				i18n.T("todo.scanning_l2"),
 			}
 		}
 		for _, el := range emptyLines {
@@ -338,10 +342,10 @@ func (p *TodoPanel) Render(buf *buffer.Buffer, x, y, w, h int, theme *ui.Theme) 
 			}
 			c := dimFg
 			attr := cell.AttrNone
-			if el == "Аннотации не найдены" {
+			if el == emptyTitle || el == i18n.T("todo.scanning") {
 				c = warnFg
 				attr = cell.AttrBold
-			} else if strings.HasPrefix(el, "Поддерживаемые") || strings.HasPrefix(el, "Инструкция") {
+			} else if el == suppTags || el == instructions {
 				c = accentFg
 			} else if strings.HasPrefix(el, "•") {
 				c = textFg

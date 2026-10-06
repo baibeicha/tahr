@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
+	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
 
@@ -35,8 +36,9 @@ func TestTaskPanel_EmptyStateAndButtons(t *testing.T) {
 	rendered := strings.Join(lines, "\n")
 
 	// Verify informative empty state is present
-	if !strings.Contains(rendered, "Задачи не найдены") {
-		t.Errorf("expected empty state title 'Задачи не найдены', got:\n%s", rendered)
+	emptyTitle := i18n.T("task.empty_title")
+	if !strings.Contains(rendered, emptyTitle) {
+		t.Errorf("expected empty state title %q, got:\n%s", emptyTitle, rendered)
 	}
 	if !strings.Contains(rendered, "Makefile") || !strings.Contains(rendered, "package.json") {
 		t.Errorf("expected supported formats in empty state, got:\n%s", rendered)

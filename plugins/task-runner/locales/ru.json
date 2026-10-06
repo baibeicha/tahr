@@ -6,5 +6,14 @@
   "command.task-runner.runLast": "Задачи: Повторить последнюю задачу",
   "Tasks: Re-run Last Task": "Задачи: Повторить последнюю задачу",
   "toolwindow.task-runner-panel": "Запуск задач",
-  "Tasks": "Запуск задач"
+  "Tasks": "Запуск задач",
+  "task.empty_title": "Задачи не найдены",
+  "task.supported_formats": "Поддерживаемые форматы файлов:",
+  "task.format_makefile": "• Makefile (цели make)",
+  "task.format_pkgjson": "• package.json (npm/yarn/pnpm)",
+  "task.format_taskfile": "• Taskfile.yml (go-task)",
+  "task.format_justfile": "• justfile (just)",
+  "task.instructions": "Инструкция:",
+  "task.hint_refresh": "• Нажмите ' Refresh ' для сканирования",
+  "task.hint_run": "• Нажмите ' Run ' для запуска задачи"
 }

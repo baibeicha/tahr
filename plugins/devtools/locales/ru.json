@@ -1,10 +1,20 @@
 {
-  "plugin.devtools.name": "DevTools",
-  "plugin.devtools.desc": "Набор полезных утилит разработчика: JWT, UUID, Base64",
+  "plugin.devtools.name": "Набор инструментов разработчика",
+  "plugin.devtools.desc": "Утилиты для декодирования JWT, конвертации Unix timestamp, генерации UUID и хеширования",
   "command.devtools.open": "DevTools: Открыть палитру утилит",
   "DevTools: Open Utilities Palette": "DevTools: Открыть палитру утилит",
   "command.devtools.jwtDecode": "DevTools: Декодировать JWT токен",
   "DevTools: Decode JWT Token": "DevTools: Декодировать JWT токен",
   "command.devtools.uuidGen": "DevTools: Сгенерировать UUID v4",
-  "DevTools: Generate UUID v4": "DevTools: Сгенерировать UUID v4"
+  "DevTools: Generate UUID v4": "DevTools: Сгенерировать UUID v4",
+  "dag.project_graph_title": "Граф проекта / Call Hierarchy",
+  "dag.hint_open_code": "• Откройте файл с кодом (.go, .rs, .py, .ts) в редакторе",
+  "dag.hint_f3_analysis": "• Нажмите F3 для анализа вызовов активного файла/функции",
+  "dag.modes_header": "Режимы анализа (переключение клавишей r / в меню):",
+  "dag.mode_call_graph": "• Call Graph (Downstream) — вызываемые функции",
+  "dag.mode_blast_radius": "• Blast Radius (Upstream) — вызывающие функции",
+  "dag.mode_modules": "• Module Imports & Cycles — циклические импорты",
+  "graph.selected_fmt": "  •  Выбрано: %s",
+  "graph.header_fmt": " Mode: %s%s  •  r: Режим  •  Enter: Перейти ",
+  "graph.close_btn": " ✕ Закрыть (Esc) "
 }

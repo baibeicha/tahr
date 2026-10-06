@@ -10,5 +10,17 @@
   "command.log-viewer.clearFilters": "Логи: Очистить активные фильтры",
   "Log Viewer: Clear Active Filters": "Логи: Очистить активные фильтры",
   "toolwindow.log-viewer-panel": "Просмотр логов",
-  "Log Viewer": "Просмотр логов"
+  "Log Viewer": "Просмотр логов",
+  "log.empty_title": "Логи не найдены (буфер пуст)",
+  "log.tail_waiting": "Tail активен: ожидание новых записей",
+  "log.level_filters": "Фильтры уровней:",
+  "log.filter_all": "• All: все уровни",
+  "log.filter_severity": "• Error / Warn / Info: по важности",
+  "log.filter_search": "• Search: поиск и RegEx по тексту",
+  "log.filter_clear": "• Clear: очистить буфер",
+  "log.no_matches_title": "Записи логов не найдены",
+  "log.no_matches": "Нет совпадений для фильтра:",
+  "log.filter_level_fmt": "• Уровень: %s",
+  "log.filter_search_fmt": "• Поиск: \"%s\"",
+  "log.reset_hint": "Нажмите ' All ' для сброса фильтра"
 }

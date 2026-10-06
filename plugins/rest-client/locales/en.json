@@ -4,5 +4,11 @@
   "command.rest-client.send": "REST: Send Request Under Cursor",
   "REST: Send Request Under Cursor": "REST: Send Request Under Cursor",
   "command.rest-client.history": "REST: View Request History",
-  "REST: View Request History": "REST: View Request History"
+  "REST: View Request History": "REST: View Request History",
+  "rest.empty_title": "No responses found (buffer empty)",
+  "rest.instructions": "Instructions to send request:",
+  "rest.hint_open": "• Open a .http or .rest file",
+  "rest.hint_cursor": "• Place cursor on request block",
+  "rest.hint_send": "• Press F5 (Send Request)",
+  "rest.hint_output": "• Response will display in this panel"
 }

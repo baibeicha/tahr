@@ -4,5 +4,11 @@
   "command.grpc-proto.invoke": "gRPC: Invocar punto de conexión",
   "gRPC: Invoke Service Endpoint": "gRPC: Invocar punto de conexión",
   "command.grpc-proto.generate": "gRPC: Ejecutar buf generate",
-  "gRPC: Run buf generate": "gRPC: Ejecutar buf generate"
+  "gRPC: Run buf generate": "gRPC: Ejecutar buf generate",
+  "grpc.empty_title": "No se encontraron servicios",
+  "grpc.missing_proto_1": "No hay archivos .proto",
+  "grpc.missing_proto_2": "en el proyecto",
+  "grpc.instructions": "Instrucciones:",
+  "grpc.hint_add": "• Agregue archivos .proto",
+  "grpc.hint_path": "• O configure la ruta"
 }

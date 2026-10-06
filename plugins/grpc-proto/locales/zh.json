@@ -4,5 +4,11 @@
   "command.grpc-proto.invoke": "gRPC: 调用服务接口",
   "gRPC: Invoke Service Endpoint": "gRPC: 调用服务接口",
   "command.grpc-proto.generate": "gRPC: 执行 buf generate",
-  "gRPC: Run buf generate": "gRPC: 执行 buf generate"
+  "gRPC: Run buf generate": "gRPC: 执行 buf generate",
+  "grpc.empty_title": "未找到服务",
+  "grpc.missing_proto_1": "项目中缺少",
+  "grpc.missing_proto_2": ".proto 文件",
+  "grpc.instructions": "说明：",
+  "grpc.hint_add": "• 添加 .proto 文件",
+  "grpc.hint_path": "• 或配置搜索路径"
 }

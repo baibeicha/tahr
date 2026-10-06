@@ -6,5 +6,9 @@
   "command.db-er-diagram.exportMermaid": "Database: Export ER Diagram to Mermaid",
   "Database: Export ER Diagram to Mermaid": "Database: Export ER Diagram to Mermaid",
   "command.db-er-diagram.exportDDL": "Database: Export ER Diagram to DDL Migration",
-  "Database: Export ER Diagram to DDL Migration": "Database: Export ER Diagram to DDL Migration"
+  "Database: Export ER Diagram to DDL Migration": "Database: Export ER Diagram to DDL Migration",
+  "dag.db_schema_not_found": "Database Schema Not Found",
+  "dag.db_hint_connect": "• Click '+ Connect DB' in 'Tables' panel",
+  "dag.db_hint_add_sql": "• Or add schema / migration (.sql) files to project",
+  "dag.db_supported": "Supported Databases:"
 }

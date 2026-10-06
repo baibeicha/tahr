@@ -1,10 +1,14 @@
 {
-  "plugin.db-er-diagram.name": "ER-Диаграмма баз данных",
-  "plugin.db-er-diagram.desc": "Интерактивная диаграмма сущностей и связей с экспортом",
+  "plugin.db-er-diagram.name": "ER-диаграмма и дизайнер схем БД",
+  "plugin.db-er-diagram.desc": "Интерактивная 2D визуализация связей между таблицами с авто-раскладкой Sugiyama и экспортом",
   "command.db-er-diagram.openCanvas": "База данных: Открыть интерактивную ER-диаграмму (F6)",
   "Database: Open Interactive ER Diagram (F6)": "База данных: Открыть интерактивную ER-диаграмму (F6)",
   "command.db-er-diagram.exportMermaid": "База данных: Экспорт ER-диаграммы в Mermaid",
   "Database: Export ER Diagram to Mermaid": "База данных: Экспорт ER-диаграммы в Mermaid",
-  "command.db-er-diagram.exportDDL": "База данных: Экспорт ER-диаграммы в DDL миграцию",
-  "Database: Export ER Diagram to DDL Migration": "База данных: Экспорт ER-диаграммы в DDL миграцию"
+  "command.db-er-diagram.exportDDL": "База данных: Экспорт ER-диаграммы в миграцию DDL",
+  "Database: Export ER Diagram to DDL Migration": "База данных: Экспорт ER-диаграммы в миграцию DDL",
+  "dag.db_schema_not_found": "Схема базы данных не найдена",
+  "dag.db_hint_connect": "• Нажмите «+ Подключить БД» в панели «Таблицы»",
+  "dag.db_hint_add_sql": "• Или добавьте файлы схемы / миграций (.sql) в проект",
+  "dag.db_supported": "Поддерживаемые СУБД:"
 }

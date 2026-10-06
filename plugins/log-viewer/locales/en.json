@@ -10,5 +10,17 @@
   "command.log-viewer.clearFilters": "Log Viewer: Clear Active Filters",
   "Log Viewer: Clear Active Filters": "Log Viewer: Clear Active Filters",
   "toolwindow.log-viewer-panel": "Log Viewer",
-  "Log Viewer": "Log Viewer"
+  "Log Viewer": "Log Viewer",
+  "log.empty_title": "No logs found (buffer empty)",
+  "log.tail_waiting": "Tail active: waiting for new entries",
+  "log.level_filters": "Level filters:",
+  "log.filter_all": "• All: all levels",
+  "log.filter_severity": "• Error / Warn / Info: by severity",
+  "log.filter_search": "• Search: search & RegEx on text",
+  "log.filter_clear": "• Clear: clear buffer",
+  "log.no_matches_title": "No log entries found",
+  "log.no_matches": "No matches for active filter:",
+  "log.filter_level_fmt": "• Level: %s",
+  "log.filter_search_fmt": "• Search: \"%s\"",
+  "log.reset_hint": "Press 'All' to reset filter"
 }

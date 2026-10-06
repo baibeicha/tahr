@@ -6,5 +6,15 @@
   "command.devtools.jwtDecode": "DevTools: Decode JWT Token",
   "DevTools: Decode JWT Token": "DevTools: Decode JWT Token",
   "command.devtools.uuidGen": "DevTools: Generate UUID v4",
-  "DevTools: Generate UUID v4": "DevTools: Generate UUID v4"
+  "DevTools: Generate UUID v4": "DevTools: Generate UUID v4",
+  "dag.project_graph_title": "Project Graph / Call Hierarchy",
+  "dag.hint_open_code": "• Open code file (.go, .rs, .py, .ts) in editor",
+  "dag.hint_f3_analysis": "• Press F3 to analyze calls for active file/function",
+  "dag.modes_header": "Analysis modes (switch with 'r' key / menu):",
+  "dag.mode_call_graph": "• Call Graph (Downstream) — called functions",
+  "dag.mode_blast_radius": "• Blast Radius (Upstream) — calling functions",
+  "dag.mode_modules": "• Module Imports & Cycles — cyclic imports",
+  "graph.selected_fmt": "  •  Selected: %s",
+  "graph.header_fmt": " Mode: %s%s  •  r: Mode  •  Enter: Go to ",
+  "graph.close_btn": " ✕ Close (Esc) "
 }

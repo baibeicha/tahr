@@ -12,5 +12,11 @@
   "command.jupyter-notebook.insertMarkdownCell": "Jupyter: Вставить ячейку Markdown снизу",
   "Notebook: Insert Markdown Cell Below": "Jupyter: Вставить ячейку Markdown снизу",
   "toolwindow.jupyter-notebook-panel": "Блокнот Jupyter",
-  "Notebooks": "Блокнот Jupyter"
+  "Notebooks": "Блокнот Jupyter",
+  "jupyter.empty_title": "Ячейки не найдены",
+  "jupyter.empty_desc": "Быстрые действия:",
+  "jupyter.hint_code": "• + Code: добавить ячейку кода Python",
+  "jupyter.hint_text": "• + Text: добавить ячейку Markdown",
+  "jupyter.hint_run": "• Run: выполнить ячейку или всю тетрадь",
+  "jupyter.empty_footer": "Откройте файл .ipynb для работы с тетрадью."
 }

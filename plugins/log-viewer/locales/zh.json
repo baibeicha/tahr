@@ -10,5 +10,17 @@
   "command.log-viewer.clearFilters": "日志: 清除活动过滤器",
   "Log Viewer: Clear Active Filters": "日志: 清除活动过滤器",
   "toolwindow.log-viewer-panel": "日志查看器",
-  "Log Viewer": "日志查看器"
+  "Log Viewer": "日志查看器",
+  "log.empty_title": "未找到日志（缓冲区为空）",
+  "log.tail_waiting": "Tail已激活：等待新日志条目",
+  "log.level_filters": "级别过滤器：",
+  "log.filter_all": "• All: 所有级别",
+  "log.filter_severity": "• Error / Warn / Info: 按重要性",
+  "log.filter_search": "• Search: 文本搜索和正则表达式",
+  "log.filter_clear": "• Clear: 清空缓冲区",
+  "log.no_matches_title": "未找到匹配的日志条目",
+  "log.no_matches": "过滤器无匹配项：",
+  "log.filter_level_fmt": "• 级别: %s",
+  "log.filter_search_fmt": "• 搜索: \"%s\"",
+  "log.reset_hint": "点击 ' All ' 重置过滤器"
 }

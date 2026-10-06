@@ -10,5 +10,17 @@
   "command.log-viewer.clearFilters": "Registros: Limpiar filtros activos",
   "Log Viewer: Clear Active Filters": "Registros: Limpiar filtros activos",
   "toolwindow.log-viewer-panel": "Visor de registros",
-  "Log Viewer": "Visor de registros"
+  "Log Viewer": "Visor de registros",
+  "log.empty_title": "No se encontraron registros (búfer vacío)",
+  "log.tail_waiting": "Tail activo: esperando nuevas entradas",
+  "log.level_filters": "Filtros de nivel:",
+  "log.filter_all": "• All: todos los niveles",
+  "log.filter_severity": "• Error / Warn / Info: por importancia",
+  "log.filter_search": "• Search: búsqueda y RegEx en texto",
+  "log.filter_clear": "• Clear: limpiar búfer",
+  "log.no_matches_title": "No se encontraron entradas de registro",
+  "log.no_matches": "Sin coincidencias para el filtro:",
+  "log.filter_level_fmt": "• Nivel: %s",
+  "log.filter_search_fmt": "• Búsqueda: \"%s\"",
+  "log.reset_hint": "Presione ' All ' para restablecer filtro"
 }

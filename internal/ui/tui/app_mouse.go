@@ -59,7 +59,9 @@ func (m *AppModel) computeTermHeaderBtnHitboxes(w int) []termHeaderBtnHitbox {
 func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// 0. Startup splash screen click dismiss
 	if m.splash != nil && m.splash.Active {
-		m.splash.HandleMouse(msg.Mouse)
+		if msg.Action == input.MousePress {
+			m.splash.HandleMouse(msg.Mouse)
+		}
 		return m, nil
 	}
 
@@ -1145,7 +1147,7 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 						offsetY = 2
 						// Tab header click at editorTop+2 (contentTop)
 						if msg.Y == editorTop+2 {
-							t1Len := 10 // " Таблицы "
+							t1Len := len([]rune(i18n.T("db.tables_tab")))
 							if msg.X >= rightStartX+1 && msg.X <= rightStartX+1+t1Len {
 								m.dbSidebarTab = "tables"
 								return m, nil

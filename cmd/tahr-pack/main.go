@@ -11,6 +11,7 @@ import (
 
 func main() {
 	pluginsDir := flag.String("dir", "plugins", "Path to plugins root directory")
+	onlyPlugin := flag.String("plugin", "", "Optional: only pack a specific plugin name")
 	flag.Parse()
 
 	entries, err := os.ReadDir(*pluginsDir)
@@ -29,16 +30,22 @@ func main() {
 		if !e.IsDir() {
 			continue
 		}
+		if *onlyPlugin != "" && e.Name() != *onlyPlugin {
+			continue
+		}
 		pDir := filepath.Join(*pluginsDir, e.Name())
 		manifestPath := filepath.Join(pDir, "plugin.json")
 		m, err := plugin.LoadManifest(manifestPath)
 		if err != nil {
 			continue
 		}
+		if *onlyPlugin != "" && m.ID != *onlyPlugin && e.Name() != *onlyPlugin {
+			continue
+		}
 
 		destArchive := filepath.Join(*pluginsDir, fmt.Sprintf("%s.tahr", m.ID))
 		if err := plugin.PackDirectory(pDir, destArchive); err != nil {
-			fmt.Fprintf(os.Stderr, "✘ Failed to pack %s: %v\n", m.ID, err)
+			fmt.Fprintf(os.Stderr, "Failed to pack %s: %v\n", m.ID, err)
 			continue
 		}
 
@@ -48,7 +55,7 @@ func main() {
 			vManifest, vErr := plugin.UnpackArchive(destArchive, tempDir)
 			_ = os.RemoveAll(tempDir)
 			if vErr != nil || vManifest.ID != m.ID {
-				fmt.Fprintf(os.Stderr, "✘ Verification failed for %s: %v\n", destArchive, vErr)
+				fmt.Fprintf(os.Stderr, "Verification failed for %s: %v\n", destArchive, vErr)
 				continue
 			}
 		}
@@ -59,7 +66,7 @@ func main() {
 			size = fi.Size()
 		}
 
-		fmt.Printf(" ✔ [%-16s] v%-5s -> %s (%d bytes)\n", m.ID, m.Version, filepath.Base(destArchive), size)
+		fmt.Printf("[%-16s] v%-5s -> %s (%d bytes)\n", m.ID, m.Version, filepath.Base(destArchive), size)
 		count++
 	}
 
