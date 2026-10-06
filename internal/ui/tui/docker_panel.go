@@ -83,7 +83,6 @@ func NewDockerPanel(workspaceDir string) *DockerPanel {
 		Services:     make([]docker.ContainerInfo, 0),
 		Logs:         make([]string, 0),
 	}
-	panel.Refresh()
 	return panel
 }
 
