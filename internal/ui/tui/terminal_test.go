@@ -177,7 +177,7 @@ func TestVTerm_AlternateScreen(t *testing.T) {
 
 	// Enter Alternate Screen
 	_, _ = vt.Write([]byte("\x1b[?1049h"))
-	if !vt.inAltScreen {
+	if !vt.InAltScreen() {
 		t.Fatal("expected to be in alternate screen buffer")
 	}
 	_, _ = vt.Write([]byte("Alt Screen Content"))
@@ -188,7 +188,7 @@ func TestVTerm_AlternateScreen(t *testing.T) {
 
 	// Exit Alternate Screen
 	_, _ = vt.Write([]byte("\x1b[?1049l"))
-	if vt.inAltScreen {
+	if vt.InAltScreen() {
 		t.Fatal("expected to exit alternate screen buffer")
 	}
 	linesMain := vt.ContentLines()
