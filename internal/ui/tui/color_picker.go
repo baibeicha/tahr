@@ -3,12 +3,12 @@ package tui
 import (
 	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/core/cell"
 	"github.com/baibeicha/goatui/pkg/driver/input"
+	"github.com/baibeicha/goatui/pkg/widgets"
 	"tahr/internal/core/i18n"
 	"tahr/internal/ui"
 )
@@ -571,95 +571,15 @@ func (cp *ColorPickerModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 
 // HSVToRGB converts hue (0..360), saturation (0..1), and value (0..1) to 24-bit TrueColor.
 func HSVToRGB(h, s, v float64) cell.Color {
-	if s <= 0 {
-		val := uint8(math.Round(v * 255.0))
-		colorVal := (uint32(val) << 16) | (uint32(val) << 8) | uint32(val)
-		return toColor(colorVal)
-	}
-
-	hh := h / 60.0
-	i := int(math.Floor(hh)) % 6
-	ff := hh - math.Floor(hh)
-	p := v * (1.0 - s)
-	q := v * (1.0 - (s * ff))
-	t := v * (1.0 - (s * (1.0 - ff)))
-
-	var r, g, b float64
-	switch i {
-	case 0:
-		r, g, b = v, t, p
-	case 1:
-		r, g, b = q, v, p
-	case 2:
-		r, g, b = p, v, t
-	case 3:
-		r, g, b = p, q, v
-	case 4:
-		r, g, b = t, p, v
-	default:
-		r, g, b = v, p, q
-	}
-
-	rUint := uint8(math.Round(r * 255.0))
-	gUint := uint8(math.Round(g * 255.0))
-	bUint := uint8(math.Round(b * 255.0))
-	return toColor((uint32(rUint) << 16) | (uint32(gUint) << 8) | uint32(bUint))
+	return widgets.HSVToRGB(h, s, v)
 }
 
 // RGBToHSV converts 8-bit RGB components to Hue (0..360), Saturation (0..1), and Value (0..1).
 func RGBToHSV(r, g, b uint8) (h, s, v float64) {
-	rf := float64(r) / 255.0
-	gf := float64(g) / 255.0
-	bf := float64(b) / 255.0
-
-	maxVal := math.Max(rf, math.Max(gf, bf))
-	minVal := math.Min(rf, math.Min(gf, bf))
-	delta := maxVal - minVal
-
-	v = maxVal
-	if maxVal > 0 {
-		s = delta / maxVal
-	} else {
-		s = 0
-		h = 0
-		return
-	}
-
-	if delta == 0 {
-		h = 0
-		return
-	}
-
-	if rf == maxVal {
-		h = (gf - bf) / delta
-	} else if gf == maxVal {
-		h = 2.0 + (bf-rf)/delta
-	} else {
-		h = 4.0 + (rf-gf)/delta
-	}
-
-	h *= 60.0
-	if h < 0 {
-		h += 360.0
-	}
-	return
+	return widgets.RGBToHSV(r, g, b)
 }
 
 // HexToRGBColor parses a hex color string into cell.Color.
 func HexToRGBColor(hexStr string) (cell.Color, bool) {
-	clean := strings.TrimPrefix(strings.TrimSpace(hexStr), "#")
-	if len(clean) == 3 {
-		r, _ := strconv.ParseUint(string(clean[0])+string(clean[0]), 16, 8)
-		g, _ := strconv.ParseUint(string(clean[1])+string(clean[1]), 16, 8)
-		b, _ := strconv.ParseUint(string(clean[2])+string(clean[2]), 16, 8)
-		colorVal := (uint32(r) << 16) | (uint32(g) << 8) | uint32(b)
-		return toColor(colorVal), true
-	}
-	if len(clean) >= 6 {
-		val, err := strconv.ParseUint(clean[:6], 16, 32)
-		if err == nil {
-			return toColor(uint32(val)), true
-		}
-	}
-	return cell.Color{}, false
+	return widgets.HexToRGBColor(hexStr)
 }
