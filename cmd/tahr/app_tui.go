@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/baibeicha/goatui/pkg/tea"
 
@@ -119,14 +120,10 @@ func runTUI(projectDir string, files []string, themeName string) error {
 		}
 	}()
 
-	// Initialize Plugin Manager and discover installed language servers / extensions
-	var pluginMgr *plugin.Manager
-	if mgr, err := plugin.NewManager(""); err == nil {
-		pluginMgr = mgr
-		defer pluginMgr.Close()
-		pluginMgr.SetProjectDir(workspaceRoot)
-		pluginMgr.SetEditorHost(eng)
-		app.SetPluginManager(pluginMgr)
+	// Bind workspace directory and editor host to the App's plugin manager
+	if pm := app.PluginManager(); pm != nil {
+		pm.SetProjectDir(workspaceRoot)
+		pm.SetEditorHost(eng)
 	}
 
 	// Set theme: if explicit CLI flag was passed, override the theme from settings.
@@ -134,10 +131,12 @@ func runTUI(projectDir string, files []string, themeName string) error {
 		app.SetThemeByName(themeName)
 	}
 
-	// Ensure LSP initialized for active document
-	activeDoc := eng.ActiveDocument()
-	if activeDoc != nil && activeDoc.FilePath != "" {
-		app.EnsureLSPForFile(activeDoc.FilePath)
+	// Initialize LSP for active document asynchronously so the splash screen starts immediately (<10ms)
+	if activeDoc := eng.ActiveDocument(); activeDoc != nil && activeDoc.FilePath != "" {
+		go func(path string) {
+			time.Sleep(30 * time.Millisecond)
+			app.EnsureLSPForFile(path)
+		}(activeDoc.FilePath)
 	}
 
 	// Launch GoatUI TEA Loop with Kitty disambiguation and Ctrl+C catching

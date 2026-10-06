@@ -344,11 +344,14 @@ func (m *Manager) Discover() error {
 						m.registerLocalizationsLocked(manifest, filepath.Join(s.dir, e.Name()))
 					}
 
-					// Auto-deploy builtin/candidate to user pluginsDir for persistence (only if not project dir)
+					// Auto-deploy builtin/candidate to user pluginsDir for persistence in background
 					if s.tier == TierBuiltin && m.pluginsDir != "" && s.dir != m.pluginsDir {
 						destDir := filepath.Join(m.pluginsDir, manifest.ID)
+						srcDir := filepath.Join(s.dir, e.Name())
 						if _, err := os.Stat(destDir); os.IsNotExist(err) {
-							_ = copyDir(filepath.Join(s.dir, e.Name()), destDir)
+							go func(sDir, dDir string) {
+								_ = copyDir(sDir, dDir)
+							}(srcDir, destDir)
 						}
 					}
 				}
@@ -977,9 +980,14 @@ func (m *Manager) SeedDefaultPlugins() {
 	}
 	for _, id := range legacyStubs {
 		pDir := filepath.Join(m.pluginsDir, id)
-		_ = os.RemoveAll(pDir)
+		if fi, err := os.Stat(pDir); err == nil && fi.IsDir() {
+			_ = os.RemoveAll(pDir)
+		}
 		if home, err := os.UserHomeDir(); err == nil {
-			_ = os.RemoveAll(filepath.Join(home, ".config", "tahr", "plugins", id))
+			legacyDir := filepath.Join(home, ".config", "tahr", "plugins", id)
+			if fi, err := os.Stat(legacyDir); err == nil && fi.IsDir() {
+				_ = os.RemoveAll(legacyDir)
+			}
 		}
 		if m.state.Enabled != nil {
 			delete(m.state.Enabled, id)
@@ -1030,12 +1038,12 @@ func (m *Manager) SeedDefaultPlugins() {
 		targetManifestPath := filepath.Join(targetDir, "plugin.json")
 		if _, err := os.Stat(targetManifestPath); os.IsNotExist(err) {
 			if sourceDir != "" {
-				_ = copyDir(sourceDir, targetDir)
+				go func(s, d string) { _ = copyDir(s, d) }(sourceDir, targetDir)
 			} else {
 				for _, cd := range m.candidatePluginDirs() {
 					candArchive := filepath.Join(cd, pid+".tahr")
 					if fi, err := os.Stat(candArchive); err == nil && !fi.IsDir() {
-						_, _ = UnpackArchive(candArchive, targetDir)
+						go func(arc, d string) { _, _ = UnpackArchive(arc, d) }(candArchive, targetDir)
 						break
 					}
 				}
@@ -1046,7 +1054,7 @@ func (m *Manager) SeedDefaultPlugins() {
 			dstM, errDst := LoadManifest(targetManifestPath)
 			if errSrc == nil && errDst == nil {
 				if srcM.Toolchain != nil && dstM.Toolchain == nil {
-					_ = copyDir(sourceDir, targetDir)
+					go func(s, d string) { _ = copyDir(s, d) }(sourceDir, targetDir)
 				}
 			}
 		}

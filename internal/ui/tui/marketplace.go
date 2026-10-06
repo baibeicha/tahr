@@ -82,7 +82,6 @@ func NewMarketplaceModal(mgr *plugin.Manager) *MarketplaceModal {
 		Repositories:  make([]plugin.PluginRepository, 0),
 		AddRepoType:   "http",
 	}
-	m.Refresh()
 	return m
 }
 
@@ -588,6 +587,9 @@ func (m *MarketplaceModal) HandleKey(k input.Key) (handled bool, shouldClose boo
 func (m *MarketplaceModal) Render(buf *buffer.Buffer, w, h int, th ui.Theme) {
 	if !m.Open || buf == nil || w < 40 || h < 14 {
 		return
+	}
+	if len(m.Plugins) == 0 && len(m.Repositories) == 0 {
+		m.Refresh()
 	}
 
 	modalW := w - 4

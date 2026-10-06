@@ -1058,7 +1058,7 @@ func (m *AppModel) EnableSplashScreen() {
 	}
 	m.splash.Active = true
 	m.splash.Done = false
-	m.splash.StartTime = time.Now()
+	m.splash.Started = false
 }
 
 
@@ -1143,6 +1143,8 @@ func splashTick() tea.Cmd {
 func (m *AppModel) Init() tea.Cmd {
 	cmds := []tea.Cmd{toastTick()}
 	if m.splash != nil && m.splash.Active {
+		m.splash.Started = true
+		m.splash.StartTime = time.Now()
 		cmds = append(cmds, splashTick())
 	}
 	return tea.Batch(cmds...)

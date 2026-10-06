@@ -414,6 +414,11 @@ func (m *AppModel) SetLSPClient(client *lsp.Client) {
 	m.lspClient = client
 }
 
+// PluginManager returns the attached plugin manager, or nil if none.
+func (m *AppModel) PluginManager() *plugin.Manager {
+	return m.pluginMgr
+}
+
 // SetPluginManager attaches the plugin manager for language configurations.
 func (m *AppModel) SetPluginManager(mgr *plugin.Manager) {
 	m.pluginMgr = mgr
@@ -422,7 +427,6 @@ func (m *AppModel) SetPluginManager(mgr *plugin.Manager) {
 	}
 	if m.marketplace != nil {
 		m.marketplace.mgr = mgr
-		m.marketplace.Refresh()
 	} else {
 		m.marketplace = NewMarketplaceModal(mgr)
 	}

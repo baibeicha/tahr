@@ -19,6 +19,7 @@ type SplashScreenState struct {
 	StatusText string
 	StartTime  time.Time
 	MinDisplay time.Duration
+	Started    bool
 }
 
 // NewSplashScreenState initializes a new startup splash screen.
@@ -28,8 +29,8 @@ func NewSplashScreenState() *SplashScreenState {
 		Done:       false,
 		Progress:   0.05,
 		StatusText: i18n.T("splash.starting"),
-		StartTime:  time.Now(),
-		MinDisplay: 1100 * time.Millisecond,
+		MinDisplay: 1200 * time.Millisecond,
+		Started:    false,
 	}
 }
 
@@ -37,6 +38,12 @@ func NewSplashScreenState() *SplashScreenState {
 func (s *SplashScreenState) Tick() {
 	if !s.Active || s.Done {
 		return
+	}
+	if !s.Started {
+		if s.StartTime.IsZero() {
+			return
+		}
+		s.Started = true
 	}
 
 	elapsed := time.Since(s.StartTime)
@@ -46,16 +53,16 @@ func (s *SplashScreenState) Tick() {
 	case ms < 150:
 		s.Progress = 0.15
 		s.StatusText = i18n.T("splash.scanning")
-	case ms < 350:
+	case ms < 400:
 		s.Progress = 0.38
 		s.StatusText = i18n.T("splash.loading_plugins")
-	case ms < 600:
+	case ms < 700:
 		s.Progress = 0.65
 		s.StatusText = i18n.T("splash.init_syntax")
-	case ms < 900:
+	case ms < 1000:
 		s.Progress = 0.88
 		s.StatusText = i18n.T("splash.connecting_lsp")
-	case ms < 1100:
+	case ms < 1200:
 		s.Progress = 1.00
 		s.StatusText = i18n.T("splash.ready")
 	default:
@@ -73,25 +80,42 @@ func (s *SplashScreenState) Skip() {
 	s.Active = false
 }
 
-// HandleKey skips the splash screen on any key press.
+// HandleKey skips the splash screen on any intentional key press.
 func (s *SplashScreenState) HandleKey(key input.Key) bool {
 	if !s.Active {
+		return false
+	}
+	if key.Action == input.KeyRelease {
+		return false
+	}
+	// Protect against accidental skip from initial console Enter key (command line launch)
+	if key.Type == input.KeyEnter || key.Rune == '\r' || key.Rune == '\n' {
+		return false
+	}
+	// Enforce grace period so user can see splash screen
+	if !s.StartTime.IsZero() && time.Since(s.StartTime) < 400*time.Millisecond {
 		return false
 	}
 	s.Skip()
 	return true
 }
 
-// HandleMouse skips the splash screen on any mouse click.
+// HandleMouse skips the splash screen on intentional mouse click after grace period.
 func (s *SplashScreenState) HandleMouse(m input.Mouse) bool {
 	if !s.Active {
+		return false
+	}
+	if m.Action != input.MousePress {
+		return false
+	}
+	if !s.StartTime.IsZero() && time.Since(s.StartTime) < 400*time.Millisecond {
 		return false
 	}
 	if m.Button == input.MouseLeft || m.Button == input.MouseRight {
 		s.Skip()
 		return true
 	}
-	return true
+	return false
 }
 
 var mascotArt = []string{
@@ -119,6 +143,10 @@ var tahrLogo = []string{
 func (s *SplashScreenState) Render(buf *buffer.Buffer, screenW, screenH int, theme *ui.Theme) {
 	if !s.Active {
 		return
+	}
+	if !s.Started {
+		s.Started = true
+		s.StartTime = time.Now()
 	}
 
 	bg := toColor(theme.Background)
