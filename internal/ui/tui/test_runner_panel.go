@@ -55,13 +55,15 @@ type TestRunnerPanel struct {
 
 // NewTestRunnerPanel creates a new test explorer tool window.
 func NewTestRunnerPanel(workspaceDir string) *TestRunnerPanel {
-	return &TestRunnerPanel{
+	p := &TestRunnerPanel{
 		WorkspaceDir: workspaceDir,
 		Runner:       testrunner.NewRunner(workspaceDir, nil),
 		Position:     "right",
 		Open:         true,
 		SelectedIdx:  0,
 	}
+	go p.Discover()
+	return p
 }
 
 // Discover triggers test discovery across workspace.
@@ -77,7 +79,7 @@ func (p *TestRunnerPanel) Discover() {
 	go func() {
 		suites, err := runner.DiscoverTests(context.Background())
 		p.mu.Lock()
-		if err == nil {
+		if err == nil && len(suites) > 0 {
 			p.Suites = suites
 			p.rebuildFlatListLocked()
 		}
@@ -101,7 +103,7 @@ func (p *TestRunnerPanel) rebuildFlatListLocked() {
 	}
 }
 
-// RunAll executes all tests.
+// RunAll executes all tests without destroying discovered suites.
 func (p *TestRunnerPanel) RunAll() {
 	p.mu.Lock()
 	if p.Running {
@@ -109,23 +111,82 @@ func (p *TestRunnerPanel) RunAll() {
 		return
 	}
 	p.Running = true
+
+	hadExistingTests := len(p.FlatTests) > 0
+	for _, tc := range p.FlatTests {
+		tc.Status = testrunner.TestStatusRunning
+	}
 	runner := p.Runner
 	p.mu.Unlock()
 
 	go func() {
+		if !hadExistingTests {
+			suites, _ := runner.DiscoverTests(context.Background())
+			if len(suites) > 0 {
+				p.mu.Lock()
+				p.Suites = suites
+				p.rebuildFlatListLocked()
+				for _, tc := range p.FlatTests {
+					tc.Status = testrunner.TestStatusRunning
+				}
+				hadExistingTests = len(p.FlatTests) > 0
+				p.mu.Unlock()
+			}
+		}
+
 		res, err := runner.RunAll(context.Background(), "")
 		p.mu.Lock()
 		p.Running = false
-		if err == nil {
-			p.Suites = res.Suites
+
+		if err == nil && res != nil {
 			p.LastSummary = res.Summary
-			p.rebuildFlatListLocked()
+			if len(res.Suites) > 0 {
+				if hadExistingTests {
+					matchedMap := make(map[string]*testrunner.TestCase)
+					for _, s := range res.Suites {
+						for _, tc := range s.Tests {
+							matchedMap[tc.Name] = tc
+							matchedMap[tc.ID] = tc
+						}
+					}
+					for _, existing := range p.FlatTests {
+						if match, ok := matchedMap[existing.Name]; ok {
+							existing.Status = match.Status
+							existing.Duration = match.Duration
+							existing.ErrorMessage = match.ErrorMessage
+							existing.Traceback = match.Traceback
+						} else {
+							if res.Summary.Failed == 0 {
+								existing.Status = testrunner.TestStatusPassed
+							} else {
+								existing.Status = testrunner.TestStatusFailed
+							}
+						}
+					}
+				} else {
+					p.Suites = res.Suites
+					p.rebuildFlatListLocked()
+				}
+			} else if hadExistingTests {
+				for _, existing := range p.FlatTests {
+					if res.Summary.Failed == 0 {
+						existing.Status = testrunner.TestStatusPassed
+					} else {
+						existing.Status = testrunner.TestStatusFailed
+					}
+				}
+			}
+		} else if err != nil && hadExistingTests {
+			for _, existing := range p.FlatTests {
+				existing.Status = testrunner.TestStatusFailed
+				existing.ErrorMessage = err.Error()
+			}
 		}
 		p.mu.Unlock()
 
 		if err != nil && p.OnToast != nil {
 			p.OnToast("error", "TEST EXPLORER", "Run error: "+err.Error())
-		} else if err == nil && p.OnToast != nil {
+		} else if err == nil && p.OnToast != nil && res != nil {
 			p.OnToast("info", "TEST EXPLORER", fmt.Sprintf("Tests completed: %d passed, %d failed", res.Summary.Passed, res.Summary.Failed))
 		}
 	}()

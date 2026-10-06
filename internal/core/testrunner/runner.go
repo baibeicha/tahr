@@ -9,9 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"tahr/internal/core/sdk"
 )
 
 // TestStatus defines the execution state of a test case.
@@ -187,7 +190,154 @@ func extractTestsFromFile(filePath string, compiled *CompiledTestingConfig) ([]*
 	return tests, scanner.Err()
 }
 
-// RunSingle executes an individual test case.
+// resolveToolchainCommand finds the actual toolchain binary, virtualenv or SDK path.
+func (r *Runner) resolveToolchainCommand(cfg *TestingConfig) (string, []string, []string) {
+	cmdName := cfg.Command
+	var extraArgs []string
+	var env []string
+
+	switch strings.ToLower(cfg.ID) {
+	case "go":
+		if mgr := sdk.GetManager(); mgr != nil {
+			if goInfo := mgr.GoSDK(); goInfo != nil && goInfo.BinaryPath != "" {
+				cmdName = goInfo.BinaryPath
+				if goInfo.BinDir != "" {
+					sysPath := os.Getenv("PATH")
+					env = append(os.Environ(), "PATH="+goInfo.BinDir+string(os.PathListSeparator)+sysPath)
+				}
+			}
+		}
+		if cmdName == "go" {
+			if path, err := exec.LookPath("go"); err == nil {
+				cmdName = path
+			}
+		}
+
+	case "python":
+		venvCandidates := []string{
+			filepath.Join(r.wsDir, ".venv"),
+			filepath.Join(r.wsDir, "venv"),
+			filepath.Join(r.wsDir, "env"),
+		}
+		for _, v := range venvCandidates {
+			pytestBin := filepath.Join(v, "bin", "pytest")
+			if runtime.GOOS == "windows" {
+				pytestBin = filepath.Join(v, "Scripts", "pytest.exe")
+			}
+			if fi, err := os.Stat(pytestBin); err == nil && !fi.IsDir() {
+				cmdName = pytestBin
+				env = append(os.Environ(), "VIRTUAL_ENV="+v)
+				break
+			}
+
+			pythonBin := filepath.Join(v, "bin", "python")
+			if runtime.GOOS == "windows" {
+				pythonBin = filepath.Join(v, "Scripts", "python.exe")
+			}
+			if fi, err := os.Stat(pythonBin); err == nil && !fi.IsDir() {
+				cmdName = pythonBin
+				extraArgs = []string{"-m", "pytest"}
+				env = append(os.Environ(), "VIRTUAL_ENV="+v)
+				break
+			}
+		}
+
+	case "rust":
+		if home, err := os.UserHomeDir(); err == nil {
+			cargoBin := filepath.Join(home, ".cargo", "bin", "cargo")
+			if runtime.GOOS == "windows" {
+				cargoBin = filepath.Join(home, ".cargo", "bin", "cargo.exe")
+			}
+			if fi, err := os.Stat(cargoBin); err == nil && !fi.IsDir() {
+				cmdName = cargoBin
+			}
+		}
+
+	case "typescript", "javascript", "node":
+		localVitest := filepath.Join(r.wsDir, "node_modules", ".bin", "vitest")
+		localJest := filepath.Join(r.wsDir, "node_modules", ".bin", "jest")
+		if runtime.GOOS == "windows" {
+			localVitest += ".cmd"
+			localJest += ".cmd"
+		}
+		if fi, err := os.Stat(localVitest); err == nil && !fi.IsDir() {
+			cmdName = localVitest
+		} else if fi, err := os.Stat(localJest); err == nil && !fi.IsDir() {
+			cmdName = localJest
+		}
+
+	case "java", "kotlin":
+		gradlew := filepath.Join(r.wsDir, "gradlew")
+		mvnw := filepath.Join(r.wsDir, "mvnw")
+		if runtime.GOOS == "windows" {
+			gradlew += ".bat"
+			mvnw += ".cmd"
+		}
+		if fi, err := os.Stat(gradlew); err == nil && !fi.IsDir() {
+			cmdName = gradlew
+		} else if fi, err := os.Stat(mvnw); err == nil && !fi.IsDir() {
+			cmdName = mvnw
+		}
+
+	case "php":
+		vendorPhpunit := filepath.Join(r.wsDir, "vendor", "bin", "phpunit")
+		if runtime.GOOS == "windows" {
+			vendorPhpunit += ".bat"
+		}
+		if fi, err := os.Stat(vendorPhpunit); err == nil && !fi.IsDir() {
+			cmdName = vendorPhpunit
+		}
+	}
+
+	return cmdName, extraArgs, env
+}
+
+// DetectWorkspaceLanguages scans workspace markers to find all active testable languages.
+func (r *Runner) DetectWorkspaceLanguages(wsDir string) []*CompiledTestingConfig {
+	var detected []*CompiledTestingConfig
+	seen := make(map[string]bool)
+
+	markerMap := map[string][]string{
+		"go":         {"go.mod", "go.work"},
+		"python":     {"pyproject.toml", "requirements.txt", "Pipfile", "setup.py"},
+		"rust":       {"Cargo.toml", "Cargo.lock"},
+		"typescript": {"package.json", "tsconfig.json"},
+		"java":       {"pom.xml", "build.gradle"},
+		"kotlin":     {"build.gradle.kts"},
+		"php":        {"composer.json"},
+		"zig":        {"build.zig"},
+		"csharp":     {"*.csproj", "*.sln"},
+		"ruby":       {"Gemfile", "Rakefile"},
+		"c_cpp":      {"CMakeLists.txt", "Makefile"},
+	}
+
+	for langID, markers := range markerMap {
+		for _, m := range markers {
+			if strings.Contains(m, "*") {
+				matches, _ := filepath.Glob(filepath.Join(wsDir, m))
+				if len(matches) > 0 {
+					if cfg := r.registry.FindByLanguage(langID); cfg != nil && !seen[cfg.Config.ID] {
+						detected = append(detected, cfg)
+						seen[cfg.Config.ID] = true
+					}
+					break
+				}
+			} else {
+				if _, err := os.Stat(filepath.Join(wsDir, m)); err == nil {
+					if cfg := r.registry.FindByLanguage(langID); cfg != nil && !seen[cfg.Config.ID] {
+						detected = append(detected, cfg)
+						seen[cfg.Config.ID] = true
+					}
+					break
+				}
+			}
+		}
+	}
+
+	return detected
+}
+
+// RunSingle executes an individual test case with environment-aware command resolution.
 func (r *Runner) RunSingle(ctx context.Context, tc *TestCase) (*TestCase, error) {
 	if tc == nil {
 		return nil, fmt.Errorf("test case is nil")
@@ -199,20 +349,30 @@ func (r *Runner) RunSingle(ctx context.Context, tc *TestCase) (*TestCase, error)
 	}
 
 	cfg := compiled.Config
-	args := substituteArgs(cfg.RunSingleArgs, map[string]string{
+	cmdName, extraArgs, env := r.resolveToolchainCommand(cfg)
+
+	rawArgs := cfg.RunSingleArgs
+	if len(rawArgs) == 0 {
+		rawArgs = cfg.Args
+	}
+
+	subArgs := substituteArgs(rawArgs, map[string]string{
 		"test":    tc.Name,
 		"file":    tc.FilePath,
 		"package": tc.Package,
 	})
-	if len(args) == 0 {
-		args = append([]string{}, cfg.Args...)
-	}
+
+	args := append([]string{}, extraArgs...)
+	args = append(args, subArgs...)
 
 	tc.Status = TestStatusRunning
 	startTime := time.Now()
 
-	cmd := exec.CommandContext(ctx, cfg.Command, args...)
+	cmd := exec.CommandContext(ctx, cmdName, args...)
 	cmd.Dir = r.wsDir
+	if len(env) > 0 {
+		cmd.Env = env
+	}
 
 	var outBuf bytes.Buffer
 	cmd.Stdout = &outBuf
@@ -239,7 +399,7 @@ func (r *Runner) RunSingle(ctx context.Context, tc *TestCase) (*TestCase, error)
 		}
 	}
 
-	// Fallback if not matched individually in stream
+	// Fallback if not matched individually in output stream
 	if cmd.ProcessState != nil && cmd.ProcessState.Success() {
 		tc.Status = TestStatusPassed
 	} else {
@@ -250,92 +410,96 @@ func (r *Runner) RunSingle(ctx context.Context, tc *TestCase) (*TestCase, error)
 	return tc, nil
 }
 
-// RunAll executes the entire test suite across the workspace.
+// RunAll executes test suites across all detected or specified languages in the workspace.
 func (r *Runner) RunAll(ctx context.Context, langID string) (*TestRunResult, error) {
-	var compiled *CompiledTestingConfig
+	var targetConfigs []*CompiledTestingConfig
 	if langID != "" {
-		compiled = r.registry.FindByLanguage(langID)
-	}
-	if compiled == nil {
-		configs := r.registry.AllConfigs()
-		if len(configs) > 0 {
-			compiled = configs[0]
+		if c := r.registry.FindByLanguage(langID); c != nil {
+			targetConfigs = append(targetConfigs, c)
+		}
+	} else {
+		targetConfigs = r.DetectWorkspaceLanguages(r.wsDir)
+		if len(targetConfigs) == 0 {
+			targetConfigs = r.registry.AllConfigs()
 		}
 	}
-	if compiled == nil {
-		return nil, fmt.Errorf("no testing configuration found")
+
+	if len(targetConfigs) == 0 {
+		return nil, fmt.Errorf("no testing toolchain found for workspace")
 	}
 
-	cfg := compiled.Config
-	args := cfg.RunAllArgs
-	if len(args) == 0 {
-		args = cfg.Args
+	aggResult := &TestRunResult{
+		Suites: make([]*TestSuite, 0),
 	}
 
-	startTime := time.Now()
-	cmd := exec.CommandContext(ctx, cfg.Command, args...)
-	cmd.Dir = r.wsDir
+	for _, compiled := range targetConfigs {
+		cfg := compiled.Config
+		cmdName, extraArgs, env := r.resolveToolchainCommand(cfg)
 
-	var outBuf bytes.Buffer
-	cmd.Stdout = &outBuf
-	cmd.Stderr = &outBuf
-
-	_ = cmd.Run()
-	duration := time.Since(startTime)
-
-	output := strings.ReplaceAll(outBuf.String(), "\r\n", "\n")
-	parsedCases := ParseOutput(output, compiled)
-
-	// Build suites from parsed test cases
-	suitesMap := make(map[string]*TestSuite)
-	totalPassed := 0
-	totalFailed := 0
-	totalSkipped := 0
-
-	for _, tc := range parsedCases {
-		pkg := tc.Package
-		if pkg == "" {
-			pkg = "default"
+		args := append([]string{}, extraArgs...)
+		if len(cfg.RunAllArgs) > 0 {
+			args = append(args, cfg.RunAllArgs...)
+		} else {
+			args = append(args, cfg.Args...)
 		}
-		suite, exists := suitesMap[pkg]
-		if !exists {
-			suite = &TestSuite{
-				Name:    pkg,
-				Package: pkg,
+
+		startTime := time.Now()
+		cmd := exec.CommandContext(ctx, cmdName, args...)
+		cmd.Dir = r.wsDir
+		if len(env) > 0 {
+			cmd.Env = env
+		}
+
+		var outBuf bytes.Buffer
+		cmd.Stdout = &outBuf
+		cmd.Stderr = &outBuf
+
+		_ = cmd.Run()
+		duration := time.Since(startTime)
+
+		output := strings.ReplaceAll(outBuf.String(), "\r\n", "\n")
+		aggResult.RawOutput += output + "\n"
+
+		parsedCases := ParseOutput(output, compiled)
+		suitesMap := make(map[string]*TestSuite)
+
+		for _, tc := range parsedCases {
+			pkg := tc.Package
+			if pkg == "" {
+				pkg = cfg.Name
 			}
-			suitesMap[pkg] = suite
+			suite, exists := suitesMap[pkg]
+			if !exists {
+				suite = &TestSuite{
+					Name:    pkg,
+					Package: pkg,
+				}
+				suitesMap[pkg] = suite
+			}
+			suite.Tests = append(suite.Tests, tc)
+			suite.Total++
+			aggResult.Summary.Total++
+
+			switch tc.Status {
+			case TestStatusPassed:
+				suite.Passed++
+				aggResult.Summary.Passed++
+			case TestStatusFailed:
+				suite.Failed++
+				aggResult.Summary.Failed++
+			case TestStatusSkipped:
+				suite.Skipped++
+				aggResult.Summary.Skipped++
+			}
 		}
-		suite.Tests = append(suite.Tests, tc)
-		suite.Total++
-		switch tc.Status {
-		case TestStatusPassed:
-			suite.Passed++
-			totalPassed++
-		case TestStatusFailed:
-			suite.Failed++
-			totalFailed++
-		case TestStatusSkipped:
-			suite.Skipped++
-			totalSkipped++
+
+		for _, s := range suitesMap {
+			aggResult.Suites = append(aggResult.Suites, s)
 		}
+		aggResult.Summary.Duration += duration
 	}
 
-	suites := make([]*TestSuite, 0, len(suitesMap))
-	for _, s := range suitesMap {
-		suites = append(suites, s)
-	}
-
-	return &TestRunResult{
-		Suites: suites,
-		Summary: TestRunSummary{
-			Total:    len(parsedCases),
-			Passed:   totalPassed,
-			Failed:   totalFailed,
-			Skipped:  totalSkipped,
-			Duration: duration,
-		},
-		RawOutput: output,
-	}, nil
+	return aggResult, nil
 }
 
 // ParseOutput parses stdout/stderr into structured TestCases using compiled regex patterns.
