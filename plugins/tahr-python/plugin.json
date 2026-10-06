@@ -44,9 +44,67 @@
       "run_args": [
         "main.py"
       ],
+      "test_cmd": "pytest",
+      "test_args": [
+        "-v"
+      ],
+      "test_pattern": "test_*.py",
       "install_cmd": "pip install pyright debugpy pytest ruff"
     }
   ],
+  "testing": {
+    "id": "python",
+    "name": "Pytest",
+    "framework": "pytest",
+    "languages": [
+      "python"
+    ],
+    "extensions": [
+      ".py"
+    ],
+    "test_patterns": [
+      "test_*.py",
+      "*_test.py"
+    ],
+    "command": "pytest",
+    "args": [
+      "-v"
+    ],
+    "run_single_args": [
+      "-v",
+      "-k",
+      "{{test}}",
+      "{{file}}"
+    ],
+    "run_package_args": [
+      "-v",
+      "{{package}}"
+    ],
+    "run_all_args": [
+      "-v"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "test_*.py",
+        "*_test.py"
+      ],
+      "extract_regexes": [
+        "def\\s+(test_[A-Za-z0-9_]+)\\s*\\("
+      ],
+      "package_root_markers": [
+        "pyproject.toml",
+        "setup.py",
+        "requirements.txt"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "(?:(\\S+::\\S+|test_\\w+)\\s+PASSED|PASSED\\s+(\\S+))(?:.*?\\(([0-9.]+(?:s|ms))\\))?",
+      "fail_pattern": "(?:(\\S+::\\S+|test_\\w+)\\s+FAILED|FAILED\\s+(\\S+))(?:.*?\\(([0-9.]+(?:s|ms))\\))?",
+      "skip_pattern": "(?:(\\S+::\\S+|test_\\w+)\\s+SKIPPED|SKIPPED\\s+(\\S+))",
+      "traceback_start": "^(?:_{3,}\\s*\\w+\\s*_{3,}|={3,}\\s*FAILURES\\s*={3,}|>\\s+.*|E\\s+.*)",
+      "traceback_end": "^={3,}"
+    }
+  },
   "lsp": {
     "server_name": "pyright",
     "command": "pyright-langserver",

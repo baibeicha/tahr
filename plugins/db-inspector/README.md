@@ -1,6 +1,6 @@
 # Database Inspector (`db-inspector`)
 
-Unified, zero-CGO PostgreSQL and MySQL client and schema inspector for Tahr IDE.
+Universal, zero-CGO database client and schema inspector for Tahr IDE supporting PostgreSQL, MySQL, MariaDB, SQLite, MSSQL, CockroachDB, DuckDB, ClickHouse, and Redis.
 
 ## Features
 - **Pure-Go Architecture**: Pure Go wire protocol drivers without native C client dependencies.

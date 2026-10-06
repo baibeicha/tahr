@@ -39,6 +39,71 @@
       "run_cmd": "./build/app"
     }
   ],
+  "testing": {
+    "id": "c_cpp",
+    "name": "CTest / C++ Tests",
+    "framework": "ctest",
+    "languages": [
+      "c_cpp",
+      "c",
+      "cpp"
+    ],
+    "extensions": [
+      ".c",
+      ".cpp",
+      ".cc",
+      ".cxx"
+    ],
+    "test_patterns": [
+      "*_test.cpp",
+      "*_test.cc",
+      "test_*.cpp",
+      "test_*.cc"
+    ],
+    "command": "ctest",
+    "args": [
+      "--output-on-failure",
+      "-V"
+    ],
+    "run_single_args": [
+      "-R",
+      "^{{test}}$",
+      "--output-on-failure",
+      "-V"
+    ],
+    "run_package_args": [
+      "--test-dir",
+      "{{package}}",
+      "--output-on-failure",
+      "-V"
+    ],
+    "run_all_args": [
+      "--output-on-failure",
+      "-V"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*_test.cpp",
+        "*_test.cc",
+        "test_*.cpp",
+        "test_*.cc"
+      ],
+      "extract_regexes": [
+        "TEST(?:_F|_P)?\\s*\\(\\s*([A-Za-z0-9_]+)\\s*,\\s*([A-Za-z0-9_]+)\\s*\\)"
+      ],
+      "package_root_markers": [
+        "CMakeLists.txt",
+        "Makefile"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "Test\\s+#\\d+:\\s+(\\S+)\\s+\\.+?\\s*Passed(?:\\s+([0-9.]+\\s*(?:sec|s)))?",
+      "fail_pattern": "Test\\s+#\\d+:\\s+(\\S+)\\s+\\.+?\\*+Failed(?:\\s+([0-9.]+\\s*(?:sec|s)))?",
+      "skip_pattern": "Test\\s+#\\d+:\\s+(\\S+)\\s+\\.+?\\*+Skipped",
+      "traceback_start": "^(?:.*?Failure|.*?:\\d+:\\s+Failure|Valgrind error:)",
+      "traceback_end": "^\\s*(?:\\d+/\\d+\\s+Test\\s+#|\\d+% tests passed)"
+    }
+  },
   "lsp": {
     "server_name": "clangd",
     "command": "clangd",

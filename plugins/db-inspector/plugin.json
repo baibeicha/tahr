@@ -1,9 +1,9 @@
 {
   "id": "db-inspector",
-  "name": "Database Inspector (PostgreSQL & MySQL)",
+  "name": "Database Inspector",
   "version": "1.0.0",
   "author": "Tahr Team",
-  "description": "Unified database client for PostgreSQL and MySQL with interactive schema explorer, DataGrid query viewer, and connection manager",
+  "description": "Universal database client supporting PostgreSQL, MySQL, MariaDB, SQLite, MSSQL, CockroachDB, DuckDB, ClickHouse, and Redis with schema explorer and DataGrid query viewer",
   "toolchain": {
     "name": "SQL"
   },

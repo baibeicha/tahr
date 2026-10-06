@@ -17,14 +17,7 @@
       ]
     }
   ],
-  "tool_windows": [
-    {
-      "id": "db-er-diagram-panel",
-      "title": "ER Diagram",
-      "icon": "DB",
-      "position": "right"
-    }
-  ],
+  "tool_windows": [],
   "contributes": {
     "views": [
       {

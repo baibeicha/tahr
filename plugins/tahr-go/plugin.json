@@ -36,9 +36,70 @@
         "run",
         "."
       ],
+      "test_cmd": "go",
+      "test_args": [
+        "test",
+        "-v"
+      ],
+      "test_pattern": "*_test.go",
       "install_cmd": "go install golang.org/x/tools/gopls@latest"
     }
   ],
+  "testing": {
+    "id": "go",
+    "name": "Go Test",
+    "framework": "go test",
+    "languages": [
+      "go"
+    ],
+    "extensions": [
+      ".go"
+    ],
+    "test_patterns": [
+      "*_test.go"
+    ],
+    "command": "go",
+    "args": [
+      "test",
+      "-v"
+    ],
+    "run_single_args": [
+      "test",
+      "-v",
+      "-run",
+      "^{{test}}$",
+      "{{package}}"
+    ],
+    "run_package_args": [
+      "test",
+      "-v",
+      "{{package}}"
+    ],
+    "run_all_args": [
+      "test",
+      "-v",
+      "./..."
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*_test.go"
+      ],
+      "extract_regexes": [
+        "func\\s+(Test[A-Za-z0-9_]+)\\s*\\("
+      ],
+      "package_root_markers": [
+        "go.mod",
+        "go.work"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "--- PASS:\\s+(\\S+)(?:\\s+\\(([0-9.]+(?:s|ms|ns|m))\\))?",
+      "fail_pattern": "--- FAIL:\\s+(\\S+)(?:\\s+\\(([0-9.]+(?:s|ms|ns|m))\\))?",
+      "skip_pattern": "--- SKIP:\\s+(\\S+)(?:\\s+\\(([0-9.]+(?:s|ms|ns|m))\\))?",
+      "traceback_start": "^\\s*(?:[A-Za-z0-9_.-]+_test\\.go:\\d+:|panic:|FAIL)",
+      "traceback_end": "^--- (?:PASS|FAIL|SKIP):"
+    }
+  },
   "lsp": {
     "server_name": "gopls",
     "command": "gopls",

@@ -39,9 +39,78 @@
       "run_args": [
         "index.js"
       ],
+      "test_cmd": "npm",
+      "test_args": [
+        "test"
+      ],
+      "test_pattern": "*.test.ts",
       "install_cmd": "npm install -g typescript typescript-language-server"
     }
   ],
+  "testing": {
+    "id": "typescript",
+    "name": "TypeScript / JavaScript Tests",
+    "framework": "npm test / vitest",
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "extensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx"
+    ],
+    "test_patterns": [
+      "*.test.ts",
+      "*.spec.ts",
+      "*.test.js",
+      "*.spec.js",
+      "*.test.tsx",
+      "*.spec.tsx"
+    ],
+    "command": "npm",
+    "args": [
+      "test"
+    ],
+    "run_single_args": [
+      "test",
+      "--",
+      "-t",
+      "{{test}}"
+    ],
+    "run_package_args": [
+      "test",
+      "--",
+      "{{package}}"
+    ],
+    "run_all_args": [
+      "test"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*.test.ts",
+        "*.spec.ts",
+        "*.test.js",
+        "*.spec.js",
+        "*.test.tsx",
+        "*.spec.tsx"
+      ],
+      "extract_regexes": [
+        "(?:it|test)\\s*\\(\\s*['\"`]([^'\"`]+)['\"`]"
+      ],
+      "package_root_markers": [
+        "package.json"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "(?:✓|PASS)\\s+(?:.*?[:>]?\\s*)?([A-Za-z0-9_\\-\\s]+?)(?:\\s+\\(([0-9.]+(?:s|ms))\\))?$",
+      "fail_pattern": "(?:✕|FAIL)\\s+(?:.*?[:>]?\\s*)?([A-Za-z0-9_\\-\\s]+?)(?:\\s+\\(([0-9.]+(?:s|ms))\\))?$",
+      "skip_pattern": "(?:↓|SKIP|SKIPPED)\\s+(?:.*?[:>]?\\s*)?([A-Za-z0-9_\\-\\s]+?)$",
+      "traceback_start": "^(?:\\s*●\\s+.*|\\s*Error:|\\s*expect\\()",
+      "traceback_end": "^(?:Test Suites:|Tests:|Snapshots:)"
+    }
+  },
   "lsp": {
     "server_name": "typescript-language-server",
     "command": "typescript-language-server",

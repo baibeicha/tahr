@@ -32,9 +32,63 @@
       "run_args": [
         "run"
       ],
+      "test_cmd": "cargo",
+      "test_args": [
+        "test"
+      ],
+      "test_pattern": "*.rs",
       "install_cmd": "rustup component add rust-analyzer"
     }
   ],
+  "testing": {
+    "id": "rust",
+    "name": "Cargo Test",
+    "framework": "cargo test",
+    "languages": [
+      "rust"
+    ],
+    "extensions": [
+      ".rs"
+    ],
+    "test_patterns": [
+      "*.rs"
+    ],
+    "command": "cargo",
+    "args": [
+      "test"
+    ],
+    "run_single_args": [
+      "test",
+      "--",
+      "{{test}}"
+    ],
+    "run_package_args": [
+      "test",
+      "--package",
+      "{{package}}"
+    ],
+    "run_all_args": [
+      "test"
+    ],
+    "discovery": {
+      "file_patterns": [
+        "*.rs"
+      ],
+      "extract_regexes": [
+        "(?:#\\[test\\]|#\\[tokio::test\\])[\\s\\r\\n]+(?:async\\s+)?fn\\s+([A-Za-z0-9_]+)"
+      ],
+      "package_root_markers": [
+        "Cargo.toml"
+      ]
+    },
+    "output_parsing": {
+      "pass_pattern": "test\\s+(\\S+)\\s+\\.\\.\\.\\s+ok(?:\\s+\\(([0-9.]+(?:s|ms))\\))?",
+      "fail_pattern": "test\\s+(\\S+)\\s+\\.\\.\\.\\s+FAILED",
+      "skip_pattern": "test\\s+(\\S+)\\s+\\.\\.\\.\\s+ignored",
+      "traceback_start": "^(?:----\\s+\\S+\\s+stdout\\s+----|thread\\s+'.*'\\s+panicked)",
+      "traceback_end": "^(?:failures:|test result:)"
+    }
+  },
   "lsp": {
     "server_name": "rust-analyzer",
     "command": "rust-analyzer",
