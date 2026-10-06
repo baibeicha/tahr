@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -209,4 +211,62 @@ func TestEngineContextCancellation(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error due to canceled context, got nil")
 	}
+}
+
+func TestEngineStatus(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Provider = ProviderBuiltin
+	cfg.ModelPath = "nonexistent.gguf"
+	cfg.LlamaServerPath = "nonexistent-server"
+
+	eng := NewEngine(cfg, "")
+	st, reason := eng.Status()
+	if st != StatusNoModel && st != StatusNoServer {
+		t.Errorf("expected No Model or No Server status, got %s (%s)", st, reason)
+	}
+
+	cfg.Enabled = false
+	eng.UpdateConfig(cfg)
+	st, _ = eng.Status()
+	if st != StatusDisabled {
+		t.Errorf("expected Disabled status, got %s", st)
+	}
+}
+
+func TestDownloaderLifecycle(t *testing.T) {
+	d := NewDownloader()
+	if d.IsDownloading() {
+		t.Errorf("expected IsDownloading to be false initially")
+	}
+	pct, msg := d.Progress()
+	if pct != 0 || msg != "" {
+		t.Errorf("unexpected initial progress: %d, %s", pct, msg)
+	}
+
+	d.setStatus(45, "Downloading model...")
+	pct, msg = d.Progress()
+	if pct != 45 || msg != "Downloading model..." {
+		t.Errorf("expected 45 and message, got %d, %s", pct, msg)
+	}
+}
+
+func TestEngineAutoDownloadCheck(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := DefaultConfig()
+	cfg.Provider = ProviderBuiltin
+	cfg.ModelPath = filepath.Join(tmpDir, "models", "qwen.gguf")
+	cfg.LlamaServerPath = filepath.Join(tmpDir, "bin", "llama-server")
+
+	eng := NewEngine(cfg, tmpDir)
+
+	// Since files are missing, CheckAndAutoDownload should recognize they need download
+	var started atomic.Bool
+	triggered := eng.CheckAndAutoDownload(tmpDir, func() {
+		started.Store(true)
+	}, nil, nil)
+
+	if !triggered {
+		t.Errorf("expected CheckAndAutoDownload to trigger download for missing files")
+	}
+	defer eng.downloader.Cancel()
 }
