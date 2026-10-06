@@ -54,12 +54,12 @@ func runTUI(projectDir string, files []string, themeName string) error {
 	defer logging.Close()
 	logging.Info("Initializing Tahr IDE TUI", "workspace", workspaceRoot)
 
-	// Ensure canonical reference Go plugin exists in project and packages directory
-	_ = plugin.EnsureReferenceGoPlugin(workspaceRoot)
-
-	// Initialize Go SDK detection (detects real go version and prepends to PATH/GOROOT)
-	sdkMgr := sdk.GetManager()
-	logging.Info("Go SDK detected", "version", sdkMgr.GoVersionShort())
+	// Initialize SDK detection and reference plugins asynchronously for instantaneous startup (<10ms)
+	go func() {
+		_ = plugin.EnsureReferenceGoPlugin(workspaceRoot)
+		sdkMgr := sdk.GetManager()
+		logging.Info("Go SDK detected", "version", sdkMgr.GoVersionShort())
+	}()
 
 	// Initial untitled buffer ID
 	initialUntitledID := ""
