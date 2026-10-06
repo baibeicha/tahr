@@ -1,0 +1,75 @@
+{
+  "id": "db-er-diagram",
+  "name": "Database ER Diagram & Schema Designer",
+  "version": "1.0.0",
+  "author": "Tahr Team",
+  "description": "Interactive 2D entity-relationship (ER) diagram visualizer with Crow's Foot relations, Sugiyama auto-layout, table search, and DDL/Mermaid export",
+  "toolchain": {
+    "name": "SQL"
+  },
+  "languages": [
+    {
+      "id": "sql",
+      "name": "SQL",
+      "extensions": [
+        ".sql",
+        ".ddl"
+      ]
+    }
+  ],
+  "tool_windows": [
+    {
+      "id": "db-er-diagram-panel",
+      "title": "ER Diagram",
+      "icon": "DB",
+      "position": "right"
+    }
+  ],
+  "contributes": {
+    "views": [
+      {
+        "container_id": "workbench.view.database",
+        "tab_id": "db-er-diagram",
+        "title": "ER Diagram",
+        "icon": "nf-dev-database",
+        "slot": "workbench.slot.editor-area"
+      }
+    ]
+  },
+  "commands": [
+    {
+      "id": "db-er-diagram.openCanvas",
+      "title": "Database: Open Interactive ER Diagram (F6)",
+      "default_keybinding": "F6"
+    },
+    {
+      "id": "db-er-diagram.exportMermaid",
+      "title": "Database: Export ER Diagram to Mermaid"
+    },
+    {
+      "id": "db-er-diagram.exportDDL",
+      "title": "Database: Export ER Diagram to DDL Migration"
+    }
+  ],
+  "capabilities": [
+    "fs:read",
+    "fs:write"
+  ],
+  "settings": {
+    "auto_sync_active_db": {
+      "type": "bool",
+      "default": true,
+      "description": "Automatically synchronize diagram schema with active Database Inspector session"
+    },
+    "scan_workspace_migrations": {
+      "type": "bool",
+      "default": true,
+      "description": "Scan workspace migrations and SQL files for table definitions when offline"
+    },
+    "default_export_format": {
+      "type": "string",
+      "default": "mermaid",
+      "description": "Default export format: mermaid or ddl"
+    }
+  }
+}

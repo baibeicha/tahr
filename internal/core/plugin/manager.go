@@ -204,12 +204,13 @@ func (m *Manager) saveStateLocked() error {
 	return os.WriteFile(m.stateFile, b, 0644)
 }
 
-// SetProjectDir configures the project workspace directory and scans .tahr/plugins.
+// SetProjectDir configures the project workspace directory and scans plugins.
 func (m *Manager) SetProjectDir(projectDir string) {
 	if projectDir == "" {
 		return
 	}
 	m.mu.Lock()
+	m.workspaceRoot = projectDir
 	m.projectPluginsDir = filepath.Join(projectDir, ".tahr", "plugins")
 	m.mu.Unlock()
 	_ = m.Discover()
@@ -241,6 +242,9 @@ func (m *Manager) getScanDirsLocked() []scanDirInfo {
 	}
 
 	// 1. Project-level plugins: highest directory tier (TierProject = 4)
+	if m.workspaceRoot != "" {
+		add(filepath.Join(m.workspaceRoot, "plugins"), TierProject)
+	}
 	if m.projectPluginsDir != "" {
 		add(m.projectPluginsDir, TierProject)
 	}
@@ -272,7 +276,6 @@ func (m *Manager) getScanDirsLocked() []scanDirInfo {
 			p := filepath.Join(cur, "plugins")
 			if fi, err := os.Stat(p); err == nil && fi.IsDir() {
 				add(p, TierBuiltin)
-				break
 			}
 			parent := filepath.Dir(cur)
 			if parent == cur {
@@ -517,6 +520,38 @@ func (m *Manager) IsEnabled(id string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.isEnabledLocked(id)
+}
+
+// ActiveToolWindow represents an active docked tool window contributed by an enabled plugin.
+type ActiveToolWindow struct {
+	PluginID string
+	ToolWindowConfig
+}
+
+// ActiveToolWindows returns all tool windows contributed by currently enabled plugins.
+func (m *Manager) ActiveToolWindows() []ActiveToolWindow {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var res []ActiveToolWindow
+	for id, manifest := range m.installed {
+		if !m.isEnabledLocked(id) {
+			continue
+		}
+		for _, tw := range manifest.ToolWindows {
+			res = append(res, ActiveToolWindow{
+				PluginID:         id,
+				ToolWindowConfig: tw,
+			})
+		}
+	}
+	sort.Slice(res, func(i, j int) bool {
+		if res[i].PluginID != res[j].PluginID {
+			return res[i].PluginID < res[j].PluginID
+		}
+		return res[i].ID < res[j].ID
+	})
+	return res
 }
 
 // IsExtensionActive returns true if an enabled language plugin provides support for this file extension.

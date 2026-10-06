@@ -22,10 +22,21 @@
     {
       "id": "db-inspector-panel",
       "title": "Databases",
-      "icon": "[SQL]",
-      "position": "left"
+      "icon": "DB",
+      "position": "right"
     }
   ],
+  "contributes": {
+    "views": [
+      {
+        "container_id": "workbench.view.database",
+        "tab_id": "db-tables",
+        "title": "Tables",
+        "icon": "nf-dev-database",
+        "slot": "workbench.slot.editor-area"
+      }
+    ]
+  },
   "commands": [
     {
       "id": "db-inspector.connect",

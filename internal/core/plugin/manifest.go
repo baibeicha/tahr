@@ -118,6 +118,28 @@ const (
 	TierProject = 4 // Workspace project directory (<workspace>/.tahr/plugins)
 )
 
+// ViewContribution describes a custom UI view/tab contributed by a plugin.
+type ViewContribution struct {
+	ContainerID string `json:"container_id"`
+	TabID       string `json:"tab_id"`
+	Title       string `json:"title"`
+	Icon        string `json:"icon,omitempty"`
+	Slot        string `json:"slot,omitempty"` // e.g. "workbench.slot.editor-area", "workbench.slot.left-sidebar"
+}
+
+// ToolWindowConfig defines a docked panel tool window contributed by an extension.
+type ToolWindowConfig struct {
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Icon     string `json:"icon"`
+	Position string `json:"position"` // "left", "right", "bottom"
+}
+
+// ContributesConfig holds all declarative contribution points of an extension.
+type ContributesConfig struct {
+	Views []ViewContribution `json:"views,omitempty"`
+}
+
 // Manifest represents the declarative metadata of a .tahr extension.
 type Manifest struct {
 	ID               string                         `json:"id"`
@@ -140,6 +162,8 @@ type Manifest struct {
 	Localizations    []LocalizationConfig           `json:"localizations,omitempty"`
 	Toolchain        *ToolchainConfig               `json:"toolchain,omitempty"`
 	WASMEntry        string                         `json:"wasm_entry,omitempty"`
+	ToolWindows      []ToolWindowConfig             `json:"tool_windows,omitempty"`
+	Contributes      *ContributesConfig             `json:"contributes,omitempty"`
 
 	SourceTier       int                            `json:"-"` // Precedence tier: TierBuiltin, TierUser, TierLink, TierProject
 }
