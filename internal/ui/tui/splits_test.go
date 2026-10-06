@@ -115,3 +115,55 @@ func TestSplitManager_NavigationAndFind(t *testing.T) {
 		t.Fatalf("expected to find pane at (10, 5), got %d", paneAt)
 	}
 }
+
+func TestSplitManager_ViewMountingAndPreservation(t *testing.T) {
+	sm := NewSplitManager()
+	sm.SetLayout(Split2Cols)
+	area := buffer.NewRect(0, 0, 100, 40)
+
+	docs := []*core.Document{
+		{ID: "doc1", FilePath: "main.go"},
+		{ID: "doc2", FilePath: "buffer.go"},
+	}
+
+	sm.UpdateLayout(area, docs, "doc1")
+	if sm.Panes[0].DocID != "doc1" || sm.Panes[1].DocID != "doc2" {
+		t.Fatalf("expected initial docs doc1 and doc2, got %s and %s", sm.Panes[0].DocID, sm.Panes[1].DocID)
+	}
+
+	// Mount a WASM / DAG View in Split 1 (second pane)
+	sm.SetPaneView(1, "view.db_designer", "DAG DB Designer")
+
+	p1 := sm.PaneAt(1)
+	if !p1.IsView() {
+		t.Fatalf("expected pane 1 to be a view")
+	}
+	if p1.ViewID != "view.db_designer" || p1.ViewTitle != "DAG DB Designer" {
+		t.Fatalf("unexpected view metadata: %+v", p1)
+	}
+
+	// Verify title generation
+	title := PaneTitleForPane(p1, nil)
+	if title != " [2: DAG DB Designer] " {
+		t.Errorf("expected title ' [2: DAG DB Designer] ', got %q", title)
+	}
+
+	// Re-run UpdateLayout with new docs - view in pane 1 MUST NOT be overwritten!
+	sm.UpdateLayout(area, []*core.Document{
+		{ID: "doc3", FilePath: "other.go"},
+		{ID: "doc4", FilePath: "extra.go"},
+	}, "doc3")
+
+	if !sm.Panes[1].IsView() || sm.Panes[1].ViewID != "view.db_designer" {
+		t.Fatalf("UpdateLayout erased mounted view in pane 1! Got %+v", sm.Panes[1])
+	}
+
+	// Unmount / revert pane 1 back to a code document
+	sm.SetPaneDoc(1, "doc4")
+	if sm.Panes[1].IsView() {
+		t.Fatalf("expected pane 1 to no longer be a view")
+	}
+	if sm.Panes[1].DocID != "doc4" {
+		t.Fatalf("expected pane 1 DocID to be doc4, got %s", sm.Panes[1].DocID)
+	}
+}

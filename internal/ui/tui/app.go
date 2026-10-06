@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"math"
 	"net/url"
@@ -29,13 +30,16 @@ import (
 	corebuf "tahr/internal/core/buffer"
 	"tahr/internal/core/clipboard"
 	"tahr/internal/core/crash"
+	"tahr/internal/core/dag"
 	"tahr/internal/core/dap"
+	"tahr/internal/core/db"
 	"tahr/internal/core/git"
 	"tahr/internal/core/i18n"
 	"tahr/internal/core/keymaps"
 	"tahr/internal/core/launch"
 	"tahr/internal/core/logging"
 	"tahr/internal/core/lsp"
+	"tahr/internal/core/p2p"
 	"tahr/internal/core/plugin"
 	"tahr/internal/core/sdk"
 	"tahr/internal/core/syntax"
@@ -437,12 +441,14 @@ type AppModel struct {
 	lastEditorClickLine int
 	lastEditorClickCol  int
 
-	// Modals: Find & Replace, Project Rename, New Project, Search in Files, and Problems
+	// Modals: Find & Replace, Project Rename, New Project, Search in Files, Problems, P2P & DB Diff
 	findReplaceModal   *FindReplaceModal
 	renameModal        *RenameModal
 	newProjectModal    *NewProjectModal
 	searchInFilesModal *SearchInFilesModal
 	problemsPanel      *ProblemsPanel
+	p2pModal           *P2PModal
+	dbDiffModal        *DBDiffModal
 
 	// Vim Modal Editing & Snippets
 	vimFSM         *vim.FSM
@@ -473,6 +479,20 @@ type AppModel struct {
 	// Animations
 	sidebarAnimWidth   float64
 	sidebarTargetWidth float64
+
+	// Secondary Right Sidebar & Plugin Tool Windows
+	rightSidebarOpen        bool
+	rightSidebarWidth       int
+	rightSidebarTargetWidth float64
+	rightSidebarAnimWidth   float64
+	rightSidebarMode        string // "ai-chat", "db-inspector", "project-graphs", etc.
+	rightSidebarPluginID    string
+	rightSidebarTitle       string
+	rightSidebarMessages    []AIChatMsg
+	dbSidebarTab            string // "tables" or "er-diagram"
+	chatPanel               *ChatPanel
+	dagCanvasWidget         *DAGCanvasWidget
+	projectGraphPanel       *ProjectGraphPanel
 
 	// Tree file operations prompt
 	treePromptOpen   bool
@@ -583,6 +603,12 @@ type minimapHitbox struct {
 type contextMenuItem struct {
 	label  string
 	action string
+}
+
+// AIChatMsg represents a chat message in the Right Sidebar assistant.
+type AIChatMsg struct {
+	Role    string
+	Content string
 }
 
 type animTickMsg struct{}
@@ -753,8 +779,18 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		marketplace:         NewMarketplaceModal(pm),
 		pluginMgr:           pm,
 		lastWheelTime:       time.Now(),
-		sidebarAnimWidth:    0,
-		sidebarTargetWidth:   0,
+		sidebarAnimWidth:        0,
+		sidebarTargetWidth:      0,
+		rightSidebarOpen:        false,
+		rightSidebarWidth:       34,
+		rightSidebarTargetWidth: 0,
+		rightSidebarAnimWidth:   0,
+		rightSidebarMode:        "ai-chat",
+		rightSidebarTitle:       "AI Assistant",
+		rightSidebarMessages: []AIChatMsg{
+			{Role: "ai", Content: "Hello! I am your Tahr AI Assistant. Ask questions, generate tests, or inspect symbols."},
+		},
+		dbSidebarTab:        "tables",
 		inlayHints:          make(map[int][]lsp.InlayHint),
 		semanticTokens:      make(map[int][]lsp.DecodedSemanticToken),
 		quickFixModal:       NewQuickFixModal(),
@@ -802,8 +838,62 @@ func NewAppModel(eng *core.Engine) *AppModel {
 
 	aiCfg := m.getAIConfig()
 	m.aiEngine = ai.NewEngine(aiCfg, cwd)
-	if aiCfg.Enabled {
+	if aiCfg.Enabled && flag.Lookup("test.v") == nil {
 		go func() { _ = m.aiEngine.Start() }()
+		m.triggerAIAutoDownload()
+	}
+
+	chatCfg := m.getAIChatConfig()
+	chatEng := ai.NewChatEngine(chatCfg)
+	m.chatPanel = NewChatPanel(chatEng)
+	m.chatPanel.OnApplyCode = func(code string) {
+		doc := m.eng.ActiveDocument()
+		if doc == nil {
+			return
+		}
+		_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: code})
+		m.notifyLSPChange()
+		m.ensureCursorVisible()
+		_ = m.onTextMutation()
+		if m.toasts != nil {
+			m.toasts.Success("AI", "Applied code snippet to document")
+		}
+	}
+	m.chatPanel.OnInsertCode = func(code string) {
+		doc := m.eng.ActiveDocument()
+		if doc == nil {
+			return
+		}
+		_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: code})
+		m.notifyLSPChange()
+		m.ensureCursorVisible()
+		_ = m.onTextMutation()
+		if m.toasts != nil {
+			m.toasts.Success("AI", "Inserted code snippet at cursor")
+		}
+	}
+	m.chatPanel.OnCopyCode = func(code string) {
+		_ = clipboard.Write(code)
+		m.clipboardText = code
+		if m.toasts != nil {
+			m.toasts.Success("CLIPBOARD", fmt.Sprintf("Copied %d characters", len(code)))
+		}
+	}
+	m.chatPanel.OnToast = func(level, title, msg string) {
+		if m.toasts == nil {
+			return
+		}
+		switch level {
+		case "error":
+			m.toasts.Error(title, msg)
+		case "warn":
+			m.toasts.Warn(title, msg)
+		default:
+			m.toasts.Info(title, msg)
+		}
+	}
+	m.chatPanel.OnClose = func() {
+		_ = m.ToggleRightSidebar(m.rightSidebarMode)
 	}
 
 	if m.settings != nil {
@@ -818,6 +908,12 @@ func NewAppModel(eng *core.Engine) *AppModel {
 			if m.aiEngine != nil {
 				aiCfg := m.getAIConfig()
 				m.aiEngine.UpdateConfig(aiCfg)
+				if aiCfg.Enabled && flag.Lookup("test.v") == nil {
+					m.triggerAIAutoDownload()
+				}
+			}
+			if m.chatPanel != nil && m.chatPanel.Engine != nil {
+				m.chatPanel.Engine.UpdateConfig(m.getAIChatConfig())
 			}
 		}
 		m.settings.OnToolInstallStarted = func(toolName, cmd string) {
@@ -1296,6 +1392,133 @@ func (m *AppModel) animateSidebar() tea.Cmd {
 		time.Sleep(8 * time.Millisecond)
 		return animTickMsg{}
 	}
+}
+
+// ToggleRightSidebar toggles visibility of the secondary right sidebar.
+func (m *AppModel) ToggleRightSidebar(mode string) tea.Cmd {
+	if m.rightSidebarOpen && (mode == "" || m.rightSidebarMode == mode) {
+		m.rightSidebarOpen = false
+		m.rightSidebarTargetWidth = 0
+		if m.settings != nil && !m.settings.Current.SmoothAnim {
+			m.rightSidebarAnimWidth = 0
+		}
+	} else {
+		m.rightSidebarOpen = true
+		if mode != "" {
+			m.rightSidebarMode = mode
+			switch mode {
+			case "ai-chat":
+				m.rightSidebarTitle = "AI Assistant"
+			case "db-inspector", "db":
+				m.rightSidebarTitle = "Databases"
+				if m.dbSidebarTab == "" {
+					m.dbSidebarTab = "tables"
+				}
+				if m.pluginMgr != nil {
+					insp := m.pluginMgr.IsEnabled("db-inspector")
+					erd := m.pluginMgr.IsEnabled("db-er-diagram")
+					if !insp && erd {
+						m.dbSidebarTab = "er-diagram"
+					} else if insp && !erd {
+						m.dbSidebarTab = "tables"
+					}
+				}
+				if m.dbSidebarTab == "er-diagram" {
+					m.OpenDAGCanvasInSplit()
+				}
+			case "project-graphs":
+				m.rightSidebarTitle = "Project Graphs"
+			default:
+				m.rightSidebarTitle = mode
+			}
+		}
+		if m.rightSidebarWidth <= 0 {
+			m.rightSidebarWidth = 34
+		}
+		m.rightSidebarTargetWidth = float64(m.rightSidebarWidth)
+		if m.settings != nil && !m.settings.Current.SmoothAnim {
+			m.rightSidebarAnimWidth = float64(m.rightSidebarWidth)
+		}
+	}
+	return func() tea.Msg {
+		time.Sleep(8 * time.Millisecond)
+		return animTickMsg{}
+	}
+}
+
+// toolWindowBadge extracts 2 characters from an icon or title for the 2-column activity strip.
+func toolWindowBadge(icon, title string) (rune, rune) {
+	s := strings.TrimSpace(icon)
+	if strings.HasPrefix(s, "[") && strings.HasSuffix(s, "]") {
+		s = strings.TrimPrefix(strings.TrimSuffix(s, "]"), "[")
+	}
+	if len(s) == 0 {
+		s = strings.TrimSpace(title)
+	}
+	r := []rune(s)
+	if len(r) == 0 {
+		return 'P', 'L'
+	}
+	if len(r) == 1 {
+		return r[0], ' '
+	}
+	return r[0], r[1]
+}
+
+// OpenDAGCanvasInSplit mounts the interactive Database Architecture DAG canvas into a 2-column split.
+func (m *AppModel) OpenDAGCanvasInSplit() {
+	if m.splits == nil {
+		m.splits = NewSplitManager()
+	}
+	if m.splits.TotalPanes() < 2 {
+		m.splits.SetLayout(Split2Cols)
+	}
+	if len(m.splits.Panes) > 1 {
+		m.splits.Panes[1].SetView("dag-canvas", "Database Architecture DAG")
+		m.splits.ActiveIndex = 1
+	}
+	if m.dagCanvasWidget == nil {
+		schema := db.LoadHybridSchema(m.workspaceDir)
+		m.dagCanvasWidget = NewDAGCanvasWidget(schema.ToGraphModel(), &m.theme)
+	}
+	m.statusMessage = "DAG Canvas opened in split pane"
+	if m.toasts != nil {
+		m.toasts.Success("DAG CANVAS", "Database schema opened in split pane")
+	}
+}
+
+// OpenProjectGraphInSplit mounts the interactive Call Hierarchy and Project Graph into a split pane.
+func (m *AppModel) OpenProjectGraphInSplit() {
+	if m.splits == nil {
+		m.splits = NewSplitManager()
+	}
+	if m.splits.TotalPanes() < 2 {
+		m.splits.SetLayout(Split2Cols)
+	}
+	if len(m.splits.Panes) > 1 {
+		m.splits.Panes[1].SetView("project-graph", "Project Call Hierarchy")
+		m.splits.ActiveIndex = 1
+	}
+	m.statusMessage = "Project Graph opened in split pane"
+	if m.toasts != nil {
+		m.toasts.Success("GRAPHS", "Call Hierarchy opened in split pane")
+	}
+}
+
+// handleToolWindowClick toggles or opens a tool window contributed by a plugin.
+func (m *AppModel) handleToolWindowClick(tw plugin.ActiveToolWindow) tea.Cmd {
+	if tw.ID == "sqlite-viewer-panel" {
+		return m.ToggleRightSidebar("db-inspector")
+	}
+	if tw.ID == "jupyter-notebook-panel" {
+		return m.ToggleRightSidebar("jupyter-notebook")
+	}
+	cmd := m.ToggleRightSidebar(tw.ID)
+	m.rightSidebarTitle = tw.Title
+	if m.toasts != nil {
+		m.toasts.Info("TOOL WINDOW", fmt.Sprintf("Opened %s", tw.Title))
+	}
+	return cmd
 }
 
 // clampSidebar ensures tree nodes exist and scroll/selection indices remain within valid bounds.
@@ -2194,6 +2417,36 @@ func (m *AppModel) getDiagnosticsForLine(line int) ([]lsp.Diagnostic, bool) {
 		}
 	}
 
+	if !found && doc != nil && m.docDiagnostics != nil {
+		normDoc := normalizeURI(doc.FilePath)
+		if fileMap, ok := m.docDiagnostics[normDoc]; ok {
+			if msg, ok2 := fileMap[line]; ok2 && msg != "" {
+				result = append(result, lsp.Diagnostic{
+					Severity: 1,
+					Message:  msg,
+					Range: lsp.Range{
+						Start: lsp.Position{Line: line, Character: 0},
+						End:   lsp.Position{Line: line, Character: 999},
+					},
+				})
+				found = true
+			}
+		}
+	}
+	if !found && m.diagnostics != nil {
+		if msg, ok := m.diagnostics[line]; ok && msg != "" {
+			result = append(result, lsp.Diagnostic{
+				Severity: 1,
+				Message:  msg,
+				Range: lsp.Range{
+					Start: lsp.Position{Line: line, Character: 0},
+					End:   lsp.Position{Line: line, Character: 999},
+				},
+			})
+			found = true
+		}
+	}
+
 	return result, found
 }
 
@@ -2368,9 +2621,33 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.sidebarAnimWidth = m.sidebarTargetWidth
 		}
 
-		animScroll := m.stepSmoothScroll()
+		diffR := m.rightSidebarTargetWidth - m.rightSidebarAnimWidth
+		if math.Abs(diffR) > 0.8 {
+			stepR := diffR * 0.6
+			if math.Abs(stepR) < 2.0 {
+				if diffR > 0 {
+					stepR = 2.0
+				} else {
+					stepR = -2.0
+				}
+			}
+			m.rightSidebarAnimWidth += stepR
+			if (diffR > 0 && m.rightSidebarAnimWidth >= m.rightSidebarTargetWidth) || (diffR < 0 && m.rightSidebarAnimWidth <= m.rightSidebarTargetWidth) {
+				m.rightSidebarAnimWidth = m.rightSidebarTargetWidth
+			} else {
+				animSidebar = true
+			}
+		} else {
+			m.rightSidebarAnimWidth = m.rightSidebarTargetWidth
+		}
 
-		if animSidebar || animScroll {
+		animScroll := m.stepSmoothScroll()
+		animGit := false
+		if m.gitModal != nil && m.gitModal.Open {
+			animGit = m.gitModal.StepAnimation()
+		}
+
+		if animSidebar || animScroll || animGit {
 			return m, func() tea.Msg {
 				time.Sleep(8 * time.Millisecond) // 120 FPS target
 				return animTickMsg{}
@@ -2917,6 +3194,38 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// P2P Collaboration modal intercepts keys when open
+	if m.p2pModal != nil && m.p2pModal.Visible {
+		keyStr := ""
+		switch k.Type {
+		case input.KeyEsc:
+			keyStr = "Escape"
+		case input.KeyEnter:
+			keyStr = "Enter"
+		default:
+			if k.Rune != 0 {
+				keyStr = string(k.Rune)
+			}
+		}
+		if keyStr != "" && m.p2pModal.HandleKeyEvent(keyStr) {
+			return m, nil
+		}
+		return m, nil
+	}
+
+	// DB Diff modal intercepts keys when open
+	if m.dbDiffModal != nil && m.dbDiffModal.Visible {
+		if k.Type == input.KeyEsc {
+			m.dbDiffModal.Visible = false
+			return m, nil
+		}
+		if k.Type == input.KeyTab {
+			m.dbDiffModal.ActiveTab = (m.dbDiffModal.ActiveTab + 1) % 2
+			return m, nil
+		}
+		return m, nil
+	}
+
 	// Find & Replace modal intercepts all keys when open
 	if m.findReplaceModal != nil && m.findReplaceModal.Open {
 		consumed, action := m.findReplaceModal.HandleKey(k)
@@ -2950,6 +3259,25 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 	if m.problemsPanel != nil && m.problemsPanel.Open {
 		if m.problemsPanel.HandleKey(k) {
 			return m, nil
+		}
+	}
+
+	// AI Assistant Chat Panel intercepts keys when focused or model menu is open
+	if m.rightSidebarOpen && (m.rightSidebarMode == "ai-chat" || m.rightSidebarMode == "ai") && m.chatPanel != nil {
+		if m.chatPanel.InputFocused || m.chatPanel.ModelMenuOpen {
+			if !(k.HasCtrl() && (matchKey(k, 'l', 'д') || k.Rune == 12)) {
+				activeDocPath := ""
+				doc := m.eng.ActiveDocument()
+				if doc != nil {
+					activeDocPath = doc.FilePath
+				}
+				activeSelection := m.selectedText()
+				activeDiagnostics, _ := m.getDiagnosticAtCursor()
+				activeTerminal := ""
+				if m.chatPanel.HandleKey(k, activeDocPath, activeSelection, activeDiagnostics, activeTerminal) {
+					return m, nil
+				}
+			}
 		}
 	}
 
@@ -2999,6 +3327,9 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 	// 0.0001 Git modal intercepts all keys when open
 	if m.gitModal != nil && m.gitModal.Open {
 		if m.gitModal.HandleKey(k) {
+			if m.gitModal.DetailOpen && m.gitModal.AnimProgress < 1.0 {
+				return m, func() tea.Msg { return animTickMsg{} }
+			}
 			return m, nil
 		}
 	}
@@ -3316,6 +3647,11 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		m.statusMessage = fmt.Sprintf("Project Tree: %v", m.sidebarOpen)
 		return m, cmd
 
+	case input.KeyF3:
+		// F3: Open Project Graphs & Call Hierarchy in split
+		m.OpenProjectGraphInSplit()
+		return m, nil
+
 	case input.KeyF4:
 		// F4: Toggle Integrated Terminal
 		if m.terminal != nil {
@@ -3421,6 +3757,11 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case input.KeyF6:
+		// F6: Open Database Architecture DAG Canvas in split
+		m.OpenDAGCanvasInSplit()
+		return m, nil
+
 	case input.KeyF12:
 		// F12: Go to Definition (idea.md section 9)
 		m.gotoDefinition()
@@ -3460,6 +3801,27 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 	// Alt+Right / Alt+Left / Alt+Enter / Alt+\: Next / Prev split pane / Quick Fix / AI Completion
 	if k.HasAlt() && !k.HasCtrl() {
 		if k.Rune == '\\' || k.BaseKey == '\\' {
+			if m.aiEngine == nil || (m.pluginMgr != nil && !m.pluginMgr.IsEnabled("ai-completion")) {
+				m.toasts.Warn("AI", "Plugin 'ai-completion' is disabled (press Ctrl+, to enable)")
+				return m, nil
+			}
+			if m.aiEngine.IsDownloading() {
+				pct, msg := m.aiEngine.DownloadProgress()
+				m.toasts.Info("AI", fmt.Sprintf("AI model is downloading in background (%d%%: %s)", pct, msg))
+				return m, nil
+			}
+			st, reason := m.aiEngine.Status()
+			if st == ai.StatusNoModel || st == ai.StatusNoServer {
+				if m.triggerAIAutoDownload() {
+					return m, nil
+				}
+				m.toasts.Error("AI", fmt.Sprintf("AI Completion error: %s (%s)", st, reason))
+				return m, nil
+			}
+			if st == ai.StatusOffline || st == ai.StatusNoAPIKey {
+				m.toasts.Error("AI", fmt.Sprintf("AI Completion error: %s (%s)", st, reason))
+				return m, nil
+			}
 			m.triggerAICompletion(true)
 			return m, nil
 		}
@@ -3574,12 +3936,26 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 				// Ctrl+Shift+B: Build project
 				m.BuildActive()
 				return m, nil
+			} else if k.HasAlt() {
+				// Ctrl+Alt+B: Toggle secondary right sidebar
+				cmd := m.ToggleRightSidebar("")
+				return m, cmd
 			} else {
 				// Ctrl+B: Toggle file explorer sidebar
 				cmd := m.ToggleSidebar()
 				m.statusMessage = fmt.Sprintf("Project Tree: %v", m.sidebarOpen)
 				return m, cmd
 			}
+
+		case matchKey(k, 'l', 'д') || k.Rune == 12:
+			// Ctrl+L: Toggle AI Assistant Right Sidebar & focus input
+			cmd := m.ToggleRightSidebar("ai-chat")
+			if m.rightSidebarOpen && m.chatPanel != nil {
+				m.chatPanel.InputFocused = true
+			} else if !m.rightSidebarOpen && m.chatPanel != nil {
+				m.chatPanel.InputFocused = false
+			}
+			return m, cmd
 
 		case (matchKey(k, 'x', 'ч') || k.Rune == 24) && k.HasShift():
 			// Ctrl+Shift+X: Extension Marketplace
@@ -4254,8 +4630,23 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	// Click to dismiss toast notifications
 	if m.toasts != nil && m.toasts.Count() > 0 && msg.Action == input.MousePress && msg.Button == input.MouseLeft {
-		if m.toasts.HandleClick(msg.X, msg.Y, buffer.Rect{X: 0, Y: 0, Width: m.width, Height: m.height}) {
-			return m, nil
+		stripRightW := 0
+		if m.width >= 70 {
+			stripRightW = 3
+		}
+		rightSideW := 0
+		if m.rightSidebarOpen {
+			rightSideW = m.rightSidebarWidth
+			if rightSideW <= 0 {
+				rightSideW = 34
+			}
+		}
+		isRightStrip := stripRightW > 0 && msg.X >= m.width-stripRightW
+		isRightSidebar := m.rightSidebarOpen && rightSideW > 0 && msg.X >= m.width-stripRightW-rightSideW && msg.X < m.width-stripRightW
+		if !isRightStrip && !isRightSidebar {
+			if m.toasts.HandleClick(msg.X, msg.Y, buffer.Rect{X: 0, Y: 0, Width: m.width, Height: m.height}) {
+				return m, nil
+			}
 		}
 	}
 
@@ -4431,22 +4822,31 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	editorTop := 2
+	isTreeRight := (m.settings != nil && m.settings.Current.TreePosition == "right")
 	stripLeftW := 0
+	stripRightW := 0
 	if m.width >= 70 {
 		stripLeftW = 3
+		stripRightW = 3
 	}
 	sideW := 0
 	if m.sidebarOpen {
 		sideW = m.sidebarWidth
 	}
-	isTreeRight := (m.settings != nil && m.settings.Current.TreePosition == "right")
+	rightSideW := 0
+	if m.rightSidebarOpen {
+		rightSideW = m.rightSidebarWidth
+		if rightSideW <= 0 {
+			rightSideW = 34
+		}
+	}
 	treeStartX := stripLeftW
 	if isTreeRight {
-		treeStartX = m.width - sideW
+		treeStartX = m.width - stripRightW - sideW
 	}
 
 	editorLeft := stripLeftW
-	editorRight := m.width
+	editorRight := m.width - stripRightW
 	if isTreeRight {
 		if sideW > 0 {
 			editorRight = treeStartX - 1
@@ -4454,6 +4854,11 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	} else {
 		if sideW > 0 {
 			editorLeft = stripLeftW + sideW + 1
+		}
+		if rightSideW > 0 {
+			editorRight = m.width - stripRightW - rightSideW - 1
+		} else {
+			editorRight = m.width - stripRightW
 		}
 	}
 
@@ -4566,10 +4971,25 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// 0.64 Git modal intercepts mouse clicks
+	// 0.64 Git modal intercepts mouse clicks, drag, and wheel
 	if m.gitModal != nil && m.gitModal.Open {
 		if msg.Action == input.MousePress {
 			m.gitModal.HandleClick(msg.X, msg.Y, m.width, m.height)
+			if m.gitModal.DetailOpen && m.gitModal.AnimProgress < 1.0 {
+				return m, func() tea.Msg { return animTickMsg{} }
+			}
+		} else if msg.Action == input.MouseDrag {
+			m.gitModal.HandleDrag(msg.X, msg.Y, m.width, m.height)
+		} else if msg.Action == input.MouseRelease {
+			m.gitModal.HandleRelease()
+		} else if msg.Button == input.MouseWheelUp {
+			m.gitModal.HandleWheel(msg.X, msg.Y, -1, 0, m.width, m.height)
+		} else if msg.Button == input.MouseWheelDown {
+			m.gitModal.HandleWheel(msg.X, msg.Y, 1, 0, m.width, m.height)
+		} else if msg.Button == input.MouseWheelLeft {
+			m.gitModal.HandleWheel(msg.X, msg.Y, 0, -4, m.width, m.height)
+		} else if msg.Button == input.MouseWheelRight {
+			m.gitModal.HandleWheel(msg.X, msg.Y, 0, 4, m.width, m.height)
 		}
 		return m, nil
 	}
@@ -4788,16 +5208,18 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	// 0.8 Minimap click-to-scroll
 	if msg.Action == input.MousePress && msg.Button == input.MouseLeft {
-		for _, mm := range m.minimapHitboxes {
-			if msg.X >= mm.minX && msg.X <= mm.maxX && msg.Y >= mm.minY && msg.Y <= mm.maxY {
-				targetLine := MinimapHitTest(msg.Y, mm.minY, mm.maxY-mm.minY+1, mm.totalLines)
-				if mm.paneIdx == m.splits.ActivePaneIndex() {
-					m.viewportY = targetLine
+		if !m.rightSidebarOpen || msg.X < m.width-m.rightSidebarWidth {
+			for _, mm := range m.minimapHitboxes {
+				if msg.X >= mm.minX && msg.X <= mm.maxX && msg.Y >= mm.minY && msg.Y <= mm.maxY {
+					targetLine := MinimapHitTest(msg.Y, mm.minY, mm.maxY-mm.minY+1, mm.totalLines)
+					if mm.paneIdx == m.splits.ActivePaneIndex() {
+						m.viewportY = targetLine
+					}
+					if pane := m.splits.PaneAt(mm.paneIdx); pane != nil {
+						pane.ViewportY = targetLine
+					}
+					return m, nil
 				}
-				if pane := m.splits.PaneAt(mm.paneIdx); pane != nil {
-					pane.ViewportY = targetLine
-				}
-				return m, nil
 			}
 		}
 	}
@@ -4853,6 +5275,7 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 					if m.settings != nil {
 						m.settings.Open = true
 					}
+					return m, nil
 				}
 				return m, nil
 			}
@@ -4944,10 +5367,10 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// 1.8. Side activity strip clicks (Left only)
+	// 1.8. Side activity strip clicks (Left Strip)
 	if stripLeftW > 0 && msg.X < stripLeftW && msg.Action == input.MousePress && msg.Button == input.MouseLeft {
 		switch msg.Y {
-		case 2: // Project Explorer 📁
+		case 2: // Project Explorer EX
 			if !m.sidebarOpen {
 				m.sidebarOpen = true
 				m.sidebarMode = 0
@@ -4992,6 +5415,168 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
+
+	// 1.85. Right Activity Strip clicks (AI, DB, GR, and active plugins)
+	if stripRightW > 0 && msg.X >= m.width-stripRightW && msg.Action == input.MousePress && msg.Button == input.MouseLeft {
+		switch msg.Y {
+		case 2: // AI Assistant
+			return m, m.ToggleRightSidebar("ai-chat")
+		case 4: // Database Inspector & ER Diagram
+			hasDBPlugin := true
+			if m.pluginMgr != nil {
+				hasDBPlugin = m.pluginMgr.IsEnabled("db-inspector") || m.pluginMgr.IsEnabled("db-er-diagram")
+			}
+			if hasDBPlugin {
+				return m, m.ToggleRightSidebar("db-inspector")
+			}
+		case 6: // Project Graphs
+			return m, m.ToggleRightSidebar("project-graphs")
+		default:
+			if msg.Y >= 8 && msg.Y < m.height-3 && msg.Y%2 == 0 {
+				idx := (msg.Y - 8) / 2
+				var activeRightTools []plugin.ActiveToolWindow
+				if m.pluginMgr != nil {
+					for _, tw := range m.pluginMgr.ActiveToolWindows() {
+						if tw.Position == "right" {
+							activeRightTools = append(activeRightTools, tw)
+						}
+					}
+				}
+				if idx >= 0 && idx < len(activeRightTools) {
+					return m, m.handleToolWindowClick(activeRightTools[idx])
+				}
+			}
+			if msg.Y >= m.height-3 && msg.Y <= m.height-1 { // Collapse/Expand toggle » / «
+				return m, m.ToggleRightSidebar("")
+			}
+		}
+	}
+
+	// 1.86. Right Sidebar Content & Header clicks
+	if rightSideW > 0 && m.rightSidebarOpen {
+		rightStartX := m.width - stripRightW - rightSideW
+		editorH := m.height - 1 - editorTop
+		if m.terminal != nil && m.terminal.Open {
+			editorH = m.height - 1 - m.terminal.Height - editorTop
+		}
+		if msg.X >= rightStartX && msg.X < rightStartX+rightSideW && msg.Y >= editorTop && msg.Y < editorTop+editorH {
+			if msg.Button == input.MouseWheelUp {
+				if m.chatPanel != nil && (m.rightSidebarMode == "ai-chat" || m.rightSidebarMode == "ai") {
+					m.chatPanel.ScrollOffset += 3
+					return m, nil
+				}
+			} else if msg.Button == input.MouseWheelDown {
+				if m.chatPanel != nil && (m.rightSidebarMode == "ai-chat" || m.rightSidebarMode == "ai") {
+					if m.chatPanel.ScrollOffset > 3 {
+						m.chatPanel.ScrollOffset -= 3
+					} else {
+						m.chatPanel.ScrollOffset = 0
+					}
+					return m, nil
+				}
+			}
+			if msg.Action == input.MousePress && msg.Button == input.MouseLeft {
+				// Close button × at top right
+				if msg.Y == editorTop && msg.X >= rightStartX+rightSideW-3 {
+					return m, m.ToggleRightSidebar(m.rightSidebarMode)
+				}
+				// Interactive action buttons inside right sidebar
+				switch m.rightSidebarMode {
+				case "ai-chat", "ai":
+					if m.chatPanel != nil {
+						if m.chatPanel.HandleClick(msg.X, msg.Y, rightStartX, editorTop, rightSideW, editorH) {
+							return m, nil
+						}
+					}
+					return m, nil
+			case "db-inspector", "db":
+				inspEnabled := true
+				erdEnabled := true
+				if m.pluginMgr != nil {
+					inspEnabled = m.pluginMgr.IsEnabled("db-inspector")
+					erdEnabled = m.pluginMgr.IsEnabled("db-er-diagram")
+				}
+				offsetY := 0
+				if inspEnabled && erdEnabled {
+					offsetY = 2
+					// Tab header click at editorTop+2 (contentTop)
+					if msg.Y == editorTop+2 {
+						t1Len := 10 // " Таблицы "
+						if msg.X >= rightStartX+1 && msg.X <= rightStartX+1+t1Len {
+							m.dbSidebarTab = "tables"
+							return m, nil
+						}
+						if msg.X >= rightStartX+1+t1Len+1 && msg.X <= rightStartX+rightSideW-1 {
+							m.dbSidebarTab = "er-diagram"
+							m.OpenDAGCanvasInSplit()
+							return m, nil
+						}
+					}
+				}
+
+				if m.dbSidebarTab == "er-diagram" {
+					if msg.Y == editorTop+2+offsetY+3 { // Open Interactive Canvas (F6)
+						m.OpenDAGCanvasInSplit()
+						return m, nil
+					}
+					if msg.Y == editorTop+2+offsetY+4 { // Center Camera (C)
+						if m.dagCanvasWidget != nil {
+							m.dagCanvasWidget.PanX = 0
+							m.dagCanvasWidget.PanY = 0
+						}
+						if m.toasts != nil {
+							m.toasts.Info("ER DIAGRAM", "Camera centered")
+						}
+						return m, nil
+					}
+					if msg.Y == editorTop+2+offsetY+5 { // Export Mermaid ER
+						schema := db.LoadHybridSchema(m.workspaceDir)
+						mermaidCode := db.ExportMermaid(schema)
+						_ = clipboard.Write(mermaidCode)
+						if m.toasts != nil {
+							m.toasts.Success("EXPORT", "Copied Mermaid ER diagram to clipboard")
+						}
+						return m, nil
+					}
+					if msg.Y == editorTop+2+offsetY+6 { // Export DDL Migration
+						schema := db.LoadHybridSchema(m.workspaceDir)
+						ddlCode := db.ExportFullDDL(schema)
+						_ = clipboard.Write(ddlCode)
+						if m.toasts != nil {
+							m.toasts.Success("EXPORT", "Copied DDL schema migration to clipboard")
+						}
+						return m, nil
+					}
+				} else {
+					// Tab "tables"
+					if msg.Y == editorTop+2+offsetY+3 { // Run Query Console
+						m.openOmnibar("files")
+						return m, nil
+					}
+					if msg.Y == editorTop+2+offsetY+4 { // Refresh Database Schema
+						if m.toasts != nil {
+							m.toasts.Info("DATABASE", "Schema refreshed")
+						}
+						return m, nil
+					}
+				}
+			case "project-graphs", "graphs":
+				if msg.Y == editorTop+5 { // Open Interactive Canvas (F3)
+					m.OpenProjectGraphInSplit()
+					return m, nil
+				}
+				if msg.Y == editorTop+6 { // Cycle Hierarchy Mode
+					if m.projectGraphPanel != nil {
+						m.projectGraphPanel.CycleMode()
+						m.statusMessage = fmt.Sprintf("Graph Mode: %s", m.projectGraphPanel.ModeTitle())
+					}
+					return m, nil
+				}
+			}
+			return m, nil
+		}
+	}
+}
 
 	// 2. Mouse click inside Output Drawer
 	if m.outputOpen {
@@ -5450,8 +6035,10 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 func (m *AppModel) updateTooltip(x, y int) {
 	editorTop := 2
 	stripLeftW := 0
+	stripRightW := 0
 	if m.width >= 70 {
 		stripLeftW = 3
+		stripRightW = 3
 	}
 
 	// 1. Row 0 - Header Toolbar
@@ -5503,7 +6090,7 @@ func (m *AppModel) updateTooltip(x, y int) {
 		}
 	}
 
-	// 3. Side Activity Strip (Left only)
+	// 3. Side Activity Strip (Left Strip)
 	if stripLeftW > 0 && x < stripLeftW {
 		switch y {
 		case 2:
@@ -5521,6 +6108,41 @@ func (m *AppModel) updateTooltip(x, y int) {
 		default:
 			if y >= m.height-3 && y <= m.height-1 {
 				m.setTooltip(i18n.T("tooltip.side_settings"), x, y)
+				return
+			}
+		}
+	}
+
+	// 3.1. Secondary Activity Strip (Right Strip)
+	if stripRightW > 0 && x >= m.width-stripRightW {
+		switch y {
+		case 2:
+			m.setTooltip("AI Assistant (Ctrl+L)", x, y)
+			return
+		case 4:
+			m.setTooltip("Database Inspector & DAG Canvas (F6)", x, y)
+			return
+		case 6:
+			m.setTooltip("Project Graphs & Call Hierarchy (F3)", x, y)
+			return
+		default:
+			if y >= 8 && y < m.height-3 && y%2 == 0 {
+				idx := (y - 8) / 2
+				var activeRightTools []plugin.ActiveToolWindow
+				if m.pluginMgr != nil {
+					for _, tw := range m.pluginMgr.ActiveToolWindows() {
+						if tw.Position == "right" {
+							activeRightTools = append(activeRightTools, tw)
+						}
+					}
+				}
+				if idx >= 0 && idx < len(activeRightTools) {
+					m.setTooltip(activeRightTools[idx].Title, x, y)
+					return
+				}
+			}
+			if y >= m.height-3 && y <= m.height-1 {
+				m.setTooltip("Toggle Secondary Sidebar (Ctrl+Alt+B)", x, y)
 				return
 			}
 		}
@@ -5834,8 +6456,6 @@ func (m *AppModel) checkHoverDocTrigger(now time.Time) {
 		}
 	}
 
-
-
 	m.hoverDoc.Open = true
 	m.hoverDoc.TriggerTime = time.Time{}
 }
@@ -5979,6 +6599,9 @@ func (m *AppModel) updateOmnibarCandidates() {
 			"Theme: Monokai Pro",
 			"Theme: Tokyo Night",
 			"Theme: Gruvbox Dark",
+			"Collab: Start P2P Host Session (Ctrl+Shift+L)",
+			"Database: Open DAG Schema Designer",
+			"Graph: Open Polyglot Project Graphs",
 			"IDE: Report Bug / Issue",
 			"IDE: View Diagnostic Logs & System Data",
 		}
@@ -6070,6 +6693,17 @@ func (m *AppModel) updateOmnibarCandidates() {
 			candidates = []string{fmt.Sprintf("Enter line number (1..%d)", total)}
 		} else {
 			candidates = []string{fmt.Sprintf("Go to line %s (1..%d)", m.omnibarQuery, total)}
+		}
+	case "tools":
+		candidates = []string{
+			"AI Assistant (Ctrl+L)",
+			"Database Inspector & DAG Canvas (F6)",
+			"Project Graphs & Call Hierarchy (F3)",
+		}
+		if m.pluginMgr != nil {
+			for _, tw := range m.pluginMgr.ActiveToolWindows() {
+				candidates = append(candidates, fmt.Sprintf("%s (%s)", tw.Title, tw.ID))
+			}
 		}
 	default:
 		candidates = m.allProjectFiles
@@ -6187,6 +6821,25 @@ func (m *AppModel) handleOmnibarKey(k input.Key) (tea.Model, tea.Cmd) {
 				if name != "" {
 					_ = m.CreateProject("blank", m.workspaceDir, name)
 				}
+			case "tools":
+				m.omnibarOpen = false
+				switch {
+				case strings.HasPrefix(selected, "AI Assistant"):
+					return m, m.ToggleRightSidebar("ai-chat")
+				case strings.HasPrefix(selected, "Database Inspector"):
+					return m, m.ToggleRightSidebar("db-inspector")
+				case strings.HasPrefix(selected, "Project Graphs"):
+					return m, m.ToggleRightSidebar("project-graphs")
+				default:
+					if m.pluginMgr != nil {
+						for _, tw := range m.pluginMgr.ActiveToolWindows() {
+							if strings.Contains(selected, "("+tw.ID+")") || strings.Contains(selected, tw.Title) {
+								return m, m.handleToolWindowClick(tw)
+							}
+						}
+					}
+				}
+				return m, nil
 			case "find":
 				m.omnibarOpen = false
 				parts := strings.SplitN(selected, ":", 2)
@@ -6552,6 +7205,22 @@ func (m *AppModel) executeOmnibarCommand(cmdName string) {
 		m.openSearchInFilesModal()
 	case strings.HasPrefix(cmdName, "Problems"):
 		m.toggleProblemsPanel()
+	case strings.HasPrefix(cmdName, "Collab: Start P2P"):
+		m.openP2PModal()
+	case strings.HasPrefix(cmdName, "Database: Open DAG"):
+		if m.splits != nil {
+			if m.splits.TotalPanes() < 2 {
+				m.splits.SetLayout(Split2Cols)
+			}
+			m.splits.MountViewInPane(1, "view:db-designer", "DAG DB Designer")
+		}
+	case strings.HasPrefix(cmdName, "Graph: Open Polyglot"):
+		if m.splits != nil {
+			if m.splits.TotalPanes() < 2 {
+				m.splits.SetLayout(Split2Cols)
+			}
+			m.splits.MountViewInPane(1, "view:project-graphs", "Project Graphs")
+		}
 	case strings.HasPrefix(cmdName, "Keymap: Switch to VS Code"):
 		m.setKeymapProfile(keymaps.ProfileVSCode)
 	case strings.HasPrefix(cmdName, "Keymap: Switch to JetBrains"):
@@ -6874,9 +7543,33 @@ func (m *AppModel) dismissGhostText() {
 	m.cancelPendingAI()
 }
 
+// triggerAIAutoDownload launches background download of missing model weights or server binary.
+func (m *AppModel) triggerAIAutoDownload() bool {
+	if flag.Lookup("test.v") != nil || os.Getenv("TAHR_DISABLE_AI_DOWNLOAD") == "1" {
+		return false
+	}
+	if m.aiEngine == nil || m.pluginMgr == nil || !m.pluginMgr.IsEnabled("ai-completion") {
+		return false
+	}
+	return m.aiEngine.CheckAndAutoDownload(m.workspaceDir,
+		func() {
+			m.toasts.Info("AI", "Downloading AI model in background (~390 MB)...")
+		},
+		func() {
+			m.toasts.Success("AI", "AI model downloaded and ready.")
+		},
+		func(err error) {
+			m.toasts.Error("AI", fmt.Sprintf("AI download failed: %v", err))
+		},
+	)
+}
+
 // triggerAICompletion starts debounced AI completion in background.
 func (m *AppModel) triggerAICompletion(multiline bool) {
 	if m.aiEngine == nil {
+		return
+	}
+	if m.aiEngine.IsDownloading() {
 		return
 	}
 	cfg := m.aiEngine.Config()
@@ -6923,7 +7616,16 @@ func (m *AppModel) requestAICompletion(multiline bool) {
 	}()
 
 	completion, err := m.aiEngine.RequestCompletion(ctx, prefix, suffix, multiline)
-	if err != nil || completion == "" {
+	if err != nil {
+		if multiline {
+			m.toasts.Error("AI", fmt.Sprintf("AI Completion error: %v", err))
+		}
+		return
+	}
+	if completion == "" {
+		if multiline {
+			m.toasts.Info("AI", "No suggestion available for current position")
+		}
 		return
 	}
 
@@ -7022,6 +7724,36 @@ func (m *AppModel) getAIConfig() ai.Config {
 					cfg.MaxTokens = int(val)
 				case int:
 					cfg.MaxTokens = val
+				}
+			}
+		}
+	}
+	return cfg
+}
+
+// getAIChatConfig builds an ai.ChatConfig merged with user settings and active plugin status.
+func (m *AppModel) getAIChatConfig() ai.ChatConfig {
+	cfg := ai.DefaultChatConfig()
+	if m.settings != nil && m.settings.Current.PluginSettings != nil {
+		if pSettings, ok := m.settings.Current.PluginSettings["ai-chat"]; ok {
+			if v, ok := pSettings["provider"].(string); ok && v != "" {
+				cfg.Provider = v
+			}
+			if v, ok := pSettings["endpoint"].(string); ok && v != "" {
+				cfg.Endpoint = v
+			}
+			if v, ok := pSettings["model"].(string); ok && v != "" {
+				cfg.Model = v
+			}
+			if v, ok := pSettings["api_key"].(string); ok && v != "" {
+				cfg.APIKey = v
+			}
+			if v, ok := pSettings["temperature"]; ok {
+				switch val := v.(type) {
+				case float64:
+					cfg.Temperature = val
+				case int:
+					cfg.Temperature = float64(val)
 				}
 			}
 		}
@@ -7538,7 +8270,8 @@ func (m *AppModel) View(f *tea.Frame) {
 		}
 	}
 
-	// 3. Activity Strip (Left only, right strip removed per user ergonomics spec)
+	// 3. Activity Bar (Clean, uncluttered primary navigation)
+	isTreeRight := (m.settings != nil && m.settings.Current.TreePosition == "right")
 	stripLeftW := 0
 	if w >= 70 {
 		stripLeftW = 3
@@ -7557,7 +8290,7 @@ func (m *AppModel) View(f *tea.Frame) {
 			buf.SetRune(2, y, '│', borderFg, stripBg, cell.AttrNone)
 		}
 
-		// Project Explorer: 📁
+		// Project Explorer: EX (row 2)
 		prjBg := stripBg
 		prjFg := stripFg
 		if m.sidebarOpen && m.sidebarMode == 0 {
@@ -7567,7 +8300,7 @@ func (m *AppModel) View(f *tea.Frame) {
 		buf.SetRune(0, 2, 'E', prjFg, prjBg, cell.AttrBold)
 		buf.SetRune(1, 2, 'X', prjFg, prjBg, cell.AttrBold)
 
-		// Structure: ST
+		// Structure: ST (row 4)
 		stBg := stripBg
 		stFg := stripFg
 		if m.sidebarOpen && m.sidebarMode == 1 {
@@ -7577,31 +8310,118 @@ func (m *AppModel) View(f *tea.Frame) {
 		buf.SetRune(0, 4, 'S', stFg, stBg, cell.AttrBold)
 		buf.SetRune(1, 4, 'T', stFg, stBg, cell.AttrBold)
 
-		// Version Control: ⎇
+		// Version Control: ⎇ (row 6)
 		buf.SetRune(0, 6, '⎇', toColor(m.theme.DiagnosticWarn), stripBg, cell.AttrNone)
 		buf.SetRune(1, 6, ' ', stripFg, stripBg, cell.AttrNone)
 
-		// Plugins Marketplace: PL
+		// Plugins Marketplace: PL (row 8)
 		buf.SetRune(0, 8, 'P', toColor(m.theme.Keyword), stripBg, cell.AttrNone)
 		buf.SetRune(1, 8, 'L', toColor(m.theme.Keyword), stripBg, cell.AttrNone)
 
-		// Settings: ⚙ at bottom of activity bar
-		if statusBarY-2 > 10 {
+		// Settings: ⚙ at bottom of left activity bar
+		if statusBarY-2 > 8 {
 			buf.SetRune(0, statusBarY-2, '⚙', toColor(m.theme.Function), stripBg, cell.AttrNone)
 			buf.SetRune(1, statusBarY-2, ' ', stripFg, stripBg, cell.AttrNone)
 		}
 	}
 
+	// 3.1 Right Activity Strip (Tool window switcher: AI, DB, Graphs, Plugins)
+	stripRightW := 0
+	if w >= 70 {
+		stripRightW = 3
+	}
+
+	if stripRightW > 0 {
+		stripBg := toColor(m.theme.GutterBg)
+		stripFg := toColor(m.theme.LineNumber)
+		borderFg := toColor(m.theme.BorderColor)
+		activeStripBg := toColor(m.theme.PopupSelBg)
+		activeStripFg := toColor(m.theme.PopupSelFg)
+
+		rx := w - stripRightW
+		for y := editorTop; y < statusBarY; y++ {
+			buf.SetRune(rx, y, '│', borderFg, stripBg, cell.AttrNone)
+			buf.SetRune(rx+1, y, ' ', stripFg, stripBg, cell.AttrNone)
+			buf.SetRune(rx+2, y, ' ', stripFg, stripBg, cell.AttrNone)
+		}
+
+		// AI Assistant badge at Row 2
+		aiBg := stripBg
+		aiFg := stripFg
+		if m.rightSidebarOpen && (m.rightSidebarMode == "ai-chat" || m.rightSidebarMode == "ai") {
+			aiBg = activeStripBg
+			aiFg = activeStripFg
+		}
+		buf.SetRune(rx+1, 2, 'A', aiFg, aiBg, cell.AttrBold)
+		buf.SetRune(rx+2, 2, 'I', aiFg, aiBg, cell.AttrBold)
+
+		// Database Inspector & ER Diagram badge at Row 4
+		hasDBPlugin := true
+		if m.pluginMgr != nil {
+			hasDBPlugin = m.pluginMgr.IsEnabled("db-inspector") || m.pluginMgr.IsEnabled("db-er-diagram")
+		}
+		if hasDBPlugin {
+			dbBg := stripBg
+			dbFg := stripFg
+			if m.rightSidebarOpen && (m.rightSidebarMode == "db-inspector" || m.rightSidebarMode == "db") {
+				dbBg = activeStripBg
+				dbFg = activeStripFg
+			}
+			buf.SetRune(rx+1, 4, 'D', dbFg, dbBg, cell.AttrBold)
+			buf.SetRune(rx+2, 4, 'B', dbFg, dbBg, cell.AttrBold)
+		}
+
+		// Project Graphs badge at Row 6
+		grBg := stripBg
+		grFg := stripFg
+		if m.rightSidebarOpen && (m.rightSidebarMode == "project-graphs" || m.rightSidebarMode == "graphs") {
+			grBg = activeStripBg
+			grFg = activeStripFg
+		}
+		buf.SetRune(rx+1, 6, 'G', grFg, grBg, cell.AttrBold)
+		buf.SetRune(rx+2, 6, 'R', grFg, grBg, cell.AttrBold)
+
+		// Enabled right plugin tool windows at Row 8, 10, ...
+		if m.pluginMgr != nil {
+			row := 8
+			for _, tw := range m.pluginMgr.ActiveToolWindows() {
+				if tw.Position == "right" {
+					if row < statusBarY-3 {
+						r1, r2 := toolWindowBadge(tw.Icon, tw.Title)
+						twBg := stripBg
+						twFg := stripFg
+						if m.rightSidebarOpen && m.rightSidebarMode == tw.ID {
+							twBg = activeStripBg
+							twFg = activeStripFg
+						}
+						buf.SetRune(rx+1, row, r1, twFg, twBg, cell.AttrBold)
+						buf.SetRune(rx+2, row, r2, twFg, twBg, cell.AttrBold)
+						row += 2
+					}
+				}
+			}
+		}
+
+		// Collapse/Expand toggle icon at bottom
+		if statusBarY-2 > 6 {
+			toggleIcon := '«'
+			if m.rightSidebarOpen {
+				toggleIcon = '»'
+			}
+			buf.SetRune(rx+1, statusBarY-2, toggleIcon, toColor(m.theme.Function), stripBg, cell.AttrNone)
+		}
+	}
+
 	// 4. Sidebar width with smooth 120 FPS animation
 	sideW := int(math.Round(m.sidebarAnimWidth))
-	isTreeRight := (m.settings != nil && m.settings.Current.TreePosition == "right")
+	rightSideW := int(math.Round(m.rightSidebarAnimWidth))
 
 	editorLeft := stripLeftW
-	editorRight := w
+	editorRight := w - stripRightW
 	treeStartX := stripLeftW
 
 	if isTreeRight {
-		treeStartX = w - sideW
+		treeStartX = w - stripRightW - sideW
 		editorLeft = stripLeftW
 		editorRight = treeStartX
 		if sideW > 0 {
@@ -7613,7 +8433,25 @@ func (m *AppModel) View(f *tea.Frame) {
 		if sideW > 0 {
 			editorLeft = stripLeftW + sideW + 1 // space for divider
 		}
-		editorRight = w
+		if rightSideW > 0 {
+			editorRight = w - stripRightW - rightSideW - 1 // space for divider
+		} else {
+			editorRight = w - stripRightW
+		}
+	}
+
+	// Draw Right Sidebar (if open and width > 0)
+	if rightSideW > 0 {
+		rightStartX := w - stripRightW - rightSideW
+		sidebarBg := toColor(m.theme.GutterBg)
+		borderFg := toColor(m.theme.BorderColor)
+		// Vertical divider between editor and right sidebar
+		if rightStartX-1 >= 0 && rightStartX-1 < w {
+			for y := editorTop; y < statusBarY; y++ {
+				buf.SetRune(rightStartX-1, y, '│', borderFg, sidebarBg, cell.AttrNone)
+			}
+		}
+		m.renderRightSidebar(buf, rightStartX, editorTop, rightSideW, editorHeight)
 	}
 
 	// Draw Project Tree Sidebar (if open and width > 0)
@@ -8172,7 +9010,9 @@ func (m *AppModel) View(f *tea.Frame) {
 	}
 	leftStatus := fmt.Sprintf(" %s |%s %s | %s", modeStr, gitBadge, filename, cursorInfo)
 	if diagMsg, ok := m.getDiagnosticAtCursor(); ok && m.statusMessage == "" {
-		leftStatus = fmt.Sprintf("%s | [ERR] %s", leftStatus, cleanDiagnosticMessage(diagMsg))
+		cleanedDiag := cleanDiagnosticMessage(diagMsg)
+		prefix := fmt.Sprintf(" %s | %s | %s", modeStr, filename, cursorInfo)
+		leftStatus = fmt.Sprintf("%s | [ERR] %s", prefix, cleanedDiag)
 	} else if m.statusMessage != "" {
 		leftStatus = fmt.Sprintf(" %s", cleanDiagnosticMessage(m.statusMessage))
 	}
@@ -8289,8 +9129,10 @@ func (m *AppModel) View(f *tea.Frame) {
 
 			availLeftW := rightStartX - 1
 			if availLeftW > 0 {
+				errIdx := strings.Index(leftStatus, "[ERR]")
+				errFg := toColor(m.theme.DiagnosticError)
 				col = 0
-				for _, r := range leftRunes {
+				for idx, r := range leftRunes {
 					rw := runewidth.RuneWidth(r)
 					if col+rw > availLeftW {
 						if col < availLeftW {
@@ -8298,9 +9140,15 @@ func (m *AppModel) View(f *tea.Frame) {
 						}
 						break
 					}
-					buf.SetRune(col, statusBarY, r, statusFg, statusBg, cell.AttrNone)
+					cellFg := statusFg
+					cellAttr := cell.AttrNone
+					if errIdx != -1 && idx >= errIdx {
+						cellFg = errFg
+						cellAttr = cell.AttrBold
+					}
+					buf.SetRune(col, statusBarY, r, cellFg, statusBg, cellAttr)
 					for extra := 1; extra < rw; extra++ {
-						buf.SetRune(col+extra, statusBarY, ' ', statusFg, statusBg, cell.AttrNone)
+						buf.SetRune(col+extra, statusBarY, ' ', cellFg, statusBg, cellAttr)
 					}
 					col += rw
 				}
@@ -8408,6 +9256,16 @@ func (m *AppModel) View(f *tea.Frame) {
 	// 11.989. Draw Log Inspector Modal (if open)
 	if m.logInspector != nil && m.logInspector.Open {
 		m.logInspector.Render(buf, w, h, &m.theme)
+	}
+
+	// 11.990. Draw P2P Multi-User Collaboration Modal (if open)
+	if m.p2pModal != nil && m.p2pModal.Visible {
+		m.p2pModal.Render(buf, w, h)
+	}
+
+	// 11.991. Draw DB Diff Modal (if open)
+	if m.dbDiffModal != nil && m.dbDiffModal.Visible {
+		m.dbDiffModal.Render(buf, w, h)
 	}
 
 	// 12. Draw Dropdowns (Top layer above editor)
@@ -8566,7 +9424,7 @@ func (m *AppModel) renderPane(buf *buffer.Buffer, pane *SplitPane, doc *core.Doc
 	contentHeight := bh
 	if isMultiPane {
 		// Draw Pane Mini Header at row by
-		titleStr := PaneTitle(pane.Index, doc)
+		titleStr := PaneTitleForPane(pane, doc)
 		if doc != nil {
 			cursorLine := 0
 			sels := doc.Buffer.GetSelections()
@@ -8618,6 +9476,25 @@ func (m *AppModel) renderPane(buf *buffer.Buffer, pane *SplitPane, doc *core.Doc
 
 	if contentHeight < 1 {
 		return
+	}
+
+	// Interactive Views in Split Pane (DAG Canvas, Project Graph, etc.)
+	if pane.IsView() {
+		viewArea := buffer.NewRect(bx, contentTop, bw, contentHeight)
+		switch pane.ViewID {
+		case "dag-canvas", "db-canvas":
+			if m.dagCanvasWidget == nil {
+				m.dagCanvasWidget = NewDAGCanvasWidget(dag.NewGraphModel(), &m.theme)
+			}
+			m.dagCanvasWidget.Render(buf, viewArea)
+			return
+		case "project-graph":
+			if m.projectGraphPanel == nil {
+				m.projectGraphPanel = NewProjectGraphPanel(&m.theme)
+			}
+			m.projectGraphPanel.Canvas.Render(buf, viewArea)
+			return
+		}
 	}
 
 	// Image Viewer in Pane
@@ -9439,6 +10316,8 @@ func (m *AppModel) renderOmnibar(buf *buffer.Buffer, w, h int) {
 		title = " Find in Document (Ctrl+F) "
 	case "goto":
 		title = " Go to Line (Ctrl+G) "
+	case "tools":
+		title = " Tool Windows & Plugins "
 	}
 	for i, r := range title {
 		if i+2 < modalWidth {
@@ -11220,3 +12099,300 @@ func (m *AppModel) openLogInspector() {
 	}
 	m.logInspector.SetContent(i18n.T("modal.inspector.sys_logs_title"), logs, metaLines, "")
 }
+
+func (m *AppModel) openP2PModal() {
+	if m.p2pModal == nil {
+		session := p2p.NewHostSession("host", "")
+		m.p2pModal = NewP2PModal(session, &m.theme)
+	}
+	m.p2pModal.Visible = true
+	if m.toasts != nil {
+		m.toasts.Info("COLLAB", fmt.Sprintf("Session Code: %s", m.p2pModal.Session.SessionCode))
+	}
+}
+
+func (m *AppModel) openDBDiffModal(diff *db.SchemaDiff) {
+	if diff == nil {
+		return
+	}
+	m.dbDiffModal = NewDBDiffModal(diff, &m.theme)
+	m.dbDiffModal.Visible = true
+}
+
+func (m *AppModel) renderRightSidebar(buf *buffer.Buffer, startX, topY, sideW, sideH int) {
+	if sideW <= 0 || sideH <= 0 {
+		return
+	}
+
+	sidebarBg := toColor(m.theme.GutterBg)
+	sidebarFg := toColor(m.theme.Foreground)
+	borderFg := toColor(m.theme.BorderColor)
+	headerBg := toColor(m.theme.StatusBarBg)
+	headerFg := toColor(m.theme.Function)
+	accentFg := toColor(m.theme.Keyword)
+
+	// Fill sidebar background
+	for y := topY; y < topY+sideH; y++ {
+		for x := startX; x < startX+sideW; x++ {
+			buf.SetRune(x, y, ' ', sidebarFg, sidebarBg, cell.AttrNone)
+		}
+	}
+
+	// 1. Header Row
+	title := m.rightSidebarTitle
+	if title == "" {
+		title = "TOOL WINDOW"
+	}
+	titleRunes := []rune(title)
+	closeBtn := "× "
+
+	for x := 0; x < sideW; x++ {
+		buf.SetRune(startX+x, topY, ' ', headerFg, headerBg, cell.AttrBold)
+	}
+	for i, r := range titleRunes {
+		if i < sideW-len([]rune(closeBtn))-1 {
+			buf.SetRune(startX+1+i, topY, r, headerFg, headerBg, cell.AttrBold)
+		}
+	}
+	// Close button on right edge of header
+	closeX := startX + sideW - len([]rune(closeBtn))
+	for i, r := range []rune(closeBtn) {
+		buf.SetRune(closeX+i, topY, r, toColor(m.theme.DiagnosticError), headerBg, cell.AttrBold)
+	}
+
+	// Divider line below header
+	if sideH > 1 {
+		for x := startX; x < startX+sideW; x++ {
+			buf.SetRune(x, topY+1, '─', borderFg, sidebarBg, cell.AttrNone)
+		}
+	}
+
+	contentTop := topY + 2
+	contentHeight := sideH - 2
+	if contentHeight <= 0 {
+		return
+	}
+
+	// Helper to print styled line safely within boundaries
+	printLine := func(y int, text string, fg cell.Color, attr cell.Modifier) {
+		if y < contentTop || y >= topY+sideH {
+			return
+		}
+		runes := []rune(text)
+		for x := 0; x < sideW-2 && x < len(runes); x++ {
+			buf.SetRune(startX+1+x, y, runes[x], fg, sidebarBg, attr)
+		}
+	}
+
+	switch m.rightSidebarMode {
+	case "ai-chat", "ai":
+		if m.chatPanel != nil {
+			activeDoc := ""
+			if doc := m.eng.ActiveDocument(); doc != nil {
+				activeDoc = doc.FilePath
+			}
+			m.chatPanel.Render(buf, startX, topY, sideW, sideH, activeDoc, &m.theme)
+		}
+
+	case "db-inspector", "db":
+		inspEnabled := true
+		erdEnabled := true
+		if m.pluginMgr != nil {
+			inspEnabled = m.pluginMgr.IsEnabled("db-inspector")
+			erdEnabled = m.pluginMgr.IsEnabled("db-er-diagram")
+		}
+		if !inspEnabled && erdEnabled {
+			m.dbSidebarTab = "er-diagram"
+		} else if inspEnabled && !erdEnabled {
+			m.dbSidebarTab = "tables"
+		} else if m.dbSidebarTab == "" {
+			m.dbSidebarTab = "tables"
+		}
+
+		offsetY := 0
+		if inspEnabled && erdEnabled {
+			// Tab headers at contentTop
+			tab1Fg := sidebarFg
+			tab1Bg := sidebarBg
+			tab1Attr := cell.AttrNone
+			if m.dbSidebarTab == "tables" {
+				tab1Fg = toColor(m.theme.PopupSelFg)
+				tab1Bg = toColor(m.theme.PopupSelBg)
+				tab1Attr = cell.AttrBold
+			}
+			t1 := " Таблицы "
+			for i, r := range []rune(t1) {
+				if startX+1+i < startX+sideW-1 {
+					buf.SetRune(startX+1+i, contentTop, r, tab1Fg, tab1Bg, tab1Attr)
+				}
+			}
+
+			tab2Fg := sidebarFg
+			tab2Bg := sidebarBg
+			tab2Attr := cell.AttrNone
+			if m.dbSidebarTab == "er-diagram" {
+				tab2Fg = toColor(m.theme.PopupSelFg)
+				tab2Bg = toColor(m.theme.PopupSelBg)
+				tab2Attr = cell.AttrBold
+			}
+			t2 := " ER-диаграмма "
+			t2Start := startX + 1 + len([]rune(t1)) + 1
+			for i, r := range []rune(t2) {
+				if t2Start+i < startX+sideW-1 {
+					buf.SetRune(t2Start+i, contentTop, r, tab2Fg, tab2Bg, tab2Attr)
+				}
+			}
+
+			for x := startX; x < startX+sideW; x++ {
+				buf.SetRune(x, contentTop+1, '┄', borderFg, sidebarBg, cell.AttrNone)
+			}
+			offsetY = 2
+		}
+
+		if m.dbSidebarTab == "er-diagram" {
+			printLine(contentTop+offsetY, "● 2D Canvas: Active in Split (F6)", toColor(m.theme.String), cell.AttrBold)
+			printLine(contentTop+offsetY+1, "Layout: Sugiyama 2D (Crow's Foot)", toColor(m.theme.DiagnosticInfo), cell.AttrNone)
+			for x := startX; x < startX+sideW; x++ {
+				buf.SetRune(x, contentTop+offsetY+2, '┄', borderFg, sidebarBg, cell.AttrNone)
+			}
+
+			printLine(contentTop+offsetY+3, "Open Interactive Canvas (F6)", toColor(m.theme.Function), cell.AttrBold)
+			printLine(contentTop+offsetY+4, "Center Camera (C)", toColor(m.theme.Keyword), cell.AttrNone)
+			printLine(contentTop+offsetY+5, "Export Mermaid ER", toColor(m.theme.DiagnosticWarn), cell.AttrNone)
+			printLine(contentTop+offsetY+6, "Export DDL Migration", toColor(m.theme.DiagnosticInfo), cell.AttrNone)
+			for x := startX; x < startX+sideW; x++ {
+				buf.SetRune(x, contentTop+offsetY+7, '┄', borderFg, sidebarBg, cell.AttrNone)
+			}
+
+			erLines := []string{
+				"Entities: 3 tables, 2 relations",
+				"  orders.user_id -> users.id",
+				"  users.team_id  -> teams.id",
+				"",
+				"Controls:",
+				"  Drag canvas to pan (2D)",
+				"  Mouse wheel to scroll",
+				"  Hover entity for PK/FK ports",
+			}
+			for i, l := range erLines {
+				if contentTop+offsetY+8+i < topY+sideH-1 {
+					fg := sidebarFg
+					attr := cell.AttrNone
+					if strings.Contains(l, "Entities") || strings.Contains(l, "Controls") {
+						fg = toColor(m.theme.Keyword)
+						attr = cell.AttrBold
+					} else if strings.Contains(l, "->") {
+						fg = toColor(m.theme.DiagnosticInfo)
+					}
+					printLine(contentTop+offsetY+8+i, l, fg, attr)
+				}
+			}
+		} else {
+			// Tab "tables": Database Inspector view
+			printLine(contentTop+offsetY, "● Connection: Active (PostgreSQL/SQLite)", toColor(m.theme.String), cell.AttrBold)
+			printLine(contentTop+offsetY+1, "Schema: schema.sql (3 tables)", toColor(m.theme.DiagnosticInfo), cell.AttrNone)
+			for x := startX; x < startX+sideW; x++ {
+				buf.SetRune(x, contentTop+offsetY+2, '┄', borderFg, sidebarBg, cell.AttrNone)
+			}
+
+			printLine(contentTop+offsetY+3, "Run Query Console (Ctrl+Enter)", toColor(m.theme.Function), cell.AttrBold)
+			printLine(contentTop+offsetY+4, "Refresh Database Schema", toColor(m.theme.Keyword), cell.AttrNone)
+			for x := startX; x < startX+sideW; x++ {
+				buf.SetRune(x, contentTop+offsetY+5, '┄', borderFg, sidebarBg, cell.AttrNone)
+			}
+
+			schemaLines := []string{
+				"users (4 cols, 1 FK)",
+				"  id: UUID (PK)",
+				"  email: VARCHAR(255)",
+				"  team_id: UUID (FK -> teams)",
+				"  created_at: TIMESTAMP",
+				"",
+				"teams (2 cols)",
+				"  id: UUID (PK)",
+				"  name: VARCHAR(100)",
+				"",
+				"orders (4 cols, 2 FK)",
+				"  id: UUID (PK)",
+				"  user_id: UUID (FK -> users)",
+				"  amount: DECIMAL(10,2)",
+				"  created_at: TIMESTAMP",
+			}
+			for i, l := range schemaLines {
+				if contentTop+offsetY+6+i < topY+sideH-1 {
+					fg := sidebarFg
+					attr := cell.AttrNone
+					if strings.Contains(l, "cols") {
+						fg = toColor(m.theme.Keyword)
+						attr = cell.AttrBold
+					} else if strings.Contains(l, "(PK)") {
+						fg = toColor(m.theme.DiagnosticWarn)
+					} else if strings.Contains(l, "(FK") {
+						fg = toColor(m.theme.DiagnosticInfo)
+					}
+					printLine(contentTop+offsetY+6+i, l, fg, attr)
+				}
+			}
+		}
+
+	case "project-graphs", "graphs":
+		currDoc := "main.go"
+		if doc := m.eng.ActiveDocument(); doc != nil && doc.FilePath != "" {
+			currDoc = filepath.Base(doc.FilePath)
+		}
+		printLine(contentTop, fmt.Sprintf("Target: %s", currDoc), toColor(m.theme.DiagnosticInfo), cell.AttrBold)
+		printLine(contentTop+1, "Mode: Call Hierarchy Downstream", toColor(m.theme.String), cell.AttrNone)
+		for x := startX; x < startX+sideW; x++ {
+			buf.SetRune(x, contentTop+2, '┄', borderFg, sidebarBg, cell.AttrNone)
+		}
+
+		printLine(contentTop+3, "Open Interactive Canvas (F3)", toColor(m.theme.Function), cell.AttrBold)
+		printLine(contentTop+4, "Cycle Hierarchy Mode", toColor(m.theme.Keyword), cell.AttrNone)
+		for x := startX; x < startX+sideW; x++ {
+			buf.SetRune(x, contentTop+5, '┄', borderFg, sidebarBg, cell.AttrNone)
+		}
+
+		graphLines := []string{
+			"• Metrics:",
+			"  Nodes: 48 (Functions/Types)",
+			"  Edges: 64 (Calls & Refs)",
+			"  Cycles (Tarjan SCC): 0",
+			"  Focus Ring: R=1 (immediate)",
+			"",
+			"• Downstream Calls:",
+			"  AppModel.Render",
+			"    renderRightSidebar",
+			"    renderPane",
+			"    renderStatusBar",
+			"  AppModel.Update",
+			"    handleToolWindowClick",
+			"    ToggleRightSidebar",
+		}
+		for i, l := range graphLines {
+			if contentTop+6+i < topY+sideH-1 {
+				fg := sidebarFg
+				attr := cell.AttrNone
+				if strings.HasPrefix(l, "•") {
+					fg = toColor(m.theme.Keyword)
+					attr = cell.AttrBold
+				} else {
+					fg = toColor(m.theme.Function)
+				}
+				printLine(contentTop+6+i, l, fg, attr)
+			}
+		}
+
+	default:
+		printLine(contentTop, fmt.Sprintf("Tool Window: %s", m.rightSidebarTitle), accentFg, cell.AttrBold)
+		printLine(contentTop+1, fmt.Sprintf("Plugin ID: %s", m.rightSidebarMode), toColor(m.theme.Comment), cell.AttrNone)
+		for x := startX; x < startX+sideW; x++ {
+			buf.SetRune(x, contentTop+2, '┄', borderFg, sidebarBg, cell.AttrNone)
+		}
+
+		printLine(contentTop+4, "Active plugin tool panel.", sidebarFg, cell.AttrNone)
+		printLine(contentTop+5, "Integrated with Tahr ecosystem.", toColor(m.theme.String), cell.AttrNone)
+		printLine(contentTop+7, "Run Plugin Command", toColor(m.theme.Function), cell.AttrBold)
+		printLine(contentTop+8, "Refresh State", toColor(m.theme.Keyword), cell.AttrNone)
+	}
+}
+

@@ -829,6 +829,35 @@ func (st *SettingsState) getCategoryFields(catIdx int) []Field {
 			fields = append(fields, Field{Key: "repo_" + r.ID, Label: label, Value: val})
 		}
 
+		// Installed Plugins Enable / Disable toggles
+		if st.pluginMgr != nil {
+			installed := st.pluginMgr.InstalledPlugins()
+			sort.Slice(installed, func(i, j int) bool {
+				return installed[i].Name < installed[j].Name
+			})
+
+			if len(installed) > 0 {
+				fields = append(fields, Field{
+					Key:   "header_installed_plugins",
+					Label: "── Installed Plugins (Toggle Enable / Disable) ──",
+					Value: "",
+				})
+
+				for _, p := range installed {
+					enabled := st.pluginMgr.IsEnabled(p.ID)
+					status := i18n.T("settings.val.enabled")
+					if !enabled {
+						status = i18n.T("settings.val.disabled")
+					}
+					fields = append(fields, Field{
+						Key:   "plugin_" + p.ID,
+						Label: p.Name,
+						Value: status,
+					})
+				}
+			}
+		}
+
 		// Configurable plugin settings (clean list only for plugins with schemas!)
 		if st.pluginMgr != nil {
 			installed := st.pluginMgr.InstalledPlugins()

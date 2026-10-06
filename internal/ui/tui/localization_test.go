@@ -140,14 +140,18 @@ func TestMarketplace_CategoriesAndFiltering(t *testing.T) {
 		Category: "lsp",
 		LSP:      &plugin.LSPConfig{ServerName: "test-lsp", Command: "test-lsp"},
 	})
-	_, _ = mgr.InstallDeclarative(plugin.Manifest{
+	_, errInstall := mgr.InstallDeclarative(plugin.Manifest{
 		ID:            "test-i18n",
 		Name:          "Test Translation",
 		Version:       "1.0.0",
 		Category:      "i18n",
 		Localizations: []plugin.LocalizationConfig{{Locale: "de", File: "de.json"}},
 	})
+	t.Logf("errInstall: %v", errInstall)
 
+	for _, p := range mgr.InstalledPlugins() {
+		t.Logf("installed plugin: id=%s, cat=%s", p.ID, p.Category)
+	}
 	modal := NewMarketplaceModal(mgr)
 	modal.Open = true
 

@@ -21,10 +21,21 @@ const (
 	Split6Grid  SplitLayoutMode = 7 // 3 columns x 2 rows (6 panes)
 )
 
+// PaneContentType defines whether the split pane displays a text document or an interactive view.
+type PaneContentType int
+
+const (
+	PaneContentDocument PaneContentType = 0
+	PaneContentView      PaneContentType = 1
+)
+
 // SplitPane represents a single independent viewport slice inside the multi-split grid.
 type SplitPane struct {
 	Index           int
+	ContentType     PaneContentType
 	DocID           string
+	ViewID          string
+	ViewTitle       string
 	ViewportX       int
 	ViewportY       int
 	TargetViewportY float64
@@ -32,6 +43,26 @@ type SplitPane struct {
 	ScrollVelocity  float64
 	Bounds          buffer.Rect // Area on screen (X, Y, Width, Height)
 	GutterWidth     int
+}
+
+// IsView reports whether this pane is hosting an interactive view (WASM or Canvas) rather than a code document.
+func (p *SplitPane) IsView() bool {
+	return p.ContentType == PaneContentView && p.ViewID != ""
+}
+
+// SetView mounts an interactive view into this pane.
+func (p *SplitPane) SetView(viewID, title string) {
+	p.ContentType = PaneContentView
+	p.ViewID = viewID
+	p.ViewTitle = title
+}
+
+// SetDocument mounts a code document into this pane.
+func (p *SplitPane) SetDocument(docID string) {
+	p.ContentType = PaneContentDocument
+	p.DocID = docID
+	p.ViewID = ""
+	p.ViewTitle = ""
 }
 
 // SplitManager coordinates active panes, multi-file assignments, and grid calculations.
@@ -113,6 +144,18 @@ func (sm *SplitManager) PaneAt(idx int) *SplitPane {
 	return nil
 }
 
+// MountViewInPane mounts a view into a pane at the given index.
+func (sm *SplitManager) MountViewInPane(idx int, viewID, title string) bool {
+	for len(sm.Panes) <= idx {
+		sm.Panes = append(sm.Panes, SplitPane{Index: len(sm.Panes)})
+	}
+	if p := sm.PaneAt(idx); p != nil {
+		p.SetView(viewID, title)
+		return true
+	}
+	return false
+}
+
 // CycleLayout cycles between all 1 to 6 pane split configurations.
 func (sm *SplitManager) CycleLayout() SplitLayoutMode {
 	switch sm.Mode {
@@ -133,7 +176,14 @@ func (sm *SplitManager) CycleLayout() SplitLayoutMode {
 	default:
 		sm.Mode = SplitSingle
 	}
-	if sm.ActiveIndex >= sm.TotalPanes() {
+	total := sm.TotalPanes()
+	for len(sm.Panes) < total {
+		sm.Panes = append(sm.Panes, SplitPane{Index: len(sm.Panes)})
+	}
+	if len(sm.Panes) > total {
+		sm.Panes = sm.Panes[:total]
+	}
+	if sm.ActiveIndex >= total {
 		sm.ActiveIndex = 0
 	}
 	return sm.Mode
@@ -142,8 +192,15 @@ func (sm *SplitManager) CycleLayout() SplitLayoutMode {
 // SetLayout explicitly sets the layout mode and keeps ActiveIndex within bounds.
 func (sm *SplitManager) SetLayout(mode SplitLayoutMode) {
 	sm.Mode = mode
-	if sm.ActiveIndex >= sm.TotalPanes() {
-		sm.ActiveIndex = max(0, sm.TotalPanes()-1)
+	total := sm.TotalPanes()
+	for len(sm.Panes) < total {
+		sm.Panes = append(sm.Panes, SplitPane{Index: len(sm.Panes)})
+	}
+	if len(sm.Panes) > total {
+		sm.Panes = sm.Panes[:total]
+	}
+	if sm.ActiveIndex >= total {
+		sm.ActiveIndex = max(0, total-1)
 	}
 }
 
@@ -179,9 +236,13 @@ func (sm *SplitManager) UpdateLayout(area buffer.Rect, docs []*core.Document, ac
 		sm.Panes = sm.Panes[:total]
 	}
 
-	// Assign documents to panes: active document to active pane, other open docs to other panes
+	// Assign documents to panes: active document to active pane, other open docs to other panes.
+	// Panes hosting interactive views (IsView == true) are preserved!
 	for i := range sm.Panes {
 		p := &sm.Panes[i]
+		if p.IsView() {
+			continue
+		}
 		if p.DocID == "" {
 			if i < len(docs) {
 				p.DocID = docs[i].ID
@@ -191,7 +252,9 @@ func (sm *SplitManager) UpdateLayout(area buffer.Rect, docs []*core.Document, ac
 		}
 	}
 	if sm.ActiveIndex >= 0 && sm.ActiveIndex < len(sm.Panes) && activeDocID != "" {
-		sm.Panes[sm.ActiveIndex].DocID = activeDocID
+		if !sm.Panes[sm.ActiveIndex].IsView() {
+			sm.Panes[sm.ActiveIndex].DocID = activeDocID
+		}
 	}
 
 	x := area.X
@@ -282,6 +345,20 @@ func (sm *SplitManager) ActivePane() *SplitPane {
 	return nil
 }
 
+// SetPaneView mounts a view into a pane at the given index.
+func (sm *SplitManager) SetPaneView(idx int, viewID, title string) {
+	if p := sm.PaneAt(idx); p != nil {
+		p.SetView(viewID, title)
+	}
+}
+
+// SetPaneDoc mounts a document into a pane at the given index.
+func (sm *SplitManager) SetPaneDoc(idx int, docID string) {
+	if p := sm.PaneAt(idx); p != nil {
+		p.SetDocument(docID)
+	}
+}
+
 // PaneTitle formats the mini pill title for a pane.
 func PaneTitle(idx int, doc *core.Document) string {
 	name := "untitled"
@@ -295,4 +372,20 @@ func PaneTitle(idx int, doc *core.Document) string {
 		}
 	}
 	return fmt.Sprintf(" [%d: %s%s] ", idx+1, name, mod)
+}
+
+// PaneTitleForPane formats the mini pill title for a pane, supporting both code documents and interactive views.
+func PaneTitleForPane(pane *SplitPane, doc *core.Document) string {
+	if pane != nil && pane.IsView() {
+		title := pane.ViewTitle
+		if title == "" {
+			title = pane.ViewID
+		}
+		return fmt.Sprintf(" [%d: %s] ", pane.Index+1, title)
+	}
+	idx := 0
+	if pane != nil {
+		idx = pane.Index
+	}
+	return PaneTitle(idx, doc)
 }

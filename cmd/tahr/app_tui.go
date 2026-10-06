@@ -124,6 +124,7 @@ func runTUI(projectDir string, files []string, themeName string) error {
 	if mgr, err := plugin.NewManager(""); err == nil {
 		pluginMgr = mgr
 		defer pluginMgr.Close()
+		pluginMgr.SetProjectDir(workspaceRoot)
 		pluginMgr.SetEditorHost(eng)
 		app.SetPluginManager(pluginMgr)
 	}

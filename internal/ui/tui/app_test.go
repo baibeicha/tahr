@@ -9,6 +9,7 @@ import (
 	"github.com/baibeicha/goatui/pkg/core/buffer"
 	"github.com/baibeicha/goatui/pkg/driver/input"
 	"github.com/baibeicha/goatui/pkg/tea"
+	"github.com/baibeicha/goatui/pkg/ui"
 
 	"tahr/internal/core"
 	cbuf "tahr/internal/core/buffer"
@@ -1064,15 +1065,16 @@ func TestAppModel_TreeDockPositioning(t *testing.T) {
 		t.Fatalf("expected '│' divider at col 29 for left dock, got %v", cellDivLeft)
 	}
 
-	// 2. Right Dock: treeStartX = 100 - 26 = 74; divider = 73
+	// 2. Right Dock: treeStartX = 100 - 3 - 26 = 71; divider = 70
+	m.toasts = ui.NewToastManager(4)
 	m.settings.Current.TreePosition = "right"
 	frameBufRight := buffer.NewBuffer(100, 30)
 	frameRight := &tea.Frame{Buffer: frameBufRight}
 	m.View(frameRight)
 
-	cellDivRight := frameBufRight.Cell(73, 2)
+	cellDivRight := frameBufRight.Cell(70, 2)
 	if cellDivRight == nil || cellDivRight.Rune != '│' {
-		t.Fatalf("expected '│' divider at col 73 for right dock, got %v", cellDivRight)
+		t.Fatalf("expected '│' divider at col 70 for right dock, got %v", cellDivRight)
 	}
 }
 
