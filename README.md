@@ -38,28 +38,45 @@
 
 ## 📦 Installation & Quick Start
 
-### Option 1: Pre-built Binaries (Recommended)
+### 1-Line Universal Installer (Linux & macOS)
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/baibeicha/tahr/releases):
+Install or update Tahr with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/baibeicha/tahr/main/install.sh | bash
+```
+
+
+
+### Debian / Ubuntu (APT / DEB)
+
+Download the `.deb` package from [Releases](https://github.com/baibeicha/tahr/releases) and install via `apt`:
+
+```bash
+sudo apt install ./tahr_*_amd64.deb
+```
+
+### Go Install
+
+```bash
+go install github.com/baibeicha/tahr/cmd/tahr@latest
+```
+
+### Pre-built Binaries
+
+Download directly from [GitHub Releases](https://github.com/baibeicha/tahr/releases):
 
 * **Windows**: `tahr-windows-amd64.zip`
 * **Linux**: `tahr-linux-amd64.tar.gz`
 * **macOS (Apple Silicon)**: `tahr-darwin-arm64.tar.gz`
 * **macOS (Intel)**: `tahr-darwin-amd64.tar.gz`
 
-Extract and place `tahr` into your `PATH`.
-
-### Option 2: Build from Source
+### Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/baibeicha/tahr.git
 cd tahr
-
-# Build the Tahr binary
 go build -o bin/tahr ./cmd/tahr
-
-# Run Tahr
 ./bin/tahr
 ```
 

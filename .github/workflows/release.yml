@@ -67,8 +67,10 @@ jobs:
           VERSION="${{ github.event.inputs.tag_name || github.ref_name }}"
           go build -ldflags="-s -w -X main.Version=${VERSION}" -o "dist/${BINARY_NAME}" ./cmd/tahr
 
-      - name: Archive Binary
+      - name: Archive Binary & Build Debian Package
         run: |
+          VERSION="${{ github.event.inputs.tag_name || github.ref_name }}"
+          RAW_VER="${VERSION#v}"
           cd dist
           if [ "${{ matrix.os }}" = "windows" ]; then
             zip -9 "../${{ matrix.artifact_name }}" "tahr${{ matrix.suffix }}"
@@ -77,11 +79,31 @@ jobs:
           fi
           cd ..
 
+          if [ "${{ matrix.os }}" = "linux" ]; then
+            DEB_ARCH="${{ matrix.arch }}"
+            DEB_DIR="deb-pkg-${DEB_ARCH}"
+            mkdir -p "${DEB_DIR}/DEBIAN" "${DEB_DIR}/usr/bin"
+            cp "dist/tahr" "${DEB_DIR}/usr/bin/tahr"
+            chmod 755 "${DEB_DIR}/usr/bin/tahr"
+            cat <<EOF > "${DEB_DIR}/DEBIAN/control"
+Package: tahr
+Version: ${RAW_VER}
+Section: devel
+Priority: optional
+Architecture: ${DEB_ARCH}
+Maintainer: baibeicha <myvvot@gmail.com>
+Description: Modern, Blazing-Fast Terminal & Graphical IDE built in Go
+EOF
+            dpkg-deb --build "${DEB_DIR}" "tahr_${RAW_VER}_${DEB_ARCH}.deb"
+          fi
+
       - name: Upload Artifact Asset
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.artifact_name }}
+            *.deb
 
   package-plugins:
     name: Package Official Plugins (.tahr)

@@ -1,0 +1,19 @@
+# Maintainer: baibeicha <myvvot@gmail.com>
+pkgname=tahr-bin
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Modern, Blazing-Fast Terminal & Graphical IDE built in Go"
+arch=('x86_64' 'aarch64')
+url="https://github.com/baibeicha/tahr"
+license=('MIT')
+provides=('tahr')
+conflicts=('tahr')
+
+source_x86_64=("${url}/releases/download/v${pkgver}/tahr-linux-amd64.tar.gz")
+source_aarch64=("${url}/releases/download/v${pkgver}/tahr-linux-arm64.tar.gz")
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+    install -Dm755 "${srcdir}/tahr" "${pkgdir}/usr/bin/tahr"
+}
