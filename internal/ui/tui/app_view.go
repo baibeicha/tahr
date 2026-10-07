@@ -1430,7 +1430,7 @@ func (m *AppModel) View(f *tea.Frame) {
 	// 12.5. Draw Toasts (Top Right)
 	if m.toasts != nil {
 		m.toasts.Tick(time.Now())
-		m.toasts.Draw(buf, buffer.NewRect(0, 1, w, h-1))
+		m.renderToasts(buf, buffer.NewRect(0, 1, w, h-1))
 	}
 
 	// 13. Draw Mouse Hover Tooltip (Top layer)

@@ -219,7 +219,7 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		isRightStrip := stripRightW > 0 && msg.X >= m.width-stripRightW
 		isRightSidebar := m.rightSidebarOpen && rightSideW > 0 && msg.X >= m.width-stripRightW-rightSideW && msg.X < m.width-stripRightW
 		if !isRightStrip && !isRightSidebar {
-			if m.toasts.HandleClick(msg.X, msg.Y, buffer.Rect{X: 0, Y: 0, Width: m.width, Height: m.height}) {
+			if m.handleToastClick(msg.X, msg.Y) {
 				return m, nil
 			}
 		}
@@ -849,7 +849,6 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				case "split":
 					if m.splits != nil {
 						m.splits.CycleLayout()
-						m.toasts.Info("SPLIT", m.splits.ModeTitle())
 						m.statusMessage = fmt.Sprintf("Split: %s", m.splits.ModeTitle())
 					}
 					return m, nil
@@ -863,7 +862,6 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				case "term":
 					if m.terminal != nil {
 						m.terminal.Toggle()
-						m.toasts.Info("TERMINAL", fmt.Sprintf("Terminal: %v", m.terminal.Open))
 					}
 					return m, nil
 				case "hud":
@@ -949,7 +947,6 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 							m.settings.Current.TreePosition = "left"
 						}
 						_ = m.settings.Save()
-						m.toasts.Info("TREE DOCK", fmt.Sprintf("Docked to %s", m.settings.Current.TreePosition))
 					}
 					return m, nil
 				}
@@ -963,7 +960,6 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			if msg.X >= hit.closeX-1 && msg.X <= hit.closeX+1 {
 				m.eng.CloseBuffer(hit.docID)
 				m.onActiveDocumentChanged()
-				m.toasts.Info("CLOSED", "Buffer closed")
 				return m, nil
 			} else if msg.X >= hit.minX && msg.X <= hit.maxX {
 				_ = m.eng.SwitchBuffer(hit.docID)

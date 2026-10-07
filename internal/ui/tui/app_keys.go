@@ -1074,7 +1074,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		if k.HasCtrl() && (k.Rune == '`' || k.Rune == '~' || k.BaseKey == '`' || k.BaseKey == '~') {
 			m.terminal.Toggle()
 			m.terminalFocused = m.terminal.Open
-			m.toasts.Info("TERMINAL", fmt.Sprintf("Terminal: %v", m.terminal.Open))
 			if m.terminal.Open {
 				_ = m.terminal.EnsureSession()
 				return m, tickTerm()
@@ -1146,7 +1145,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		if m.terminal != nil {
 			m.terminal.Toggle()
 			m.terminalFocused = m.terminal.Open
-			m.toasts.Info("TERMINAL", fmt.Sprintf("Terminal: %v", m.terminal.Open))
 			if m.terminal.Open {
 				_ = m.terminal.EnsureSession()
 				return m, tickTerm()
@@ -1284,7 +1282,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		if m.terminal != nil {
 			m.terminal.Toggle()
 			m.terminalFocused = m.terminal.Open
-			m.toasts.Info("TERMINAL", fmt.Sprintf("Terminal: %v", m.terminal.Open))
 			if m.terminal.Open {
 				_ = m.terminal.EnsureSession()
 				return m, tickTerm()
@@ -1296,7 +1293,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		// F8: Toggle Debugger HUD
 		if m.dapHUD != nil {
 			m.dapHUD.Toggle()
-			m.toasts.Info("DEBUGGER", fmt.Sprintf("Debug HUD: %v", m.dapHUD.Open))
 		}
 		return m, nil
 
@@ -1410,7 +1406,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 				m.settings.Current.TreePosition = "left"
 			}
 			_ = m.settings.Save()
-			m.toasts.Info("TREE DOCK", fmt.Sprintf("Docked to %s", m.settings.Current.TreePosition))
 		}
 		return m, nil
 	}
@@ -1420,7 +1415,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		paneIdx := int(k.Rune - '1')
 		if m.splits != nil && paneIdx < m.splits.TotalPanes() {
 			m.switchActivePane(paneIdx)
-			m.toasts.Info("SPLIT", fmt.Sprintf("Focused Pane %d", paneIdx+1))
 		}
 		return m, nil
 	}
@@ -1459,13 +1453,11 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		if k.Type == input.KeyRight {
 			if m.splits != nil && m.splits.TotalPanes() > 1 {
 				m.switchActivePane(m.splits.NextPane())
-				m.toasts.Info("SPLIT", fmt.Sprintf("Focused Pane %d", m.splits.ActiveIndex+1))
 				return m, nil
 			}
 		} else if k.Type == input.KeyLeft {
 			if m.splits != nil && m.splits.TotalPanes() > 1 {
 				m.switchActivePane(m.splits.PrevPane())
-				m.toasts.Info("SPLIT", fmt.Sprintf("Focused Pane %d", m.splits.ActiveIndex+1))
 				return m, nil
 			}
 		} else if matchKey(k, 'm', 'ь') || k.Rune == 'm' || k.Rune == 'M' {
@@ -1473,11 +1465,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 			if m.settings != nil {
 				m.settings.Current.ShowMinimap = !m.settings.Current.ShowMinimap
 				_ = m.settings.Save()
-				stateStr := "Enabled"
-				if !m.settings.Current.ShowMinimap {
-					stateStr = "Disabled"
-				}
-				m.toasts.Info("MINIMAP", fmt.Sprintf("Minimap %s", stateStr))
 			}
 			return m, nil
 		}
@@ -1490,7 +1477,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 			// Ctrl+\ : Cycle split layout (1 -> 2 cols -> 2 rows -> 3 cols -> 4 grid -> 5 panes -> 6 grid)
 			if m.splits != nil {
 				m.splits.CycleLayout()
-				m.toasts.Info("SPLIT", m.splits.ModeTitle())
 				m.statusMessage = fmt.Sprintf("Split: %s", m.splits.ModeTitle())
 			}
 			return m, nil
@@ -1524,7 +1510,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 			if active := m.eng.ActiveDocument(); active != nil {
 				m.eng.CloseBuffer(active.ID)
 				m.onActiveDocumentChanged()
-				m.toasts.Info("CLOSED", "Buffer closed")
 			}
 			return m, nil
 
@@ -1621,7 +1606,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 			// Ctrl+Shift+5 / Ctrl+%: Toggle Terminal Split
 			if m.terminal != nil {
 				m.terminal.ToggleSplit()
-				m.toasts.Info("TERMINAL", "Toggled terminal split mode")
 			}
 			return m, nil
 
@@ -1673,7 +1657,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 			if selText != "" {
 				_ = clipboard.Write(selText)
 				m.clipboardText = selText
-				m.toasts.Info("CLIPBOARD", fmt.Sprintf("Copied %d characters", len(selText)))
 				return m, nil
 			}
 			if m.runner != nil && m.runner.IsRunning() {
@@ -1694,7 +1677,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 				_ = clipboard.Write(selText)
 				m.clipboardText = selText
 				_ = m.eng.Dispatch(core.Command{ID: core.CmdDeleteBackward})
-				m.toasts.Info("CLIPBOARD", fmt.Sprintf("Cut %d characters", len(selText)))
 				m.notifyLSPChange()
 				m.ensureCursorVisible()
 				return m, nil
@@ -1705,7 +1687,6 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 			clip, err := clipboard.Read()
 			if err == nil && clip != "" {
 				_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: clip})
-				m.toasts.Info("CLIPBOARD", fmt.Sprintf("Pasted %d characters", len(clip)))
 				m.notifyLSPChange()
 				m.ensureCursorVisible()
 				return m, nil

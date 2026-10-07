@@ -1177,9 +1177,6 @@ func (m *AppModel) autoSaveAllModified() {
 		if doc.Buffer != nil && doc.Buffer.IsModified() && doc.FilePath != "" {
 			if err := doc.Buffer.SaveAtomic(doc.FilePath); err == nil {
 				m.statusMessage = fmt.Sprintf("Auto-saved %s", filepath.Base(doc.FilePath))
-				if m.toasts != nil {
-					m.toasts.Success("AUTO-SAVE", filepath.Base(doc.FilePath))
-				}
 			}
 		}
 	}

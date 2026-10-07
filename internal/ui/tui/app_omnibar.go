@@ -524,54 +524,44 @@ func (m *AppModel) executeOmnibarCommand(cmdName string) {
 	case strings.HasPrefix(cmdName, "Split: Single Pane"):
 		if m.splits != nil {
 			m.splits.SetLayout(SplitSingle)
-			m.toasts.Info("SPLIT", "Single Pane (1)")
 		}
 	case strings.HasPrefix(cmdName, "Split: 2 Columns"):
 		if m.splits != nil {
 			m.splits.SetLayout(Split2Cols)
-			m.toasts.Info("SPLIT", "2 Columns (2)")
 		}
 	case strings.HasPrefix(cmdName, "Split: 2 Rows"):
 		if m.splits != nil {
 			m.splits.SetLayout(Split2Rows)
-			m.toasts.Info("SPLIT", "2 Rows (2)")
 		}
 	case strings.HasPrefix(cmdName, "Split: 3 Columns"):
 		if m.splits != nil {
 			m.splits.SetLayout(Split3Cols)
-			m.toasts.Info("SPLIT", "3 Columns (3)")
 		}
 	case strings.HasPrefix(cmdName, "Split: 4 Grid"):
 		if m.splits != nil {
 			m.splits.SetLayout(Split4Grid)
-			m.toasts.Info("SPLIT", "4 Grid (2x2)")
 		}
 	case strings.HasPrefix(cmdName, "Split: 5 Panes"):
 		if m.splits != nil {
 			m.splits.SetLayout(Split5Panes)
-			m.toasts.Info("SPLIT", "5 Panes (5)")
 		}
 	case strings.HasPrefix(cmdName, "Split: 6 Grid"):
 		if m.splits != nil {
 			m.splits.SetLayout(Split6Grid)
-			m.toasts.Info("SPLIT", "6 Grid (3x2)")
 		}
 	case strings.HasPrefix(cmdName, "Split: Cycle"):
 		if m.splits != nil {
 			m.splits.CycleLayout()
-			m.toasts.Info("SPLIT", m.splits.ModeTitle())
 		}
 	case strings.HasPrefix(cmdName, "Split: Next Pane"):
 		if m.splits != nil {
 			idx := m.splits.NextPane()
 			m.switchActivePane(idx)
-			m.toasts.Info("SPLIT", fmt.Sprintf("Focused Pane %d", idx+1))
 		}
 	case strings.HasPrefix(cmdName, "Split: Previous Pane"):
 		if m.splits != nil {
 			idx := m.splits.PrevPane()
 			m.switchActivePane(idx)
-			m.toasts.Info("SPLIT", fmt.Sprintf("Focused Pane %d", idx+1))
 		}
 	case strings.HasPrefix(cmdName, "Tree: Move Dock"):
 		if m.settings != nil {
@@ -581,7 +571,6 @@ func (m *AppModel) executeOmnibarCommand(cmdName string) {
 				m.settings.Current.TreePosition = "left"
 			}
 			_ = m.settings.Save()
-			m.toasts.Info("TREE DOCK", fmt.Sprintf("Docked to %s", m.settings.Current.TreePosition))
 		}
 	case strings.HasPrefix(cmdName, "Settings: Open Settings"):
 		if m.settings != nil {
@@ -590,18 +579,15 @@ func (m *AppModel) executeOmnibarCommand(cmdName string) {
 	case strings.HasPrefix(cmdName, "View: Toggle Integrated Terminal"):
 		if m.terminal != nil {
 			m.terminal.Toggle()
-			m.toasts.Info("TERMINAL", fmt.Sprintf("Terminal: %v", m.terminal.Open))
 		}
 	case strings.HasPrefix(cmdName, "Debug: Toggle Debugger HUD"):
 		if m.dapHUD != nil {
 			m.dapHUD.Toggle()
-			m.toasts.Info("DEBUGGER", fmt.Sprintf("Debug HUD: %v", m.dapHUD.Open))
 		}
 	case strings.HasPrefix(cmdName, "View: Toggle Code Minimap"):
 		if m.settings != nil {
 			m.settings.Current.ShowMinimap = !m.settings.Current.ShowMinimap
 			_ = m.settings.Save()
-			m.toasts.Info("MINIMAP", fmt.Sprintf("Minimap: %v", m.settings.Current.ShowMinimap))
 		}
 	case strings.HasPrefix(cmdName, "Plugins: Open Marketplace"):
 		if m.settings != nil {

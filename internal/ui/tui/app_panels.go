@@ -803,9 +803,6 @@ func (m *AppModel) jumpToSymbolFromGraph(nodeID string) {
 					doc.Buffer.SetSelections([]corebuf.Selection{corebuf.NewSelection(pos, pos)})
 					m.ensureCursorVisible()
 					m.statusMessage = fmt.Sprintf("Jumped to %s in %s:%d", node.Title, filepath.Base(targetPath), targetLine+1)
-					if m.toasts != nil {
-						m.toasts.Success("NAVIGATE", fmt.Sprintf("Opened %s:%d", filepath.Base(targetPath), targetLine+1))
-					}
 					return
 				}
 			}
@@ -842,9 +839,6 @@ func (m *AppModel) jumpToSymbolFromGraph(nodeID string) {
 				doc.Buffer.SetSelections([]corebuf.Selection{corebuf.NewSelection(pos, pos)})
 				m.ensureCursorVisible()
 				m.statusMessage = fmt.Sprintf("Jumped to %s in %s:%d", funcName, filepath.Base(doc.FilePath), l+1)
-				if m.toasts != nil {
-					m.toasts.Success("NAVIGATE", fmt.Sprintf("Opened %s:%d", filepath.Base(doc.FilePath), l+1))
-				}
 				return
 			}
 		}
@@ -905,9 +899,6 @@ func (m *AppModel) jumpToSymbolFromGraph(nodeID string) {
 				doc.Buffer.SetSelections([]corebuf.Selection{corebuf.NewSelection(pos, pos)})
 				m.ensureCursorVisible()
 				m.statusMessage = fmt.Sprintf("Jumped to %s in %s:%d", funcName, filepath.Base(foundPath), foundLine+1)
-				if m.toasts != nil {
-					m.toasts.Success("NAVIGATE", fmt.Sprintf("Opened %s:%d", filepath.Base(foundPath), foundLine+1))
-				}
 				return
 			}
 		}
@@ -1195,9 +1186,6 @@ func (m *AppModel) closeSplitPane(idx int) {
 		m.splits.ActiveIndex = 0
 		m.recalculatePaneLayout()
 		m.onActiveDocumentChanged()
-		if m.toasts != nil {
-			m.toasts.Info("SPLIT", "Closed split pane")
-		}
 		return
 	}
 	switch m.splits.Mode {
@@ -1213,9 +1201,6 @@ func (m *AppModel) closeSplitPane(idx int) {
 	}
 	m.recalculatePaneLayout()
 	m.onActiveDocumentChanged()
-	if m.toasts != nil {
-		m.toasts.Info("SPLIT", "Closed split pane")
-	}
 }
 
 // handleToolWindowClick toggles or opens a tool window contributed by a plugin.

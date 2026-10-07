@@ -204,16 +204,10 @@ func (m *AppModel) performUndo() {
 	doc := m.eng.ActiveDocument()
 	if doc == nil {
 		m.statusMessage = "No active document"
-		if m.toasts != nil {
-			m.toasts.Warn("UNDO", "No active document")
-		}
 		return
 	}
 	if !doc.Buffer.Undo() {
 		m.statusMessage = "Already at oldest change"
-		if m.toasts != nil {
-			m.toasts.Warn("UNDO", "Already at oldest change")
-		}
 		return
 	}
 	doc.Viewport.GutterWidth = core.ComputeGutterWidth(doc.Buffer.TotalLines())
@@ -224,12 +218,9 @@ func (m *AppModel) performUndo() {
 	m.syncViewportOffsets()
 	m.dismissGhostText()
 	m.statusMessage = "Undo"
-	if m.toasts != nil {
-		m.toasts.Info("UNDO", "Undo")
-	}
 }
 
-// performRedo performs a redo operation with user feedback via status message and toast notifications.
+// performRedo performs a redo operation with user feedback via status message.
 func (m *AppModel) performRedo() {
 	if m.eng == nil {
 		return
@@ -237,16 +228,10 @@ func (m *AppModel) performRedo() {
 	doc := m.eng.ActiveDocument()
 	if doc == nil {
 		m.statusMessage = "No active document"
-		if m.toasts != nil {
-			m.toasts.Warn("REDO", "No active document")
-		}
 		return
 	}
 	if !doc.Buffer.Redo() {
 		m.statusMessage = "Already at newest change"
-		if m.toasts != nil {
-			m.toasts.Warn("REDO", "Already at newest change")
-		}
 		return
 	}
 	doc.Viewport.GutterWidth = core.ComputeGutterWidth(doc.Buffer.TotalLines())
@@ -257,9 +242,6 @@ func (m *AppModel) performRedo() {
 	m.syncViewportOffsets()
 	m.dismissGhostText()
 	m.statusMessage = "Redo"
-	if m.toasts != nil {
-		m.toasts.Info("REDO", "Redo")
-	}
 }
 
 // gutterWidth returns width required for line numbers and status glyphs.
