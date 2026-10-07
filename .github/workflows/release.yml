@@ -102,16 +102,14 @@ jobs:
           mkdir -p plugin-dist
           cp plugins/*.tahr plugin-dist/
           cd plugin-dist
-          zip -9 ../tahr-plugins-all.zip *.tahr
+          zip -9 tahr-plugins-all.zip *.tahr
           cd ..
 
-      - name: Upload Plugins Archive Asset
+      - name: Upload Plugins Assets
         uses: actions/upload-artifact@v4
         with:
-          name: tahr-plugins-all.zip
-          path: |
-            tahr-plugins-all.zip
-            plugins/*.tahr
+          name: tahr-plugins-bundle
+          path: plugin-dist/*
 
   publish-release:
     name: Publish GitHub Release
