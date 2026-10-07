@@ -129,7 +129,7 @@ func (tp *ToolPromptModal) HandleClick(mouseX, mouseY, w, h int) bool {
 
 	if mouseX < startX || mouseX >= startX+modalW || mouseY < startY || mouseY >= startY+modalH {
 		tp.Close()
-		return true
+		return false
 	}
 
 	// Click on [D: Install Automatically] button (rendered at startY+4)

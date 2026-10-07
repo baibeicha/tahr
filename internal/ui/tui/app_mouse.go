@@ -573,9 +573,12 @@ func (m *AppModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// 0.63 Tool Prompt modal intercepts mouse clicks
 	if m.toolPrompt != nil && m.toolPrompt.Open {
 		if msg.Action == input.MousePress {
-			m.toolPrompt.HandleClick(msg.X, msg.Y, m.width, m.height)
+			if m.toolPrompt.HandleClick(msg.X, msg.Y, m.width, m.height) {
+				return m, nil
+			}
+		} else {
+			return m, nil
 		}
-		return m, nil
 	}
 
 	// 0.64 Git modal intercepts mouse clicks, drag, and wheel

@@ -129,6 +129,7 @@ func TestImageViewer_RenderAndScaleModes(t *testing.T) {
 	}
 
 	// Render into a buffer and ensure half-blocks or metadata are drawn
+	iv.Protocol = media.ProtoHalfBlock
 	buf := buffer.NewBuffer(60, 20)
 	theme := ui.DefaultTheme()
 	iv.Render(buf, buffer.NewRect(5, 5, 50, 14), &theme)

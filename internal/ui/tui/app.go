@@ -279,7 +279,8 @@ type AppModel struct {
 	gitModal *GitModal
 
 	// Missing tool / auto-install prompt modal
-	toolPrompt *ToolPromptModal
+	toolPrompt    *ToolPromptModal
+	promptedTools map[string]bool
 
 	// Live Markdown ANSI/ASCII Preview
 	mdPreviewOpen bool
@@ -485,6 +486,7 @@ func NewAppModel(eng *core.Engine) *AppModel {
 		quickFixModal:       NewQuickFixModal(),
 		gitModal:            NewGitModal(cwd),
 		toolPrompt:          NewToolPromptModal(),
+		promptedTools:       make(map[string]bool),
 		mdRenderer:          NewMarkdownRenderer(""),
 		editorColorPicker:   NewColorPickerModal(),
 		editorColorSwatches: make([]EditorColorSwatch, 0),

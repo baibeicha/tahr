@@ -130,9 +130,14 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 
 	// 5. Prompt user if tool is missing
 	if lspCmd == "" && toolName != "" {
-		if m.toolPrompt != nil && !m.toolPrompt.Open {
-			bestInstallCmd, fallbackCmds := plugin.ResolveSmartInstallCommand(installCmd, toolName, m.pluginMgr)
-			m.toolPrompt.OpenForTool(
+		if m.promptedTools == nil {
+			m.promptedTools = make(map[string]bool)
+		}
+		if !m.promptedTools[toolName] {
+			m.promptedTools[toolName] = true
+			if m.toolPrompt != nil && !m.toolPrompt.Open {
+				bestInstallCmd, fallbackCmds := plugin.ResolveSmartInstallCommand(installCmd, toolName, m.pluginMgr)
+				m.toolPrompt.OpenForTool(
 				toolName,
 				pluginName,
 				bestInstallCmd,
@@ -184,6 +189,7 @@ func (m *AppModel) EnsureLSPForFile(filePath string) {
 					m.EnsureLSPForFile(filePath)
 				},
 			)
+			}
 		}
 		return
 	}

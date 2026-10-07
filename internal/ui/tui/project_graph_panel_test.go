@@ -137,6 +137,9 @@ func TestProjectGraph_CloseSplitMechanisms(t *testing.T) {
 	}
 
 	// 2. Test closing via Esc key
+	if m.toolPrompt != nil {
+		m.toolPrompt.Close()
+	}
 	_, _ = m.handleKey(input.Key{Type: input.KeyEsc})
 	if m.splits.TotalPanes() != 1 {
 		t.Fatalf("expected split pane to close on Esc, total panes: %d", m.splits.TotalPanes())
@@ -168,7 +171,10 @@ func TestProjectGraph_CloseSplitMechanisms(t *testing.T) {
 	if m.splits.TotalPanes() != 2 {
 		t.Fatalf("expected 2 panes after reopen")
 	}
-	_, _ = m.handleKey(input.Key{Rune: 23, BaseKey: 'w'})
+	if m.toolPrompt != nil {
+		m.toolPrompt.Close()
+	}
+	_, _ = m.handleKey(input.Key{Type: input.KeyRune, Rune: 23, Mod: input.ModCtrl, BaseKey: 'w'})
 	if m.splits.TotalPanes() != 1 {
 		t.Fatalf("expected split pane to close on Ctrl+W, total panes: %d", m.splits.TotalPanes())
 	}
