@@ -139,8 +139,13 @@ func runTUI(projectDir string, files []string, themeName string) error {
 		}(activeDoc.FilePath)
 	}
 
-	// Launch GoatUI TEA Loop with Kitty disambiguation and Ctrl+C catching
-	p := tea.NewProgram(app, tea.WithKittyKeyboard(), tea.WithCatchCtrlC(true))
+	// Launch GoatUI TEA Loop with Kitty disambiguation, raw console driver and Ctrl+C catching
+	var programOpts []tea.ProgramOption
+	if drv, err := newTerminalDriver(); err == nil && drv != nil {
+		programOpts = append(programOpts, tea.WithDriver(drv))
+	}
+	programOpts = append(programOpts, tea.WithKittyKeyboard(), tea.WithCatchCtrlC(true))
+	p := tea.NewProgram(app, programOpts...)
 	app.SetProgram(p)
 	_, err = p.Run()
 	if err != nil {
