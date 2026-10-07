@@ -53,6 +53,15 @@ var latinToCyrillic = map[rune]rune{
 	',': 'б', '.': 'ю',
 }
 
+var cyrillicToLatin = func() map[rune]rune {
+	m := make(map[rune]rune, len(latinToCyrillic))
+	for k, v := range latinToCyrillic {
+		m[v] = k
+	}
+	return m
+}()
+
+
 
 
 // AppModel implements the goatui/pkg/tea.Model interface for Tahr TUI.

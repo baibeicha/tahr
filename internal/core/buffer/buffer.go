@@ -675,6 +675,9 @@ func (b *BufferImpl) Undo() bool {
 	}
 
 	restore := func(sels []Selection) {
+		if len(sels) == 0 {
+			sels = []Selection{NewCursor(b.ByteToPosition(0))}
+		}
 		b.selections = sels
 		b.primaryIndex = len(sels) - 1
 		if b.primaryIndex < 0 {
@@ -698,6 +701,9 @@ func (b *BufferImpl) Redo() bool {
 	}
 
 	restore := func(sels []Selection) {
+		if len(sels) == 0 {
+			sels = []Selection{NewCursor(b.ByteToPosition(0))}
+		}
 		b.selections = sels
 		b.primaryIndex = len(sels) - 1
 		if b.primaryIndex < 0 {

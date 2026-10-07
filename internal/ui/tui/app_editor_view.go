@@ -222,6 +222,7 @@ func (m *AppModel) performUndo() {
 	m.notifyLSPChange()
 	m.ensureCursorVisible()
 	m.syncViewportOffsets()
+	m.dismissGhostText()
 	m.statusMessage = "Undo"
 	if m.toasts != nil {
 		m.toasts.Info("UNDO", "Undo")
@@ -254,6 +255,7 @@ func (m *AppModel) performRedo() {
 	m.notifyLSPChange()
 	m.ensureCursorVisible()
 	m.syncViewportOffsets()
+	m.dismissGhostText()
 	m.statusMessage = "Redo"
 	if m.toasts != nil {
 		m.toasts.Info("REDO", "Redo")

@@ -180,3 +180,99 @@ func TestUndoRedo_EmptyAndNilEngine(t *testing.T) {
 	nilModel.performUndo()
 	nilModel.performRedo()
 }
+
+func TestUndoRedo_RealWorldTyping(t *testing.T) {
+	eng := core.NewEngine()
+	model := NewAppModel(eng)
+
+	// Type "hello world"
+	for _, r := range "hello world" {
+		var k input.Key
+		if r == ' ' {
+			k = input.Key{Type: input.KeySpace}
+		} else {
+			k = input.Key{Type: input.KeyRune, Rune: r}
+		}
+		updated, _ := model.Update(tea.KeyMsg{Key: k})
+		model = updated.(*AppModel)
+	}
+
+	doc := model.eng.ActiveDocument()
+	txt, _ := doc.Buffer.GetText()
+	if string(txt) != "hello world" {
+		t.Fatalf("expected 'hello world', got %q", string(txt))
+	}
+
+	// Undo 1: should undo "world"
+	updated, _ := model.Update(tea.KeyMsg{Key: input.Key{Type: input.KeyRune, Rune: 'z', Mod: input.ModCtrl}})
+	model = updated.(*AppModel)
+	txt, _ = doc.Buffer.GetText()
+	t.Logf("After undo 1: %q", string(txt))
+	if string(txt) != "hello " {
+		t.Fatalf("expected 'hello ' after undo 1, got %q", string(txt))
+	}
+
+	// Undo 2: should undo " "
+	updated, _ = model.Update(tea.KeyMsg{Key: input.Key{Type: input.KeyRune, Rune: 'z', Mod: input.ModCtrl}})
+	model = updated.(*AppModel)
+	txt, _ = doc.Buffer.GetText()
+	t.Logf("After undo 2: %q", string(txt))
+	if string(txt) != "hello" {
+		t.Fatalf("expected 'hello' after undo 2, got %q", string(txt))
+	}
+
+	// Undo 3: should undo "hello"
+	updated, _ = model.Update(tea.KeyMsg{Key: input.Key{Type: input.KeyRune, Rune: 'z', Mod: input.ModCtrl}})
+	model = updated.(*AppModel)
+	txt, _ = doc.Buffer.GetText()
+	t.Logf("After undo 3: %q", string(txt))
+	if string(txt) != "" {
+		t.Fatalf("expected '' after undo 3, got %q", string(txt))
+	}
+
+	// Test 2: Russian text typing and undo with various key representations
+	russianKeys := []struct {
+		name string
+		key  input.Key
+	}{
+		{"English Ctrl+z", input.Key{Type: input.KeyRune, Rune: 'z', Mod: input.ModCtrl}},
+		{"English Ctrl+Z", input.Key{Type: input.KeyRune, Rune: 'Z', Mod: input.ModCtrl}},
+		{"Russian Ctrl+я", input.Key{Type: input.KeyRune, Rune: 'я', Mod: input.ModCtrl}},
+		{"Russian Ctrl+Я", input.Key{Type: input.KeyRune, Rune: 'Я', Mod: input.ModCtrl}},
+		{"Kitty Russian with BaseKey z", input.Key{Type: input.KeyRune, Rune: 'я', BaseKey: 'z', Mod: input.ModCtrl}},
+		{"Zero rune with BaseKey z", input.Key{Type: input.KeyRune, Rune: 0, BaseKey: 'z', Mod: input.ModCtrl}},
+		{"Zero rune with BaseKey я", input.Key{Type: input.KeyRune, Rune: 0, BaseKey: 'я', Mod: input.ModCtrl}},
+		{"Raw byte 26 without ModCtrl", input.Key{Type: input.KeyRune, Rune: 26}},
+		{"Raw byte 26 with ModCtrl", input.Key{Type: input.KeyRune, Rune: 26, Mod: input.ModCtrl}},
+		{"Alt+Backspace", input.Key{Type: input.KeyBackspace, Mod: input.ModAlt}},
+		{"Ctrl+U", input.Key{Type: input.KeyRune, Rune: 'u', Mod: input.ModCtrl}},
+	}
+
+	for _, rk := range russianKeys {
+		t.Run(rk.name, func(t *testing.T) {
+			mEng := core.NewEngine()
+			mApp := NewAppModel(mEng)
+
+			// Type "тест"
+			for _, r := range "тест" {
+				up, _ := mApp.Update(tea.KeyMsg{Key: input.Key{Type: input.KeyRune, Rune: r}})
+				mApp = up.(*AppModel)
+			}
+			mDoc := mApp.eng.ActiveDocument()
+			curTxt, _ := mDoc.Buffer.GetText()
+			if string(curTxt) != "тест" {
+				t.Fatalf("expected 'тест', got %q", string(curTxt))
+			}
+
+			// Press undo key
+			up, _ := mApp.Update(tea.KeyMsg{Key: rk.key})
+			mApp = up.(*AppModel)
+			afterUndo, _ := mDoc.Buffer.GetText()
+			if string(afterUndo) != "" {
+				t.Fatalf("undo failed for key %s: expected empty text, got %q (status=%s)", rk.name, string(afterUndo), mApp.statusMessage)
+			}
+		})
+	}
+}
+
+

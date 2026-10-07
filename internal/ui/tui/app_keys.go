@@ -25,14 +25,17 @@ func matchKey(k input.Key, latin, cyrillic rune) bool {
 	s := unicode.ToLower(k.ShiftedKey)
 	lat := unicode.ToLower(latin)
 	cyr := unicode.ToLower(cyrillic)
-	if r == lat || r == cyr || b == lat || b == cyr || s == lat || s == cyr {
+	if lat != 0 && (r == lat || b == lat || s == lat) {
+		return true
+	}
+	if cyr != 0 && (r == cyr || b == cyr || s == cyr) {
 		return true
 	}
 	if len(k.Text) > 0 {
 		t := []rune(k.Text)
 		if len(t) == 1 {
 			tr := unicode.ToLower(t[0])
-			if tr == lat || tr == cyr {
+			if (lat != 0 && tr == lat) || (cyr != 0 && tr == cyr) {
 				return true
 			}
 		}
@@ -150,19 +153,23 @@ func MatchKeyToBinding(k input.Key, binding string) bool {
 		tokRune := runes[0]
 		tokLower := unicode.ToLower(tokRune)
 
-		if tokLower >= 'a' && tokLower <= 'z' {
-			ctrlByte := tokLower - 'a' + 1
-			if k.Rune == ctrlByte {
+		lat := tokLower
+		cyr := latinToCyrillic[tokLower]
+		if cyr == 0 {
+			if l, ok := cyrillicToLatin[tokLower]; ok {
+				lat = l
+				cyr = tokLower
+			}
+		}
+
+		if lat >= 'a' && lat <= 'z' {
+			ctrlByte := lat - 'a' + 1
+			if k.Rune == ctrlByte || (k.BaseKey != 0 && k.BaseKey == ctrlByte) {
 				return true
 			}
 		}
 
-		cyr := latinToCyrillic[tokLower]
-		if cyr != 0 && matchKey(k, tokLower, cyr) {
-			return true
-		}
-
-		if unicode.ToLower(k.Rune) == tokLower || unicode.ToLower(k.BaseKey) == tokLower || unicode.ToLower(k.ShiftedKey) == tokLower {
+		if matchKey(k, lat, cyr) {
 			return true
 		}
 
@@ -188,7 +195,8 @@ func (m *AppModel) MatchBinding(k input.Key, actionID string) bool {
 	}
 	switch actionID {
 	case "undo":
-		if (!k.HasShift() && (k.Rune == 26 || (k.HasCtrl() && (matchKey(k, 'z', 'я') || matchKey(k, 'u', 'г') || k.Rune == 21)))) ||
+		if (!k.HasShift() && (k.Rune == 26 || k.BaseKey == 26 || (k.HasCtrl() && (matchKey(k, 'z', 'я') || matchKey(k, 'u', 'г') || k.Rune == 21)))) ||
+			(!k.HasShift() && (k.BaseKey == 'z' || k.BaseKey == 'я') && (k.HasCtrl() || k.Rune == 26)) ||
 			(k.HasAlt() && !k.HasShift() && (k.Type == input.KeyBackspace || k.Rune == 8 || k.Rune == 127)) {
 			return true
 		}
@@ -2436,6 +2444,10 @@ func (m *AppModel) handleKey(k input.Key) (tea.Model, tea.Cmd) {
 		m.updateGhostText()
 
 	case input.KeyRune:
+		if k.HasCtrl() || (k.Rune >= 1 && k.Rune <= 26 && k.Rune != 9 && k.Rune != 10 && k.Rune != 13) {
+			// Discard unhandled Ctrl combinations to avoid corrupting buffer with control bytes
+			return m, nil
+		}
 		typedStr := string(k.Rune)
 		_ = m.eng.Dispatch(core.Command{ID: core.CmdInsertText, Args: typedStr})
 		m.notifyLSPChange()
