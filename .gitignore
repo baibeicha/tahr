@@ -1,5 +1,7 @@
 # Compiled binaries
 bin/
+dist/
+tahr
 *.exe
 *.exe~
 *.dll

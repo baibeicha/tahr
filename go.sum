@@ -2,6 +2,8 @@ github.com/baibeicha/bblib v0.0.0-20261006141721-87c5612e113e h1:Yh8crcLrq3DrRO/
 github.com/baibeicha/bblib v0.0.0-20261006141721-87c5612e113e/go.mod h1:MRdzmE9PNv65YSni5Ng1p9PD2I6+TfEqnyevhWKoTIM=
 github.com/baibeicha/goatui v0.0.0-20261006141241-a59681629bcd h1:zq6912P/hkWveOO5lmEQ0JtY60sWwAdUvEIEfDG8wO0=
 github.com/baibeicha/goatui v0.0.0-20261006141241-a59681629bcd/go.mod h1:84rzTpahqflaBsXxTU+/8moMjCyWESUIcxZaDhEKZnM=
+github.com/baibeicha/goatui v0.0.0-20261007082407-321beb4df108 h1:AWE6gsbRu2tzFhlepNwT7NUGwMAV8uCEKzE4mtKy/7k=
+github.com/baibeicha/goatui v0.0.0-20261007082407-321beb4df108/go.mod h1:84rzTpahqflaBsXxTU+/8moMjCyWESUIcxZaDhEKZnM=
 github.com/clipperhouse/uax29/v2 v2.2.0 h1:ChwIKnQN3kcZteTXMgb1wztSgaU+ZemkgWdohwgs8tY=
 github.com/clipperhouse/uax29/v2 v2.2.0/go.mod h1:EFJ2TJMRUaplDxHKj1qAEhCtQPW2tJSwu5BF98AuoVM=
 github.com/klauspost/compress v1.20.1 h1:T7kKElXUMXrUJ2E9QhQhxFtcK5rPyLdsGZvdbLMPdiQ=

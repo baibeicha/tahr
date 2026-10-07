@@ -637,10 +637,8 @@ func parseSourceWithFallback(fset *token.FileSet, src []byte) (*ast.File, int, e
 	if strings.Contains(err.Error(), "expected 'package'") || !bytes.Contains(src, []byte("package ")) {
 		syntheticHeader := "package main\n"
 		combined := append([]byte(syntheticHeader), src...)
-		altFset := token.NewFileSet()
-		file, altErr := parser.ParseFile(altFset, "src.go", combined, parser.ParseComments)
+		file, altErr := parser.ParseFile(fset, "src.go", combined, parser.ParseComments)
 		if altErr == nil {
-			*fset = *altFset
 			return file, len(syntheticHeader), nil
 		}
 	}

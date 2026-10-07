@@ -3,7 +3,6 @@
 package tui
 
 import (
-	"errors"
 	"io"
 	"os"
 	"os/exec"

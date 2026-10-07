@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/baibeicha/bblib v0.0.0-20261006141721-87c5612e113e
-	github.com/baibeicha/goatui v0.0.0-20261006141241-a59681629bcd
+	github.com/baibeicha/goatui v0.0.0-20261007082407-321beb4df108
 	github.com/klauspost/compress v1.20.1
 	github.com/mattn/go-runewidth v0.0.30
 	github.com/sahilm/fuzzy v0.1.3
