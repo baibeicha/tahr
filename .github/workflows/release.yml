@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (e.g. v0.2.0)'
+        required: false
+        default: 'v0.2.0'
 
 permissions:
   contents: write
@@ -58,7 +64,8 @@ jobs:
         run: |
           mkdir -p dist
           BINARY_NAME="tahr${{ matrix.suffix }}"
-          go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o "dist/${BINARY_NAME}" ./cmd/tahr
+          VERSION="${{ github.event.inputs.tag_name || github.ref_name }}"
+          go build -ldflags="-s -w -X main.Version=${VERSION}" -o "dist/${BINARY_NAME}" ./cmd/tahr
 
       - name: Archive Binary
         run: |
@@ -102,7 +109,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tahr-plugins-all.zip
-          path: tahr-plugins-all.zip
+          path: |
+            tahr-plugins-all.zip
+            plugins/*.tahr
 
   publish-release:
     name: Publish GitHub Release
@@ -121,10 +130,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
           files: release-assets/*
           generate_release_notes: true
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
